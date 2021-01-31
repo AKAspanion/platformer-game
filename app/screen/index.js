@@ -1,0 +1,82 @@
+import TileSet from "./tileset";
+
+export default class Screen {
+  constructor(canvas) {
+    this.buffer = document.createElement("canvas").getContext("2d");
+    this.context = canvas.getContext("2d");
+
+    this.tileSet = new TileSet(16, 8);
+  }
+
+  drawMap(map) {
+    const { images, tileSize } = this.tileSet;
+
+    for (let i = 0; i < map.length; i++) {
+      const row = map[i];
+      for (let j = 0; j < row.length; j++) {
+        const value = row[j];
+
+        if (value) {
+          const image = images[value];
+
+          let destinationX = j * tileSize;
+          let destinationY = i * tileSize;
+
+          this.buffer.drawImage(
+            image,
+            destinationX,
+            destinationY,
+            tileSize,
+            tileSize
+          );
+        }
+      }
+    }
+  }
+
+  drawBackground() {
+    this.buffer.drawImage(
+      this.tileSet.tileBackground,
+      0,
+      0,
+      this.buffer.canvas.width,
+      this.buffer.canvas.height
+    );
+  }
+
+  drawPlayer(rect, color1) {
+    this.buffer.fillStyle = color1;
+    this.buffer.fillRect(
+      Math.round(rect.x),
+      Math.round(rect.y),
+      rect.width,
+      rect.height
+    );
+  }
+
+  resize(width, height, ratio) {
+    if (height / width > ratio) {
+      this.context.canvas.height = width * ratio;
+      this.context.canvas.width = width;
+    } else {
+      this.context.canvas.height = height;
+      this.context.canvas.width = height / ratio;
+    }
+
+    this.context.imageSmoothingEnabled = false;
+  }
+
+  render() {
+    this.context.drawImage(
+      this.buffer.canvas,
+      0,
+      0,
+      this.buffer.canvas.width,
+      this.buffer.canvas.height,
+      0,
+      0,
+      this.context.canvas.width,
+      this.context.canvas.height
+    );
+  }
+}
