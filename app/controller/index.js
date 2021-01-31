@@ -7,10 +7,10 @@ export default class Controller {
     this.right = new Input();
   }
 
-  keyDownUp(type, key_code) {
+  keyDownUp(type, keyCode) {
     let down = type == "keydown" ? true : false;
 
-    switch (key_code) {
+    switch (keyCode) {
       case 37:
         this.left.getInput(down);
         break;
