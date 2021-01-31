@@ -9,15 +9,14 @@ export default class GameEngine {
     this.time = null;
     this.extraTime = 0;
     this.animationFrameRequest = null;
+    this.engineLoop = (t) => this.loop(t);
   }
 
-  loop() {
-    this.animationFrameRequest = window.requestAnimationFrame(() =>
-      this.loop()
-    );
+  loop(timeStamp) {
+    this.animationFrameRequest = window.requestAnimationFrame(this.engineLoop);
 
-    this.extraTime += this.timeStep - this.time;
-    this.time = this.timeStep;
+    this.extraTime += timeStamp - this.time;
+    this.time = timeStamp;
 
     if (this.extraTime >= this.timeStep * 3) {
       this.extraTime = this.timeStep;
@@ -26,14 +25,14 @@ export default class GameEngine {
     while (this.extraTime >= this.timeStep) {
       this.extraTime -= this.timeStep;
 
-      this.update(this.timeStep);
+      this.update(this.timeStamp);
 
       this.updated = true;
     }
 
     if (this.updated) {
       this.updated = false;
-      this.render(this.timeStep);
+      this.render(this.timeStamp);
     }
   }
 
@@ -41,9 +40,7 @@ export default class GameEngine {
     this.extraTime = this.timeStep;
 
     this.time = window.performance.now();
-    this.animationFrameRequest = window.requestAnimationFrame(() =>
-      this.loop()
-    );
+    this.animationFrameRequest = window.requestAnimationFrame(this.engineLoop);
   }
 
   stop() {
