@@ -34,6 +34,41 @@ export default class Screen {
     }
   }
 
+  drawMapObjects(objects) {
+    const { objectImages, tileSize } = this.tileSet;
+
+    for (let i = 0; i < objects.length; i++) {
+      const row = objects[i];
+      for (let j = 0; j < row.length; j++) {
+        const value = row[j];
+
+        if (value) {
+          value.forEach((element) => {
+            const {
+              id,
+              xOffset = 0,
+              yOffset = 0,
+              width = 16,
+              height = 16,
+            } = element;
+            const image = objectImages[id];
+
+            let destinationX = j * tileSize;
+            let destinationY = i * tileSize;
+
+            this.buffer.drawImage(
+              image,
+              destinationX + xOffset,
+              destinationY + yOffset,
+              width,
+              height
+            );
+          });
+        }
+      }
+    }
+  }
+
   drawBackground() {
     this.buffer.drawImage(
       this.tileSet.tileBackground,
@@ -63,6 +98,8 @@ export default class Screen {
       this.context.canvas.width = height / ratio;
     }
 
+    this.context.webkitImageSmoothingEnabled = false;
+    this.context.mozImageSmoothingEnabled = false;
     this.context.imageSmoothingEnabled = false;
   }
 
