@@ -79,13 +79,21 @@ export default class Screen {
     );
   }
 
-  drawPlayer(rect, color1) {
-    this.buffer.fillStyle = color1;
-    this.buffer.fillRect(
-      Math.round(rect.x),
-      Math.round(rect.y),
-      rect.width,
-      rect.height
+  drawPlayer(
+    image,
+    destinationX,
+    destinationY,
+    width,
+    height,
+    offsetX,
+    offsetY
+  ) {
+    this.buffer.drawImage(
+      image,
+      destinationX + offsetX,
+      destinationY + offsetY,
+      width,
+      height
     );
   }
 

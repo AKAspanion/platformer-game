@@ -33,10 +33,17 @@ const update = () => {
 const render = () => {
   screen.drawBackground();
   screen.drawMap(game.world.map);
+
+  const { direction } = game.world.player;
+
   screen.drawPlayer(
-    game.world.player,
-    game.world.player.color1,
-    game.world.player.color2
+    game.world.player.animator.frameValue,
+    game.world.player.getLeft(),
+    game.world.player.getTop(),
+    60,
+    40,
+    direction < 0 ? -32 : -16,
+    -24
   );
   screen.render();
 };

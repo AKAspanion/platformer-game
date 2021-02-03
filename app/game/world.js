@@ -2,7 +2,7 @@ import Player from "./player";
 import Collider from "./collider";
 
 export default class World {
-  constructor(friction = 0.95, gravity = 3) {
+  constructor(friction = 0.92, gravity = 3) {
     this.friction = friction;
     this.gravity = gravity;
 
@@ -146,12 +146,10 @@ export default class World {
   }
 
   update() {
-    this.player.velocityY += this.gravity;
     this.player.update(this.gravity, this.friction);
 
-    this.player.velocityX *= this.friction;
-    this.player.velocityY *= this.friction;
-
     this.collideObject(this.player);
+
+    this.player.updateAnimation();
   }
 }
