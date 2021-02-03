@@ -1,6 +1,6 @@
 export default class TileSet {
-  constructor(tileSize, columns) {
-    const world = "world-2";
+  constructor(tileSize, columns, world = 1) {
+    const worldKey = `world-${world}`;
     this.columns = columns;
     this.tileSize = tileSize;
 
@@ -11,11 +11,11 @@ export default class TileSet {
 
     for (let index = 1; index <= 18; index++) {
       const image = new Image();
-      image.src = `./sprites/${world}/tiles/${index}.png`;
+      image.src = `./sprites/${worldKey}/tiles/${index}.png`;
 
       this.images.push(image);
     }
 
-    this.tileBackground.src = `./sprites/${world}/bg.png`;
+    this.tileBackground.src = `./sprites/${worldKey}/bg.png`;
   }
 }

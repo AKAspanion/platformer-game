@@ -1,8 +1,10 @@
 import Player from "./player";
+import Object from "./object";
+import Portal from "./portal";
 import Collider from "./collider";
 
 export default class World {
-  constructor(friction = 0.92, gravity = 3) {
+  constructor(friction = 0.87, gravity = 2) {
     this.friction = friction;
     this.gravity = gravity;
 
@@ -10,75 +12,34 @@ export default class World {
     this.columns = 16;
     this.tileSize = 16;
 
-    this.map = [
-      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-      [2, 2, 2, 3, 0, 0, 0, 0, 0, 13, 15, 0, 0, 0, 0, 0],
-      [9, 9, 9, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2],
-      [0, 0, 0, 0, 0, 0, 13, 15, 0, 0, 0, 0, 0, 4, 5, 5],
-      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 9, 9],
-      [0, 0, 0, 13, 14, 15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-      [0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 0, 0, 0, 0, 0, 0],
-      [0, 0, 0, 0, 0, 0, 0, 4, 5, 6, 0, 0, 0, 0, 0, 0],
-      [2, 3, 0, 0, 0, 0, 1, 2, 2, 2, 2, 3, 0, 0, 0, 0],
-      [2, 2, 2, 3, 17, 17, 4, 5, 5, 5, 5, 10, 2, 3, 17, 17],
-      [5, 5, 5, 6, 18, 18, 4, 5, 5, 5, 5, 5, 5, 6, 18, 18],
-    ];
-
-    this.collisonMap = [
-      ["", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""],
-      ["", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""],
-      ["t", "t", "t", "tr", "", "", "", "", "", "t", "t", "", "", "", "", ""],
-      ["", "", "", "", "r", "", "", "", "", "", "", "", "", "lt", "t", "t"],
-      ["", "", "", "", "r", "", "t", "t", "", "", "", "", "", "l", "", ""],
-      ["", "", "", "", "", "", "", "", "", "", "", "", "", "l", "", ""],
-      ["", "", "", "t", "t", "t", "", "", "", "", "", "", "", "", "", ""],
-      ["", "", "", "", "", "", "", "t", "t", "t", "", "", "", "", "", ""],
-      ["", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""],
-      [
-        "t",
-        "t",
-        "",
-        "",
-        "",
-        "",
-        "tl",
-        "t",
-        "t",
-        "t",
-        "t",
-        "tr",
-        "",
-        "",
-        "",
-        "",
-      ],
-      [
-        "tb",
-        "tb",
-        "tb",
-        "tr",
-        "",
-        "",
-        "l",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "t",
-        "tr",
-        "",
-        "",
-      ],
-      ["", "", "", "rt", "lb", "rb", "l", "", "", "", "", "", "", "r", "", ""],
-    ];
-
     this.height = this.tileSize * this.rows;
     this.width = this.tileSize * this.columns;
 
     this.player = new Player();
     this.collider = new Collider();
+  }
+
+  setup(data) {
+    this.id = data.id;
+    this.map = data.areaMap;
+    this.collisonMap = data.collisonMap;
+
+    this.deathAreas = data.death.map(
+      ({ x, y, height, width }) => new Object(x, y, width, height)
+    );
+
+    this.portals = data.portals.map(
+      ({ x, y, height, width, destinationX, destinationY, direction }) =>
+        new Portal(x, y, width, height, destinationX, destinationY, direction)
+    );
+
+    if (this.portal) {
+      this.player.setCenterX(this.portal.destinationX);
+      this.player.setCenterY(this.portal.destinationY);
+      this.player.direction = this.portal.direction;
+
+      this.portal = null;
+    }
   }
 
   collideObject(object) {
@@ -145,11 +106,42 @@ export default class World {
     );
   }
 
-  update() {
+  checkCollision(object1, object2) {
+    if (
+      object1.x < object2.x + object2.width &&
+      object1.x + object1.width > object2.x &&
+      object1.y < object2.y + object2.height &&
+      object1.y + object1.height > object2.y
+    ) {
+      return true;
+    }
+    return false;
+  }
+
+  update(onGameOver) {
     this.player.update(this.gravity, this.friction);
 
     this.collideObject(this.player);
 
-    this.player.updateAnimation();
+    let dead = false;
+    for (let index = 0; index < this.deathAreas.length; index++) {
+      dead = this.checkCollision(this.player, this.deathAreas[index]);
+      if (dead) break;
+    }
+
+    if (!this.portal) {
+      for (let index = 0; index < this.portals.length; index++) {
+        if (this.checkCollision(this.player, this.portals[index])) {
+          this.portal = this.portals[index];
+          break;
+        }
+      }
+    }
+
+    this.player.updateAnimation({ dead });
+
+    if (dead) {
+      onGameOver();
+    }
   }
 }

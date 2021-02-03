@@ -13,6 +13,7 @@ export default class Player extends Object {
     const keys = [
       { id: "Run", count: 8 },
       { id: "Jump", count: 8 },
+      { id: "Dead", count: 8 },
       { id: "Idle", count: 10 },
     ];
 
@@ -59,7 +60,16 @@ export default class Player extends Object {
     this.velocityX += 0.5;
   }
 
-  updateAnimation() {
+  updateAnimation({ dead = false }) {
+    if (dead) {
+      if (this.direction < 0)
+        this.animator.changeFrameSet(this.frameSets["deadLeft"], 2);
+      else this.animator.changeFrameSet(this.frameSets["deadRight"], 2);
+
+      this.animator.animate(dead);
+      return;
+    }
+
     if (this.velocityY < 0) {
       if (this.direction < 0)
         this.animator.changeFrameSet(this.frameSets["jumpLeft"], 2);

@@ -71,4 +71,12 @@ export default class Object {
   setOldTop(y) {
     this.yOld = y;
   }
+
+  setCenterX(x) {
+    this.x = x - this.width * 0.5;
+  }
+
+  setCenterY(y) {
+    this.y = y - this.height * 0.5;
+  }
 }

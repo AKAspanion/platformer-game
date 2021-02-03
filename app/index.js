@@ -3,6 +3,8 @@ import Screen from "./screen";
 import GameEngine from "./engine";
 import Controller from "./controller";
 
+import { area01 } from "./areas";
+
 window.addEventListener("load", function () {
   "use strict";
 
@@ -10,24 +12,36 @@ window.addEventListener("load", function () {
 
   // GAME
   const game = new Game();
+  game.world.setup(area01);
 
   // SCREEN
-  const screen = new Screen(document.querySelector("canvas"));
+  const screen = new Screen(document.querySelector("canvas"), area01.world);
 
   screen.buffer.canvas.height = game.world.height;
   screen.buffer.canvas.width = game.world.width;
 
   // GAME ENGINE
+
   const update = () => {
-    if (controller.left.active) {
-      game.world.player.moveLeft();
+    if (!game.over) {
+      if (controller.left.active) {
+        game.world.player.moveLeft();
+      }
+      if (controller.right.active) {
+        game.world.player.moveRight();
+      }
+      if (controller.up.active) {
+        game.world.player.jump();
+        controller.up.active = false;
+      }
     }
-    if (controller.right.active) {
-      game.world.player.moveRight();
-    }
-    if (controller.up.active) {
-      game.world.player.jump();
-      controller.up.active = false;
+
+    if (game.world.portal) {
+      engine.hold();
+
+      game.world.setup(area01);
+
+      engine.resume();
     }
 
     game.update();
@@ -62,7 +76,8 @@ window.addEventListener("load", function () {
 
   resize();
 
-  const engine = new GameEngine(1000 / 30, update, render);
+  var engine = new GameEngine(1000 / 30, update, render);
+
   engine.start();
 
   // EVENTS HANDLER

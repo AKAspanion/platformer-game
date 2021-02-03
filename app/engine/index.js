@@ -4,6 +4,8 @@ export default class GameEngine {
     this.update = update;
     this.render = render;
 
+    this.pause = false;
+
     this.updated = false;
 
     this.time = null;
@@ -13,6 +15,10 @@ export default class GameEngine {
   }
 
   loop(timeStamp) {
+    if (this.pause) {
+      return;
+    }
+
     this.animationFrameRequest = window.requestAnimationFrame(this.engineLoop);
 
     this.extraTime += timeStamp - this.time;
@@ -45,5 +51,13 @@ export default class GameEngine {
 
   stop() {
     window.cancelAnimationFrame(this.animationFrameRequest);
+  }
+
+  hold() {
+    this.pause = true;
+  }
+
+  resume() {
+    this.pause = false;
   }
 }

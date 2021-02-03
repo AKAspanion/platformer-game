@@ -15,10 +15,10 @@ export default class Collider {
       }
     };
 
+    let flag = false;
     if (typeof value === "string") {
       const keys = value.split("");
 
-      let flag = false;
       for (let index = 0; index < keys.length; index++) {
         flag = router(keys[index]);
         if (flag) {
@@ -26,6 +26,8 @@ export default class Collider {
         }
       }
     }
+
+    return flag;
   }
 
   collidePlatformBottom(object, bottomTile) {

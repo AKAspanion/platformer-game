@@ -7,8 +7,8 @@ export default class Animator {
     this.frameValue = frameSet[0];
   }
 
-  animate() {
-    this.loop();
+  animate(last) {
+    this.loop(last);
   }
 
   changeFrameSet(frameSet, delay = 4, frameIndex = 0) {
@@ -23,14 +23,18 @@ export default class Animator {
     this.frameValue = frameSet[frameIndex];
   }
 
-  loop() {
+  loop(last) {
     this.count++;
 
     while (this.count > this.delay) {
       this.count -= this.delay;
 
-      this.frameIndex =
-        this.frameIndex < this.frameSet.length - 1 ? this.frameIndex + 1 : 0;
+      if (last && this.frameIndex === this.frameSet.length - 1) {
+        this.frameIndex = this.frameSet.length - 1;
+      } else {
+        this.frameIndex =
+          this.frameIndex < this.frameSet.length - 1 ? this.frameIndex + 1 : 0;
+      }
 
       this.frameValue = this.frameSet[this.frameIndex];
     }
