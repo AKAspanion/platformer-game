@@ -1,37 +1,31 @@
 const path = require("path");
+const CopyPlugin = require("copy-webpack-plugin");
 const ESLintPlugin = require("eslint-webpack-plugin");
+const TerserPlugin = require("terser-webpack-plugin");
 const DashboardPlugin = require("webpack-dashboard/plugin");
+const { CleanWebpackPlugin } = require("clean-webpack-plugin");
 
 module.exports = {
   mode: "development",
   entry: path.resolve(__dirname, "./app/index.js"),
-  watch: true,
   output: {
     filename: "bundle.js",
   },
-  plugins: [new DashboardPlugin(), new ESLintPlugin({})],
-  module: {
-    rules: [
-      {
-        test: /\.(js)$/,
-        include: [path.resolve(__dirname, "app")],
-        exclude: [path.resolve(__dirname, "node_modules")],
-        loader: "babel-loader",
-        query: {
-          presets: [
-            [
-              "@babel/env",
-              {
-                targets: {
-                  browsers: "last 2 chrome versions",
-                },
-              },
-            ],
-          ],
-        },
-      },
-    ],
+  optimization: {
+    minimize: true,
+    minimizer: [new TerserPlugin()],
   },
+  plugins: [
+    new CleanWebpackPlugin(),
+    new DashboardPlugin(),
+    new ESLintPlugin({}),
+    new CopyPlugin({
+      patterns: [
+        { from: path.resolve(__dirname, "app/sprites"), to: "sprites" },
+        { from: path.resolve(__dirname, "app/index.html"), to: "index.html" },
+      ],
+    }),
+  ],
   resolve: {
     extensions: [".json", ".js"],
   },

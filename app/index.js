@@ -3,70 +3,74 @@ import Screen from "./screen";
 import GameEngine from "./engine";
 import Controller from "./controller";
 
-const controller = new Controller();
+window.addEventListener("load", function () {
+  "use strict";
 
-// GAME
-const game = new Game();
+  const controller = new Controller();
 
-// SCREEN
-const screen = new Screen(document.querySelector("canvas"));
+  // GAME
+  const game = new Game();
 
-screen.buffer.canvas.height = game.world.height;
-screen.buffer.canvas.width = game.world.width;
+  // SCREEN
+  const screen = new Screen(document.querySelector("canvas"));
 
-// GAME ENGINE
-const update = () => {
-  if (controller.left.active) {
-    game.world.player.moveLeft();
-  }
-  if (controller.right.active) {
-    game.world.player.moveRight();
-  }
-  if (controller.up.active) {
-    game.world.player.jump();
-    controller.up.active = false;
-  }
+  screen.buffer.canvas.height = game.world.height;
+  screen.buffer.canvas.width = game.world.width;
 
-  game.update();
-};
+  // GAME ENGINE
+  const update = () => {
+    if (controller.left.active) {
+      game.world.player.moveLeft();
+    }
+    if (controller.right.active) {
+      game.world.player.moveRight();
+    }
+    if (controller.up.active) {
+      game.world.player.jump();
+      controller.up.active = false;
+    }
 
-const render = () => {
-  screen.drawBackground();
-  screen.drawMap(game.world.map);
+    game.update();
+  };
 
-  const { direction } = game.world.player;
+  const render = () => {
+    screen.drawBackground();
+    screen.drawMap(game.world.map);
 
-  screen.drawPlayer(
-    game.world.player.animator.frameValue,
-    game.world.player.getLeft(),
-    game.world.player.getTop(),
-    60,
-    40,
-    direction < 0 ? -32 : -16,
-    -24
-  );
-  screen.render();
-};
+    const { direction } = game.world.player;
 
-const resize = () => {
-  screen.resize(
-    document.documentElement.clientWidth - 32,
-    document.documentElement.clientHeight - 32,
-    game.world.height / game.world.width
-  );
-  screen.render();
-};
+    screen.drawPlayer(
+      game.world.player.animator.frameValue,
+      game.world.player.getLeft(),
+      game.world.player.getTop(),
+      60,
+      40,
+      direction < 0 ? -32 : -16,
+      -24
+    );
+    screen.render();
+  };
 
-resize();
+  const resize = () => {
+    screen.resize(
+      document.documentElement.clientWidth - 32,
+      document.documentElement.clientHeight - 32,
+      game.world.height / game.world.width
+    );
+    screen.render();
+  };
 
-const engine = new GameEngine(1000 / 30, update, render);
-engine.start();
+  resize();
 
-// EVENTS HANDLER
-const keyDownUp = ({ type, keyCode }) => {
-  controller.keyDownUp(type, keyCode);
-};
+  const engine = new GameEngine(1000 / 30, update, render);
+  engine.start();
 
-window.addEventListener("keydown", keyDownUp);
-window.addEventListener("keyup", keyDownUp);
-window.addEventListener("resize", resize);
+  // EVENTS HANDLER
+  const keyDownUp = ({ type, keyCode }) => {
+    controller.keyDownUp(type, keyCode);
+  };
+
+  window.addEventListener("keydown", keyDownUp);
+  window.addEventListener("keyup", keyDownUp);
+  window.addEventListener("resize", resize);
+});
