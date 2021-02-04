@@ -1,6 +1,33 @@
 {
   "id": 1,
   "world": 2,
+  "water": [
+    { "left": 4, "top": 10 },
+    { "left": 5, "top": 10 },
+    { "left": 4, "top": 10.5 },
+    { "left": 5, "top": 10.5 },
+    { "left": 4, "top": 11 },
+    { "left": 5, "top": 11 },
+    { "left": 14, "top": 10 },
+    { "left": 15, "top": 10 },
+    { "left": 14, "top": 10.5 },
+    { "left": 15, "top": 10.5 },
+    { "left": 14, "top": 11 },
+    { "left": 15, "top": 11 }
+  ],
+  "coins": [
+    { "left": 1.8, "top": 0.8 },
+    { "left": 9.25, "top": 0.8 },
+    { "left": 13.5, "top": 1.8 },
+    { "left": 3.8, "top": 0.8 },
+    { "left": 5.8, "top": 0.8 },
+    { "left": 11.5, "top": 3.8 },
+    { "left": 11.5, "top": 5.8 },
+    { "left": 13, "top": 6.8 },
+    { "left": 14.5, "top": 7.8 },
+    { "left": 1, "top": 7.8 },
+    { "left": 1, "top": 4.2 }
+  ],
   "death": [
     {
       "x": 64,

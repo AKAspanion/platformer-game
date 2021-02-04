@@ -86,6 +86,23 @@ window.addEventListener("load", function () {
       }
     }
 
+    if (game.world.water) {
+      for (let index = 0; index < game.world.water.items.length; index++) {
+        const waterItem = game.world.water.items[index];
+
+        screen.drawObject(
+          waterItem.animator.frameValue,
+          waterItem.x,
+          waterItem.y,
+          waterItem.width,
+          waterItem.height,
+          waterItem.offsetX,
+          waterItem.offsetY
+        );
+        // screen.drawRect(waterItem);
+      }
+    }
+
     const { direction } = game.world.player;
 
     screen.drawPlayer(

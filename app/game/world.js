@@ -1,4 +1,5 @@
 import Coins from "./coins";
+import Water from "./water";
 import Player from "./player";
 import Object from "./object";
 import Portal from "./portal";
@@ -33,6 +34,8 @@ export default class World {
     this.portals = data.portals.map((p) => new Portal(p));
 
     this.coins = new Coins(data.coins, this.tileSize);
+
+    this.water = new Water(data.water, this.tileSize);
 
     if (this.portal) {
       this.player.setCenterX(this.portal.destinationX);
@@ -174,6 +177,8 @@ export default class World {
     }
 
     this.player.updateAnimation({ dead });
+
+    this.water.update();
 
     if (dead) {
       this.player.velocityX = 0;
