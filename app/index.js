@@ -25,10 +25,7 @@ window.addEventListener("load", function () {
   let screen;
 
   const setupScreen = () => {
-    screen = new Screen(
-      document.querySelector("canvas"),
-      areas[`area${areaId}`].world
-    );
+    screen = new Screen(document.querySelector("canvas"), areas[`area${areaId}`].world);
 
     screen.buffer.canvas.height = game.world.height;
     screen.buffer.canvas.width = game.world.width;
@@ -70,6 +67,7 @@ window.addEventListener("load", function () {
     screen.drawBackground();
     screen.drawMap(game.world.map);
     screen.drawMapObjects(game.world.objects);
+    screen.drawDeathArea(game.world.deathAreas);
 
     const { direction } = game.world.player;
 

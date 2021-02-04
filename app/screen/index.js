@@ -22,15 +22,16 @@ export default class Screen {
           let destinationX = j * tileSize;
           let destinationY = i * tileSize;
 
-          this.buffer.drawImage(
-            image,
-            destinationX,
-            destinationY,
-            tileSize,
-            tileSize
-          );
+          this.buffer.drawImage(image, destinationX, destinationY, tileSize, tileSize);
         }
       }
+    }
+  }
+
+  drawDeathArea(death) {
+    for (let index = 0; index < death.length; index++) {
+      const { x, y, width, height } = death[index];
+      this.buffer.fillRect(x, y, width, height);
     }
   }
 
@@ -44,13 +45,7 @@ export default class Screen {
 
         if (value) {
           value.forEach((element) => {
-            const {
-              id,
-              xOffset = 0,
-              yOffset = 0,
-              width = 16,
-              height = 16,
-            } = element;
+            const { id, xOffset = 0, yOffset = 0, width = 16, height = 16 } = element;
             const image = objectImages[id];
 
             let destinationX = j * tileSize;
@@ -79,22 +74,8 @@ export default class Screen {
     );
   }
 
-  drawPlayer(
-    image,
-    destinationX,
-    destinationY,
-    width,
-    height,
-    offsetX,
-    offsetY
-  ) {
-    this.buffer.drawImage(
-      image,
-      destinationX + offsetX,
-      destinationY + offsetY,
-      width,
-      height
-    );
+  drawPlayer(image, destinationX, destinationY, width, height, offsetX, offsetY) {
+    this.buffer.drawImage(image, destinationX + offsetX, destinationY + offsetY, width, height);
   }
 
   resize(width, height, ratio) {

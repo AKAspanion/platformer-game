@@ -12,14 +12,23 @@ export default class TileSet {
 
     this.tileBackground = new Image();
 
-    for (let index = 1; index <= 11; index++) {
+    const meta = {
+      1: { objectLen: 11, tileLen: 18 },
+      2: { objectLen: 10, tileLen: 18 },
+      3: { objectLen: 15, tileLen: 16 },
+      4: { objectLen: 14, tileLen: 16 },
+      5: { objectLen: 12, tileLen: 25 },
+    };
+
+    for (let index = 1; index <= meta[world].objectLen; index++) {
       const image = new Image();
+
       image.src = `./sprites/${worldKey}/objects/${index}.png`;
 
       this.objectImages.push(image);
     }
 
-    for (let index = 1; index <= 18; index++) {
+    for (let index = 1; index <= meta[world].tileLen; index++) {
       const image = new Image();
       image.src = `./sprites/${worldKey}/tiles/${index}.png`;
 
