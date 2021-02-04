@@ -3,22 +3,38 @@ import Screen from "./screen";
 import GameEngine from "./engine";
 import Controller from "./controller";
 
-import { area01 } from "./areas";
+import * as areas from "./areas";
 
 window.addEventListener("load", function () {
   "use strict";
+
+  let areaId = "1";
 
   const controller = new Controller();
 
   // GAME
   const game = new Game();
-  game.world.setup(area01);
+
+  const setupWorld = () => {
+    game.world.setup(areas[`area${areaId}`]);
+  };
+
+  setupWorld();
 
   // SCREEN
-  const screen = new Screen(document.querySelector("canvas"), area01.world);
+  let screen;
 
-  screen.buffer.canvas.height = game.world.height;
-  screen.buffer.canvas.width = game.world.width;
+  const setupScreen = () => {
+    screen = new Screen(
+      document.querySelector("canvas"),
+      areas[`area${areaId}`].world
+    );
+
+    screen.buffer.canvas.height = game.world.height;
+    screen.buffer.canvas.width = game.world.width;
+  };
+
+  setupScreen();
 
   // GAME ENGINE
 
@@ -39,7 +55,10 @@ window.addEventListener("load", function () {
     if (game.world.portal) {
       engine.hold();
 
-      game.world.setup(area01);
+      areaId = game.world.portal.destinationArea;
+
+      setupWorld();
+      setupScreen();
 
       engine.resume();
     }

@@ -40,6 +40,14 @@ export default class Object {
     return this.yOld;
   }
 
+  getCenterX() {
+    return this.x + this.width * 0.5;
+  }
+
+  getCenterY() {
+    return this.y + this.height * 0.5;
+  }
+
   setBottom(y) {
     this.y = y - this.height;
   }

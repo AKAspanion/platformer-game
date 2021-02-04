@@ -28,10 +28,7 @@ export default class World {
       ({ x, y, height, width }) => new Object(x, y, width, height)
     );
 
-    this.portals = data.portals.map(
-      ({ x, y, height, width, destinationX, destinationY, direction }) =>
-        new Portal(x, y, width, height, destinationX, destinationY, direction)
-    );
+    this.portals = data.portals.map((p) => new Portal(p));
 
     if (this.portal) {
       this.player.setCenterX(this.portal.destinationX);
@@ -43,11 +40,11 @@ export default class World {
   }
 
   collideObject(object) {
-    if (object.getLeft() < 0) {
-      object.setLeft(0);
+    if (object.getLeft() < 0 - this.player.width / 2) {
+      object.setLeft(-this.player.width / 2);
       object.velocityX = 0;
-    } else if (object.getRight() > this.width) {
-      object.setRight(this.width);
+    } else if (object.getRight() > this.width + this.player.width / 2) {
+      object.setRight(this.width + this.player.width / 2);
       object.velocityX = 0;
     }
     if (object.getTop() < 0) {
@@ -59,51 +56,79 @@ export default class World {
       object.jumping = false;
     }
 
-    let bottom, left, right, top, value;
+    let bottom, left, right, top;
 
-    top = Math.floor(object.getTop() / this.tileSize);
-    left = Math.floor(object.getLeft() / this.tileSize);
-    value = this.collisonMap[top][left];
+    const setTop = () => {
+      top = this._normalizeIndex(
+        Math.floor(object.getTop() / this.tileSize),
+        this.rows
+      );
+    };
+
+    const setBottom = () => {
+      bottom = this._normalizeIndex(
+        Math.floor(object.getBottom() / this.tileSize),
+        this.rows
+      );
+    };
+
+    const setLeft = () => {
+      left = Math.floor(object.getLeft() / this.tileSize);
+    };
+
+    const setRight = () => {
+      right = Math.floor(object.getRight() / this.tileSize);
+    };
+
+    setTop();
+    setLeft();
     this.collider.collide(
-      value,
+      this.collisonMap[top][left],
       object,
       left * this.tileSize,
       top * this.tileSize,
       this.tileSize
     );
 
-    top = Math.floor(object.getTop() / this.tileSize);
-    right = Math.floor(object.getRight() / this.tileSize);
-    value = this.collisonMap[top][right];
+    setTop();
+    setRight();
     this.collider.collide(
-      value,
+      this.collisonMap[top][right],
       object,
       right * this.tileSize,
       top * this.tileSize,
       this.tileSize
     );
 
-    bottom = Math.floor((object.getBottom() - 0.01) / this.tileSize);
-    left = Math.floor(object.getLeft() / this.tileSize);
-    value = this.collisonMap[bottom][left];
+    setBottom();
+    setLeft();
     this.collider.collide(
-      value,
+      this.collisonMap[bottom][left],
       object,
       left * this.tileSize,
       bottom * this.tileSize,
       this.tileSize
     );
 
-    bottom = Math.floor((object.getBottom() - 0.01) / this.tileSize);
-    right = Math.floor(object.getRight() / this.tileSize);
-    value = this.collisonMap[bottom][right];
+    setBottom();
+    setRight();
     this.collider.collide(
-      value,
+      this.collisonMap[bottom][right],
       object,
       right * this.tileSize,
       bottom * this.tileSize,
       this.tileSize
     );
+  }
+
+  _normalizeIndex(index, maxIndex) {
+    if (index >= maxIndex - 1) {
+      return maxIndex - 1;
+    } else if (index < 0) {
+      return 0;
+    }
+
+    return index;
   }
 
   checkCollision(object1, object2) {
@@ -141,6 +166,7 @@ export default class World {
     this.player.updateAnimation({ dead });
 
     if (dead) {
+      this.player.velocityX = 0;
       onGameOver();
     }
   }
