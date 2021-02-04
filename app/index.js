@@ -3,12 +3,12 @@ import Screen from "./screen";
 import GameEngine from "./engine";
 import Controller from "./controller";
 
-import * as areas from "./areas";
+import areas from "./areas";
 
 window.addEventListener("load", function () {
   "use strict";
 
-  let areaId = "1";
+  let areaId = 1;
 
   const controller = new Controller();
 
@@ -16,7 +16,7 @@ window.addEventListener("load", function () {
   const game = new Game();
 
   const setupWorld = () => {
-    game.world.setup(areas[`area${areaId}`]);
+    game.world.setup(areas[areaId]);
   };
 
   setupWorld();
@@ -25,7 +25,7 @@ window.addEventListener("load", function () {
   let screen;
 
   const setupScreen = () => {
-    screen = new Screen(document.querySelector("canvas"), areas[`area${areaId}`].world);
+    screen = new Screen(document.querySelector("canvas"), areas[areaId].world);
 
     screen.buffer.canvas.height = game.world.height;
     screen.buffer.canvas.width = game.world.width;
@@ -67,7 +67,7 @@ window.addEventListener("load", function () {
     screen.drawBackground();
     screen.drawMap(game.world.map);
     screen.drawMapObjects(game.world.objects);
-    // screen.drawDeathArea(game.world.deathAreas);
+    // screen.drawArea(game.world.portals);
 
     if (game.world.coins) {
       for (let index = 0; index < game.world.coins.items.length; index++) {

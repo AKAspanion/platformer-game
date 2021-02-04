@@ -5,4 +5,12 @@ import area4 from "./area-4.json";
 import area5 from "./area-5.json";
 import area6 from "./area-6.json";
 
-export { area1, area2, area3, area4, area5, area6 };
+export default {
+  [area1.id]: area1,
+  [area2.id]: area2,
+  [area3.id]: area3,
+  [area3.id]: area3,
+  [area4.id]: area4,
+  [area5.id]: area5,
+  [area6.id]: area6,
+};

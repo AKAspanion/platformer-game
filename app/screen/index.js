@@ -28,9 +28,9 @@ export default class Screen {
     }
   }
 
-  drawDeathArea(death) {
-    for (let index = 0; index < death.length; index++) {
-      const { x, y, width, height } = death[index];
+  drawArea(object) {
+    for (let index = 0; index < object.length; index++) {
+      const { x, y, width, height } = object[index];
       this.buffer.fillRect(x, y, width, height);
     }
   }
