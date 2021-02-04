@@ -74,8 +74,16 @@ export default class Screen {
     );
   }
 
-  drawPlayer(image, destinationX, destinationY, width, height, offsetX, offsetY) {
+  drawPlayer(image, destinationX, destinationY, width, height, offsetX, offsetY, rect) {
+    this.drawObject(image, destinationX + offsetX, destinationY + offsetY, width, height);
+  }
+
+  drawObject(image, destinationX, destinationY, width, height, offsetX = 0, offsetY = 0) {
     this.buffer.drawImage(image, destinationX + offsetX, destinationY + offsetY, width, height);
+  }
+
+  drawRect({ x, y, width, height }) {
+    this.buffer.fillRect(x, y, width, height);
   }
 
   resize(width, height, ratio) {

@@ -1,7 +1,7 @@
 import Object from "./object";
 import Animator from "./animator";
 export default class Player extends Object {
-  constructor(x, y) {
+  constructor() {
     super(50, 100, 12, 12);
     this.color = "#ff0000";
 
@@ -62,8 +62,7 @@ export default class Player extends Object {
 
   updateAnimation({ dead = false }) {
     if (dead) {
-      if (this.direction < 0)
-        this.animator.changeFrameSet(this.frameSets["deadLeft"], 2);
+      if (this.direction < 0) this.animator.changeFrameSet(this.frameSets["deadLeft"], 2);
       else this.animator.changeFrameSet(this.frameSets["deadRight"], 2);
 
       this.animator.animate(dead);
@@ -71,16 +70,13 @@ export default class Player extends Object {
     }
 
     if (this.velocityY < 0) {
-      if (this.direction < 0)
-        this.animator.changeFrameSet(this.frameSets["jumpLeft"], 2);
+      if (this.direction < 0) this.animator.changeFrameSet(this.frameSets["jumpLeft"], 2);
       else this.animator.changeFrameSet(this.frameSets["jumpRight"], 2);
     } else if (this.direction < 0) {
-      if (this.velocityX < -0.1)
-        this.animator.changeFrameSet(this.frameSets["runLeft"]);
+      if (this.velocityX < -0.1) this.animator.changeFrameSet(this.frameSets["runLeft"]);
       else this.animator.changeFrameSet(this.frameSets["idleLeft"]);
     } else if (this.direction > 0) {
-      if (this.velocityX > 0.1)
-        this.animator.changeFrameSet(this.frameSets["runRight"]);
+      if (this.velocityX > 0.1) this.animator.changeFrameSet(this.frameSets["runRight"]);
       else this.animator.changeFrameSet(this.frameSets["idleRight"]);
     }
 

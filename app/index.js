@@ -67,7 +67,24 @@ window.addEventListener("load", function () {
     screen.drawBackground();
     screen.drawMap(game.world.map);
     screen.drawMapObjects(game.world.objects);
-    screen.drawDeathArea(game.world.deathAreas);
+    // screen.drawDeathArea(game.world.deathAreas);
+
+    if (game.world.coins) {
+      for (let index = 0; index < game.world.coins.items.length; index++) {
+        const coin = game.world.coins.items[index];
+
+        screen.drawObject(
+          coin.animator.frameValue,
+          coin.x,
+          coin.y,
+          coin.width,
+          coin.height,
+          coin.offsetX,
+          coin.offsetY
+        );
+        // screen.drawRect(coin);
+      }
+    }
 
     const { direction } = game.world.player;
 
@@ -80,6 +97,7 @@ window.addEventListener("load", function () {
       direction < 0 ? -32 : -16,
       -24
     );
+    screen.drawRect(game.world.player);
     screen.render();
   };
 

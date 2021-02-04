@@ -1,3 +1,4 @@
+import Coins from "./coins";
 import Player from "./player";
 import Object from "./object";
 import Portal from "./portal";
@@ -12,6 +13,8 @@ export default class World {
     this.columns = 16;
     this.tileSize = 16;
 
+    this.coins = [];
+    this.totalSnacks = 0;
     this.height = this.tileSize * this.rows;
     this.width = this.tileSize * this.columns;
 
@@ -25,11 +28,11 @@ export default class World {
     this.objects = data.objectsMap;
     this.collisonMap = data.collisonMap;
 
-    this.deathAreas = data.death.map(
-      ({ x, y, height, width }) => new Object(x, y, width, height)
-    );
+    this.deathAreas = data.death.map(({ x, y, height, width }) => new Object(x, y, width, height));
 
     this.portals = data.portals.map((p) => new Portal(p));
+
+    this.coins = new Coins(data.coins, this.tileSize);
 
     if (this.portal) {
       this.player.setCenterX(this.portal.destinationX);
@@ -60,17 +63,11 @@ export default class World {
     let bottom, left, right, top;
 
     const setTop = () => {
-      top = this._normalizeIndex(
-        Math.floor(object.getTop() / this.tileSize),
-        this.rows
-      );
+      top = this._normalizeIndex(Math.floor(object.getTop() / this.tileSize), this.rows);
     };
 
     const setBottom = () => {
-      bottom = this._normalizeIndex(
-        Math.floor(object.getBottom() / this.tileSize),
-        this.rows
-      );
+      bottom = this._normalizeIndex(Math.floor(object.getBottom() / this.tileSize), this.rows);
     };
 
     const setLeft = () => {
@@ -148,6 +145,18 @@ export default class World {
     this.player.update(this.gravity, this.friction);
 
     this.collideObject(this.player);
+
+    for (let index = 0; index < this.coins.items.length; index++) {
+      const coin = this.coins.items[index];
+
+      coin.update();
+      coin.updateAnimation();
+
+      if (this.checkCollision(this.player, coin)) {
+        this.coins.items.splice(this.coins.items.indexOf(coin), 1);
+        this.totalSnacks += 1;
+      }
+    }
 
     let dead = false;
     for (let index = 0; index < this.deathAreas.length; index++) {
