@@ -69,6 +69,7 @@ window.addEventListener("load", function () {
   const render = () => {
     screen.drawBackground();
     screen.drawMap(game.world.map);
+    screen.drawMapObjects(game.world.objects);
 
     const { direction } = game.world.player;
 

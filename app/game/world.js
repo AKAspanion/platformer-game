@@ -22,6 +22,7 @@ export default class World {
   setup(data) {
     this.id = data.id;
     this.map = data.areaMap;
+    this.objects = data.objectsMap;
     this.collisonMap = data.collisonMap;
 
     this.deathAreas = data.death.map(

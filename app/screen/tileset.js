@@ -7,7 +7,17 @@ export default class TileSet {
     this.images = [];
     this.images.push(null);
 
+    this.objectImages = [];
+    this.objectImages.push(null);
+
     this.tileBackground = new Image();
+
+    for (let index = 1; index <= 11; index++) {
+      const image = new Image();
+      image.src = `./sprites/${worldKey}/objects/${index}.png`;
+
+      this.objectImages.push(image);
+    }
 
     for (let index = 1; index <= 18; index++) {
       const image = new Image();
