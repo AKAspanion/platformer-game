@@ -1,5 +1,5 @@
 {
-  "id": 1,
+  "id": 2,
   "world": 1,
   "death": [
     {
@@ -22,9 +22,9 @@
       "height": 32,
       "width": 8,
       "direction": -1,
-      "destinationArea": 1,
+      "destinationArea": 3,
       "destinationX": 250,
-      "destinationY": 42
+      "destinationY": 24
     },
     {
       "x": 256,
@@ -32,7 +32,7 @@
       "height": 48,
       "width": 8,
       "direction": 1,
-      "destinationArea": 1,
+      "destinationArea": 3,
       "destinationX": 16,
       "destinationY": 24
     }
