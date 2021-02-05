@@ -68,7 +68,14 @@
     <canvas></canvas>
     <div class="controllers">
       <div class="controller-arrows">
-        <div id="leftBtn" class="controller-btn arrow-btn arrow-left">⬅️</div>
+        <div
+          id="leftBtn"
+          class="controller-btn arrow-btn arrow-left"
+          onpointerup="test()"
+          onpointerdown="test()"
+        >
+          ⬅️
+        </div>
         <div id="rightBtn" class="controller-btn arrow-btn arrow-right">➡️</div>
       </div>
       <div class="controller-jump">
@@ -76,5 +83,10 @@
       </div>
     </div>
     <script src="./bundle.js"></script>
+    <script>
+      function test() {
+        console.log("hi");
+      }
+    </script>
   </body>
 </html>
