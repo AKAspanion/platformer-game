@@ -13,22 +13,23 @@
         position: relative;
         align-items: center;
         justify-content: center;
-        background-color: #424242;
+        background-color: #292929;
       }
       .container {
         display: flex;
         margin: 0px auto;
         align-items: center;
         justify-content: center;
-        background-color: #424242;
+        background-color: #292929;
         font-family: "Lucida Sans", "Lucida Sans Regular", "Lucida Grande", "Lucida Sans Unicode",
           Geneva, Verdana, sans-serif;
       }
       canvas {
-        border: 1px solid #ccc;
+        border: 1px solid #292929;
       }
 
-      .controllers {
+      .controller-jump,
+      .controller-arrows {
         top: -100px;
         position: absolute;
         visibility: hidden;
@@ -42,7 +43,7 @@
         align-items: center;
         flex-direction: column;
         justify-content: center;
-        background-color: rgba(0, 0, 0, 0.8);
+        background-color: #292929;
       }
 
       #startBtn {
@@ -53,13 +54,14 @@
         border-radius: 6px;
         text-align: center;
         background-color: white;
-        text-transform: capitalize;
+        text-transform: uppercase;
       }
 
       #startTitle {
         padding: 48px;
         color: white;
-        font-size: 20px;
+        font-size: 36px;
+        text-transform: uppercase;
       }
 
       @media only screen and (max-width: 600px) {
@@ -68,14 +70,20 @@
           transform: rotate(90deg);
           justify-content: space-evenly;
         }
-        .controllers {
-          display: flex;
-          position: static;
+        .controller-jump,
+        .controller-arrows {
           visibility: visible;
-          align-items: center;
-          justify-content: space-around;
+        }
+        .controller-jump {
+          top: calc(100% - 88px);
+          right: 0px;
         }
         .controller-arrows {
+          top: calc(100% - 72px);
+          left: 0px;
+        }
+        .controller-arrows {
+          bottom: 0;
           display: flex;
           flex-wrap: wrap;
           max-width: 156px;
@@ -116,22 +124,18 @@
   </head>
   <body>
     <div class="container">
-      <div class="controllers">
-        <div class="controller-arrows">
-          <div id="leftBtn" class="controller-btn arrow-btn arrow-left">⬅️</div>
-          <div id="rightBtn" class="controller-btn arrow-btn arrow-right">➡️</div>
-        </div>
+      <div class="controller-arrows">
+        <div id="leftBtn" class="controller-btn arrow-btn arrow-left">⬅️</div>
+        <div id="rightBtn" class="controller-btn arrow-btn arrow-right">➡️</div>
       </div>
       <canvas></canvas>
-      <div class="controllers">
-        <div class="controller-jump">
-          <div id="jumpBtn" class="controller-btn jump-btn">⬆️</div>
-        </div>
+      <div class="controller-jump">
+        <div id="jumpBtn" class="controller-btn jump-btn">⬆️</div>
       </div>
     </div>
     <div id="startScreen">
-      <div id="startTitle">Tap button to start the game</div>
-      <div id="startBtn">start game</div>
+      <div id="startTitle">Dino's adventure</div>
+      <div id="startBtn">start</div>
       <div style="height: 100px"></div>
     </div>
     <script src="./bundle.js"></script>

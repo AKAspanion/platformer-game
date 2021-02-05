@@ -44,6 +44,8 @@
 
 /*! ./tileset */
 
+/*! ./util */
+
 /*! ./water */
 
 /*! ./world */
