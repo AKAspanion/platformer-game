@@ -8,7 +8,6 @@ import AudioController from "../controller/audio";
 
 export default class World {
   constructor(friction = 0.87, gravity = 2) {
-    this.theme = "grasslands";
     this.friction = friction;
     this.gravity = gravity;
 
@@ -26,7 +25,6 @@ export default class World {
     this.collider = new Collider();
 
     this.audioController = new AudioController();
-    this.playThemeMusic();
   }
 
   setup(data) {

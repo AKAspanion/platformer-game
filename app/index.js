@@ -2,6 +2,7 @@ import Game from "./game";
 import Screen from "./screen";
 import GameEngine from "./engine";
 import Controller from "./controller";
+import MouseInput from "./controller/mouse-input";
 
 import areas from "./areas";
 
@@ -67,7 +68,7 @@ window.addEventListener("load", function () {
     screen.drawBackground();
     screen.drawMap(game.world.map);
     screen.drawMapObjects(game.world.objects);
-    // screen.drawArea(game.world.portals);
+    screen.drawArea(game.world.portals);
 
     if (game.world.coins) {
       for (let index = 0; index < game.world.coins.items.length; index++) {
@@ -111,10 +112,10 @@ window.addEventListener("load", function () {
       game.world.player.getTop(),
       60,
       40,
-      direction < 0 ? -32 : -16,
+      direction < 0 ? -36 : -12,
       -24
     );
-    screen.drawRect(game.world.player);
+    // screen.drawRect(game.world.player);
     screen.render();
   };
 
@@ -141,4 +142,14 @@ window.addEventListener("load", function () {
   window.addEventListener("keydown", keyDownUp);
   window.addEventListener("keyup", keyDownUp);
   window.addEventListener("resize", resize);
+
+  new MouseInput("leftBtn", (e) => {
+    controller.keyDownUp(e, 37);
+  });
+  new MouseInput("rightBtn", (e) => {
+    controller.keyDownUp(e, 39);
+  });
+  new MouseInput("jumpBtn", (e) => {
+    controller.keyDownUp(e, 32);
+  });
 });

@@ -6,20 +6,75 @@
     <title>Platformer</title>
     <style>
       body {
-        width: 100vw;
-        height: 100vh;
         display: flex;
         margin: 0px auto;
+        min-width: 100vw;
+        min-height: 100vh;
         align-items: center;
         justify-content: center;
+        background-color: #424242;
       }
       canvas {
         border: 1px solid #ccc;
+      }
+
+      .controllers {
+        display: none;
+      }
+
+      @media only screen and (max-width: 600px) {
+        body {
+          flex-direction: column;
+          justify-content: space-evenly;
+        }
+        .controllers {
+          width: 90%;
+          display: flex;
+          align-items: center;
+          justify-content: space-around;
+        }
+        .controller-arrows {
+          display: flex;
+          width: 150px;
+          align-items: center;
+          justify-content: space-evenly;
+        }
+        .controller-btn {
+          width: 56px;
+          height: 56px;
+          display: flex;
+          font-size: 25px;
+          cursor: pointer;
+          border-radius: 32px;
+          align-items: center;
+          box-sizing: border-box;
+          justify-content: center;
+          border: 4px solid black;
+          background: rgb(164, 164, 164);
+        }
+        .jump-btn {
+          width: 80px;
+          height: 80px;
+          font-size: 38px;
+          border-radius: 40px;
+        }
+        .controller-btn:hover {
+          opacity: 0.6;
+        }
       }
     </style>
   </head>
   <body>
     <canvas></canvas>
+    <div class="controllers">
+      <div class="controller-arrows">
+        <div id="leftBtn" class="controller-btn arrow-btn arrow-left">⬅️</div>
+        <div id="rightBtn" class="controller-btn arrow-btn arrow-right">➡️</div>
+      </div>
+      <div class="controller-jump">
+        <div id="jumpBtn" class="controller-btn jump-btn">⬆️</div>
+      </div>
+    </div>
     <script src="./bundle.js"></script>
   </body>
 </html>
