@@ -17,6 +17,9 @@ export default class Controller {
       case 38:
         this.up.getInput(down);
         break;
+      case 32:
+        this.up.getInput(down);
+        break;
       case 39:
         this.right.getInput(down);
     }
