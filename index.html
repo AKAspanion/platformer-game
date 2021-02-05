@@ -3,7 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Platformer</title>
+    <link rel="icon" href="./favicon.ico" />
+    <title>Pixel Dino</title>
     <style>
       body {
         margin: 0;
@@ -42,14 +43,15 @@
         position: fixed;
         align-items: center;
         flex-direction: column;
-        justify-content: center;
         background-color: #292929;
+        justify-content: space-evenly;
       }
 
       #startBtn {
         width: 100px;
         font-size: 16px;
         cursor: pointer;
+        margin: 0px auto;
         padding: 12px 8px;
         border-radius: 6px;
         text-align: center;
@@ -57,11 +59,17 @@
         text-transform: uppercase;
       }
 
-      #startTitle {
+      .start-title {
         padding: 48px;
         color: white;
         font-size: 36px;
         text-transform: uppercase;
+      }
+
+      .game-over-title {
+        padding: 40px;
+        color: red;
+        font-size: 28px;
       }
 
       @media only screen and (max-width: 600px) {
@@ -133,8 +141,11 @@
       </div>
     </div>
     <div id="startScreen">
-      <div id="startTitle">Dino's adventure</div>
-      <div id="startBtn">start</div>
+      <div class="start-title">Dino's adventure</div>
+      <div>
+        <div id="startTitle" class="start-title game-over-title"></div>
+        <div id="startBtn">start</div>
+      </div>
       <div style="height: 100px"></div>
     </div>
     <script src="./bundle.js"></script>
