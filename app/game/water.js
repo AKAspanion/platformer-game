@@ -12,7 +12,7 @@ export default class Water {
     keys.forEach(({ count }) => {
       for (let index = 1; index <= count; index++) {
         const image = new Image();
-        image.src = `./sprites/water/image ${index}.png`;
+        image.src = `./assets/sprites/water/image ${index}.png`;
 
         const addImage = (k, image) => {
           if (!this.frameSets[k]) {

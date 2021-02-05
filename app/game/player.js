@@ -23,8 +23,8 @@ export default class Player extends Object {
       for (let index = 1; index <= count; index++) {
         const imageLeft = new Image();
         const imageRight = new Image();
-        imageLeft.src = `./sprites/player/left/${id} (${index}).png`;
-        imageRight.src = `./sprites/player/right/${id} (${index}).png`;
+        imageLeft.src = `./assets/sprites/player/left/${id} (${index}).png`;
+        imageRight.src = `./assets/sprites/player/right/${id} (${index}).png`;
 
         const keyLeft = `${id.toLowerCase()}Left`;
         const keyRight = `${id.toLowerCase()}Right`;

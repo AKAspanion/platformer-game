@@ -23,18 +23,18 @@ export default class TileSet {
     for (let index = 1; index <= meta[world].objectLen; index++) {
       const image = new Image();
 
-      image.src = `./sprites/${worldKey}/objects/${index}.png`;
+      image.src = `./assets/sprites/${worldKey}/objects/${index}.png`;
 
       this.objectImages.push(image);
     }
 
     for (let index = 1; index <= meta[world].tileLen; index++) {
       const image = new Image();
-      image.src = `./sprites/${worldKey}/tiles/${index}.png`;
+      image.src = `./assets/sprites/${worldKey}/tiles/${index}.png`;
 
       this.images.push(image);
     }
 
-    this.tileBackground.src = `./sprites/${worldKey}/bg.png`;
+    this.tileBackground.src = `./assets/sprites/${worldKey}/bg.png`;
   }
 }

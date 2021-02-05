@@ -12,7 +12,7 @@ export default class items {
     keys.forEach(({ id, count }) => {
       for (let index = 1; index <= count; index++) {
         const image = new Image();
-        image.src = `./sprites/coin/image ${index}.png`;
+        image.src = `./assets/sprites/coin/image ${index}.png`;
 
         const addImage = (k, image) => {
           if (!this.frameSets[k]) {
