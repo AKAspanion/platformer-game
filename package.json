@@ -5,6 +5,7 @@
   "scripts": {
     "build": "webpack",
     "serve": "webpack serve",
+    "dep": "gh-pages -d dist",
     "deploy": "gh-pages -d dist",
     "predeploy": "npm install && npm run build",
     "dev": "webpack-dashboard -m -c green -t react -- webpack serve",

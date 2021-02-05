@@ -4,6 +4,7 @@ import Player from "./player";
 import Object from "./object";
 import Portal from "./portal";
 import Collider from "./collider";
+import AudioController from "../controller/audio";
 
 export default class World {
   constructor(friction = 0.87, gravity = 2) {
@@ -21,6 +22,8 @@ export default class World {
 
     this.player = new Player();
     this.collider = new Collider();
+
+    this.audioController = new AudioController();
   }
 
   setup(data) {
@@ -157,14 +160,23 @@ export default class World {
 
       if (this.checkCollision(this.player, coin)) {
         this.coins.items.splice(this.coins.items.indexOf(coin), 1);
+        this.audioController.play("coin");
         this.totalSnacks += 1;
       }
     }
 
     let dead = false;
-    for (let index = 0; index < this.deathAreas.length; index++) {
-      dead = this.checkCollision(this.player, this.deathAreas[index]);
-      if (dead) break;
+    if (!dead) {
+      for (let index = 0; index < this.deathAreas.length; index++) {
+        if (this.checkCollision(this.player, this.deathAreas[index])) {
+          if (this.isPlayerDead === undefined) {
+            this.audioController.play("fall", "mp3");
+          }
+          this.isPlayerDead = true;
+          dead = true;
+          break;
+        }
+      }
     }
 
     if (!this.portal) {
