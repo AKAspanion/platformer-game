@@ -74,6 +74,11 @@ export default class Screen {
     );
   }
 
+  drawText(text, x, y) {
+    this.buffer.font = "10px Arial";
+    this.buffer.fillText(text, x, y);
+  }
+
   drawPlayer(image, destinationX, destinationY, width, height, offsetX, offsetY, rect) {
     this.drawObject(image, destinationX + offsetX, destinationY + offsetY, width, height);
   }

@@ -3,75 +3,102 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Platformer</title>
+    <link rel="icon" href="./favicon.ico" />
+    <title>Pixel Dino</title>
     <style>
       body {
+        margin: 0;
+        padding: 0;
         display: flex;
-        margin: 0px auto;
-        min-width: 100vw;
-        min-height: 100vh;
+        height: 100vh;
+        position: relative;
         align-items: center;
         justify-content: center;
-        background-color: #424242;
+        background-color: #292929;
+      }
+      .container {
+        display: flex;
+        margin: 0px auto;
+        align-items: center;
+        justify-content: center;
+        background-color: #292929;
         font-family: "Lucida Sans", "Lucida Sans Regular", "Lucida Grande", "Lucida Sans Unicode",
           Geneva, Verdana, sans-serif;
       }
       canvas {
-        border: 1px solid #ccc;
+        border: 1px solid #292929;
       }
 
-      .controllers {
-        display: none;
+      .controller-jump,
+      .controller-arrows {
+        top: -100px;
+        position: absolute;
+        visibility: hidden;
       }
 
       #startScreen {
-        top: 0;
-        left: 0;
         width: 100vw;
         height: 100vh;
         display: flex;
         position: fixed;
         align-items: center;
         flex-direction: column;
-        justify-content: center;
-        background-color: rgba(0, 0, 0, 0.8);
+        background-color: #292929;
+        justify-content: space-evenly;
       }
 
       #startBtn {
         width: 100px;
-        font-size: 16;
+        font-size: 16px;
         cursor: pointer;
+        margin: 0px auto;
         padding: 12px 8px;
         border-radius: 6px;
         text-align: center;
         background-color: white;
-        text-transform: capitalize;
+        text-transform: uppercase;
       }
 
-      #startTitle {
-        color: white;
+      .start-title {
         padding: 48px;
-        font-size: 20px;
+        color: white;
+        font-size: 36px;
+        text-transform: uppercase;
+      }
+
+      .game-over-title {
+        padding: 40px;
+        color: red;
+        font-size: 28px;
       }
 
       @media only screen and (max-width: 600px) {
-        body {
-          flex-direction: column;
+        .container {
+          transform: rotate(90deg);
           justify-content: space-evenly;
         }
-        .controllers {
-          width: 95%;
-          display: flex;
-          align-items: center;
-          justify-content: space-around;
+        .controller-jump,
+        .controller-arrows {
+          visibility: visible;
+        }
+        .controller-jump {
+          top: calc(100% - 88px);
+          right: 0px;
         }
         .controller-arrows {
+          top: calc(100% - 72px);
+          left: 0px;
+        }
+        .controller-arrows {
+          bottom: 0;
           display: flex;
-          width: 160px;
+          flex-wrap: wrap;
+          max-width: 156px;
           align-items: center;
           justify-content: space-between;
         }
         .controller-btn {
+          margin: 2px;
           width: 72px;
           height: 72px;
           display: flex;
@@ -84,6 +111,7 @@
           justify-content: center;
           border: 4px solid black;
           background: rgb(164, 164, 164);
+          -webkit-tap-highlight-color: transparent;
         }
         .jump-btn {
           width: 88px;
@@ -93,23 +121,32 @@
         .controller-btn:hover {
           opacity: 0.6;
         }
+        #startScreen {
+          width: 100vh;
+          height: 100vw;
+          transform: rotate(90deg);
+        }
       }
     </style>
   </head>
   <body>
-    <canvas></canvas>
-    <div id="startScreen">
-      <div id="startTitle">Tap button to start the game</div>
-      <div id="startBtn">start game</div>
-    </div>
-    <div class="controllers">
+    <div class="container">
       <div class="controller-arrows">
         <div id="leftBtn" class="controller-btn arrow-btn arrow-left">⬅️</div>
         <div id="rightBtn" class="controller-btn arrow-btn arrow-right">➡️</div>
       </div>
+      <canvas></canvas>
       <div class="controller-jump">
         <div id="jumpBtn" class="controller-btn jump-btn">⬆️</div>
       </div>
+    </div>
+    <div id="startScreen">
+      <div class="start-title">Dino's adventure</div>
+      <div>
+        <div id="startTitle" class="start-title game-over-title"></div>
+        <div id="startBtn">start</div>
+      </div>
+      <div style="height: 100px"></div>
     </div>
     <script src="./bundle.js"></script>
   </body>

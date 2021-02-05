@@ -4,6 +4,10 @@ import GameEngine from "./engine";
 import Controller from "./controller";
 import MouseInput from "./controller/mouse-input";
 
+import { prefetch } from "./util";
+
+prefetch();
+
 import areas from "./areas";
 
 window.addEventListener("load", function () {
@@ -24,7 +28,9 @@ window.addEventListener("load", function () {
   // GAME
   const game = new Game(() => {
     startTitle.textContent = "Game Over";
-    toggleStartScreen(true);
+    setTimeout(() => {
+      toggleStartScreen(true);
+    }, 1000);
   });
 
   const setupWorld = () => {
@@ -77,8 +83,10 @@ window.addEventListener("load", function () {
     screen.drawBackground();
     screen.drawMap(game.world.map);
     screen.drawMapObjects(game.world.objects);
-    screen.drawArea(game.world.portals);
+    // screen.drawArea(game.world.portals);
+    // screen.drawArea(game.world.deathAreas);
 
+    // draw coins
     if (game.world.coins) {
       for (let index = 0; index < game.world.coins.items.length; index++) {
         const coin = game.world.coins.items[index];
@@ -96,6 +104,7 @@ window.addEventListener("load", function () {
       }
     }
 
+    // draw water animations
     if (game.world.water) {
       for (let index = 0; index < game.world.water.items.length; index++) {
         const waterItem = game.world.water.items[index];
@@ -109,11 +118,11 @@ window.addEventListener("load", function () {
           waterItem.offsetX,
           waterItem.offsetY
         );
-        // screen.drawRect(waterItem);
       }
     }
 
-    const { direction } = game.world.player;
+    // draw player
+    const xOffset = game.world.player.direction < 0 ? -36 : -12;
 
     screen.drawPlayer(
       game.world.player.animator.frameValue,
@@ -121,19 +130,29 @@ window.addEventListener("load", function () {
       game.world.player.getTop(),
       60,
       40,
-      direction < 0 ? -36 : -12,
+      xOffset,
       -24
     );
-    // screen.drawRect(game.world.player);
+
+    // draw coin count
+    const image = new Image();
+    image.src = "./assets/sprites/coin/image 1.png";
+    screen.drawObject(image, 13.3 * 16, 8, 10, 10);
+    screen.drawText("x", 14.2 * 16, 15);
+    screen.drawText(game.world.totalCoins, 14.7 * 16, 16);
+
     screen.render();
   };
 
   const resize = () => {
-    screen.resize(
-      document.documentElement.clientWidth - 32,
-      document.documentElement.clientHeight - 32,
-      game.world.height / game.world.width
-    );
+    let width = document.documentElement.clientWidth;
+    let height = document.documentElement.clientHeight;
+
+    if (width < 600) {
+      [width, height] = [height, width];
+    }
+
+    screen.resize(width - 4, height - 4, game.world.height / game.world.width);
     screen.render();
   };
 
@@ -150,17 +169,24 @@ window.addEventListener("load", function () {
   window.addEventListener("keyup", keyDownUp);
   window.addEventListener("resize", resize);
 
-  new MouseInput("leftBtn", (e) => {
+  const leftMouse = new MouseInput("leftBtn", (e) => {
     controller.keyDownUp(e, 37);
   });
-  new MouseInput("rightBtn", (e) => {
+  const rightMouse = new MouseInput("rightBtn", (e) => {
     controller.keyDownUp(e, 39);
   });
-  new MouseInput("jumpBtn", (e) => {
+  const upMouse = new MouseInput("jumpBtn", (e) => {
     controller.keyDownUp(e, 32);
   });
 
+  const clearMouse = () => {
+    upMouse.actions.clear();
+    leftMouse.actions.clear();
+    rightMouse.actions.clear();
+  };
+
   startBtn.onclick = () => {
+    clearMouse();
     startTitle.textContent = "";
     toggleStartScreen(false);
 

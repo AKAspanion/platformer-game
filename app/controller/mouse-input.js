@@ -1,12 +1,16 @@
 export default class MouseInput {
   constructor(id, action) {
-    this.holdit(document.getElementById(id), action, 500, 2);
+    this.actions = this.holdit(document.getElementById(id), action, 1000, 2);
   }
 
   holdit(btn, action, start, speedup) {
     let timeout;
 
-    let repeat = function () {
+    const clear = () => {
+      clearTimeout(timeout);
+    };
+
+    const repeat = function () {
       action("keydown");
 
       timeout = setTimeout(repeat, start);
@@ -20,7 +24,15 @@ export default class MouseInput {
     btn.onpointerup = function () {
       action("keyup");
 
-      clearTimeout(timeout);
+      clear();
     };
+
+    btn.onmouseup = function () {
+      action("keyup");
+
+      clear();
+    };
+
+    return { clear };
   }
 }

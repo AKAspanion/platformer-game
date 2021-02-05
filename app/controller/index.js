@@ -12,15 +12,15 @@ export default class Controller {
 
     switch (keyCode) {
       case 37:
+      case 65:
         this.left.getInput(down);
         break;
       case 38:
-        this.up.getInput(down);
-        break;
       case 32:
         this.up.getInput(down);
         break;
       case 39:
+      case 68:
         this.right.getInput(down);
     }
   }

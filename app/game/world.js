@@ -202,6 +202,8 @@ export default class World {
           }
           this.isPlayerDead = true;
           this.theme = undefined;
+          this.collectedCoins = "";
+          this.totalCoins = 0;
           dead = true;
           break;
         }

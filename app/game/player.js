@@ -2,7 +2,7 @@ import Object from "./object";
 import Animator from "./animator";
 export default class Player extends Object {
   constructor() {
-    super(50, 100, 12, 12);
+    super(40, 100, 12, 12);
     this.color = "#ff0000";
 
     this.jumping = true;
@@ -45,9 +45,9 @@ export default class Player extends Object {
   }
 
   reset() {
-    this.x = 50;
+    this.x = 40;
     this.y = 100;
-    this.xOld = 50;
+    this.xOld = 40;
     this.yOld = 100;
     this.jumping = true;
     this.velocityX = 0;

@@ -23,6 +23,7 @@ module.exports = {
       patterns: [
         { from: path.resolve(__dirname, "app/assets"), to: "assets" },
         { from: path.resolve(__dirname, "app/index.html"), to: "index.html" },
+        { from: path.resolve(__dirname, "app/favicon.ico"), to: "favicon.ico" },
       ],
     }),
   ],
