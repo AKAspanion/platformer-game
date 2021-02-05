@@ -11,16 +11,25 @@ window.addEventListener("load", function () {
 
   let areaId = 1;
 
+  const startBtn = document.getElementById("startBtn");
+  const startTitle = document.getElementById("startTitle");
+  const startScreen = document.getElementById("startScreen");
+
+  const toggleStartScreen = (value) => {
+    startScreen.style.visibility = !value ? "hidden" : "visible";
+  };
+
   const controller = new Controller();
 
   // GAME
-  const game = new Game();
+  const game = new Game(() => {
+    startTitle.textContent = "Game Over";
+    toggleStartScreen(true);
+  });
 
   const setupWorld = () => {
     game.world.setup(areas[areaId]);
   };
-
-  setupWorld();
 
   // SCREEN
   let screen;
@@ -132,8 +141,6 @@ window.addEventListener("load", function () {
 
   var engine = new GameEngine(1000 / 30, update, render);
 
-  engine.start();
-
   // EVENTS HANDLER
   const keyDownUp = ({ type, keyCode }) => {
     controller.keyDownUp(type, keyCode);
@@ -152,4 +159,25 @@ window.addEventListener("load", function () {
   new MouseInput("jumpBtn", (e) => {
     controller.keyDownUp(e, 32);
   });
+
+  startBtn.onclick = () => {
+    startTitle.textContent = "";
+    toggleStartScreen(false);
+
+    game.world.player.reset();
+    game.over = false;
+
+    engine.hold();
+
+    areaId = 1;
+
+    setupWorld();
+    setupScreen();
+
+    engine.resume();
+
+    if (!engine.started) {
+      engine.start();
+    }
+  };
 });

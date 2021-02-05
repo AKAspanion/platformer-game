@@ -39,6 +39,7 @@ export default class World {
 
     this.id = data.id;
     this.map = data.areaMap;
+    this.isPlayerDead = undefined;
     this.objects = data.objectsMap;
     this.collisonMap = data.collisonMap;
 
@@ -194,8 +195,13 @@ export default class World {
         if (this.checkCollision(this.player, this.deathAreas[index])) {
           if (this.isPlayerDead === undefined) {
             AudioController.play("fall", "mp3");
+
+            this.player.velocityX = 0;
+            this.stopThemeMusic();
+            onGameOver();
           }
           this.isPlayerDead = true;
+          this.theme = undefined;
           dead = true;
           break;
         }
@@ -214,11 +220,5 @@ export default class World {
     this.player.updateAnimation({ dead });
 
     this.water.update();
-
-    if (dead) {
-      this.player.velocityX = 0;
-      this.stopThemeMusic();
-      onGameOver();
-    }
   }
 }

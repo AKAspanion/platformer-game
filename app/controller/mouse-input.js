@@ -13,11 +13,11 @@ export default class MouseInput {
       start = start / speedup;
     };
 
-    btn.onmousedown = function () {
+    btn.onpointerdown = function () {
       repeat();
     };
 
-    btn.onmouseup = function () {
+    btn.onpointerup = function () {
       action("keyup");
 
       clearTimeout(timeout);

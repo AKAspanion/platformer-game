@@ -44,6 +44,17 @@ export default class Player extends Object {
     this.animator = new Animator(this.frameSets["idleRight"]);
   }
 
+  reset() {
+    this.x = 50;
+    this.y = 100;
+    this.xOld = 50;
+    this.yOld = 100;
+    this.jumping = true;
+    this.velocityX = 0;
+    this.velocityY = 0;
+    this.direction = 1;
+  }
+
   jump() {
     if (!this.jumping) {
       this.jumping = true;

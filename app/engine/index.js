@@ -3,6 +3,7 @@ export default class GameEngine {
     this.timeStep = timeStep;
     this.update = update;
     this.render = render;
+    this.started = false;
 
     this.pause = false;
 
@@ -43,6 +44,7 @@ export default class GameEngine {
   }
 
   start() {
+    this.started = true;
     this.extraTime = this.timeStep;
 
     this.time = window.performance.now();

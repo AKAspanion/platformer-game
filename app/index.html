@@ -13,6 +13,8 @@
         align-items: center;
         justify-content: center;
         background-color: #424242;
+        font-family: "Lucida Sans", "Lucida Sans Regular", "Lucida Grande", "Lucida Sans Unicode",
+          Geneva, Verdana, sans-serif;
       }
       canvas {
         border: 1px solid #ccc;
@@ -22,30 +24,61 @@
         display: none;
       }
 
+      #startScreen {
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        position: fixed;
+        align-items: center;
+        flex-direction: column;
+        justify-content: center;
+        background-color: rgba(0, 0, 0, 0.8);
+      }
+
+      #startBtn {
+        width: 100px;
+        font-size: 16;
+        cursor: pointer;
+        padding: 12px 8px;
+        border-radius: 6px;
+        text-align: center;
+        background-color: white;
+        text-transform: capitalize;
+      }
+
+      #startTitle {
+        color: white;
+        padding: 48px;
+        font-size: 20px;
+      }
+
       @media only screen and (max-width: 600px) {
         body {
           flex-direction: column;
           justify-content: space-evenly;
         }
         .controllers {
-          width: 90%;
+          width: 95%;
           display: flex;
           align-items: center;
           justify-content: space-around;
         }
         .controller-arrows {
           display: flex;
-          width: 150px;
+          width: 160px;
           align-items: center;
-          justify-content: space-evenly;
+          justify-content: space-between;
         }
         .controller-btn {
-          width: 56px;
-          height: 56px;
+          width: 72px;
+          height: 72px;
           display: flex;
           font-size: 25px;
           cursor: pointer;
-          border-radius: 32px;
+          user-select: none;
+          border-radius: 100%;
           align-items: center;
           box-sizing: border-box;
           justify-content: center;
@@ -53,10 +86,9 @@
           background: rgb(164, 164, 164);
         }
         .jump-btn {
-          width: 80px;
-          height: 80px;
+          width: 88px;
+          height: 88px;
           font-size: 38px;
-          border-radius: 40px;
         }
         .controller-btn:hover {
           opacity: 0.6;
@@ -66,6 +98,10 @@
   </head>
   <body>
     <canvas></canvas>
+    <div id="startScreen">
+      <div id="startTitle">Tap button to start the game</div>
+      <div id="startBtn">start game</div>
+    </div>
     <div class="controllers">
       <div class="controller-arrows">
         <div id="leftBtn" class="controller-btn arrow-btn arrow-left">⬅️</div>
