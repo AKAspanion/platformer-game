@@ -1,6 +1,7 @@
 {
   "id": 4,
   "world": 3,
+  "theme": "desert",
   "death": [
     {
       "x": 64,
@@ -16,27 +17,27 @@
     }
   ],
   "coins": [
-    { "left": 1.5, "top": 1.8 },
-    { "left": 10.25, "top": 1.8 },
-    { "left": 14.5, "top": 1.8 },
-    { "left": 5.8, "top": 0.8 },
-    { "left": 7.25, "top": 3.8 },
-    { "left": 10.2, "top": 5.8 },
-    { "left": 12.5, "top": 5.8 },
-    { "left": 14.5, "top": 7.8 },
-    { "left": 6.25, "top": 8.8 },
-    { "left": 0.2, "top": 7.8 }
+    { "id": "4c1", "left": 1.5, "top": 2 },
+    { "id": "4c2", "left": 11, "top": 2 },
+    { "id": "4c3", "left": 15, "top": 2 },
+    { "id": "4c4", "left": 5, "top": 1 },
+    { "id": "4c5", "left": 8, "top": 4 },
+    { "id": "4c6", "left": 10, "top": 6 },
+    { "id": "4c7", "left": 12, "top": 6 },
+    { "id": "4c8", "left": 14, "top": 8 },
+    { "id": "4c9", "left": 7, "top": 9 },
+    { "id": "4c10", "left": 1, "top": 8 }
   ],
   "portals": [
     {
       "x": -8,
       "y": 0,
-      "height": 32,
+      "height": 48,
       "width": 8,
       "direction": -1,
       "destinationArea": 3,
       "destinationX": 250,
-      "destinationY": 24
+      "destinationY": 42
     },
     {
       "x": 256,

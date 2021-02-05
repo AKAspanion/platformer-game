@@ -8,6 +8,7 @@ import AudioController from "../controller/audio";
 
 export default class World {
   constructor(friction = 0.87, gravity = 2) {
+    this.theme = "grasslands";
     this.friction = friction;
     this.gravity = gravity;
 
@@ -16,7 +17,8 @@ export default class World {
     this.tileSize = 16;
 
     this.coins = [];
-    this.totalSnacks = 0;
+    this.totalCoins = 0;
+    this.collectedCoins = "";
     this.height = this.tileSize * this.rows;
     this.width = this.tileSize * this.columns;
 
@@ -24,9 +26,19 @@ export default class World {
     this.collider = new Collider();
 
     this.audioController = new AudioController();
+    this.playThemeMusic();
   }
 
   setup(data) {
+    if (this.theme !== data.theme) {
+      if (data.theme) {
+        this.stopThemeMusic();
+
+        this.theme = data.theme;
+        this.playThemeMusic();
+      }
+    }
+
     this.id = data.id;
     this.map = data.areaMap;
     this.objects = data.objectsMap;
@@ -34,9 +46,9 @@ export default class World {
 
     this.deathAreas = data.death.map(({ x, y, height, width }) => new Object(x, y, width, height));
 
-    this.portals = data.portals.map((p) => new Portal(p));
+    this.coins = new Coins(data.coins, this.tileSize, this.collectedCoins);
 
-    this.coins = new Coins(data.coins, this.tileSize);
+    this.portals = data.portals.map((p) => new Portal(p));
 
     this.water = new Water(data.water, this.tileSize);
 
@@ -49,6 +61,16 @@ export default class World {
     }
   }
 
+  playThemeMusic() {
+    this.audioController.play(this.theme, "mp3");
+    this.audioController.volume(this.theme, 4);
+    this.audioController.loop(this.theme);
+  }
+
+  stopThemeMusic() {
+    this.audioController.stop(this.theme);
+  }
+
   collideObject(object) {
     if (object.getLeft() < 0 - this.player.width / 2) {
       object.setLeft(-this.player.width / 2);
@@ -57,8 +79,8 @@ export default class World {
       object.setRight(this.width + this.player.width / 2);
       object.velocityX = 0;
     }
-    if (object.getTop() < 0) {
-      object.setTop(0);
+    if (object.getTop() < 0 - this.player.height * 2.5) {
+      object.setTop(0 - this.player.height * 2.5);
       object.velocityY = 0;
     } else if (object.getBottom() - 1 > this.height) {
       object.setBottom(this.height);
@@ -160,8 +182,11 @@ export default class World {
 
       if (this.checkCollision(this.player, coin)) {
         this.coins.items.splice(this.coins.items.indexOf(coin), 1);
-        this.audioController.play("coin");
-        this.totalSnacks += 1;
+
+        this.collectedCoins += `${coin.id},`;
+
+        AudioController.play("coin");
+        this.totalCoins += 1;
       }
     }
 
@@ -170,7 +195,7 @@ export default class World {
       for (let index = 0; index < this.deathAreas.length; index++) {
         if (this.checkCollision(this.player, this.deathAreas[index])) {
           if (this.isPlayerDead === undefined) {
-            this.audioController.play("fall", "mp3");
+            AudioController.play("fall", "mp3");
           }
           this.isPlayerDead = true;
           dead = true;
@@ -194,6 +219,7 @@ export default class World {
 
     if (dead) {
       this.player.velocityX = 0;
+      this.stopThemeMusic();
       onGameOver();
     }
   }

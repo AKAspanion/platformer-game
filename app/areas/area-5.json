@@ -1,6 +1,7 @@
 {
   "id": 5,
   "world": 4,
+  "theme": "dungeon",
   "death": [],
   "portals": [],
   "areaMap": [

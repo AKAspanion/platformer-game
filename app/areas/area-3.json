@@ -1,6 +1,7 @@
 {
   "id": 3,
   "world": 2,
+  "theme": "iceland",
   "water": [
     { "left": 4, "top": 10 },
     { "left": 5, "top": 10 },
@@ -16,17 +17,17 @@
     { "left": 15, "top": 11 }
   ],
   "coins": [
-    { "left": 1.8, "top": 0.8 },
-    { "left": 9.25, "top": 0.8 },
-    { "left": 13.5, "top": 1.8 },
-    { "left": 3.8, "top": 0.8 },
-    { "left": 5.8, "top": 0.8 },
-    { "left": 11.5, "top": 3.8 },
-    { "left": 11.5, "top": 5.8 },
-    { "left": 13, "top": 6.8 },
-    { "left": 14.5, "top": 7.8 },
-    { "left": 1, "top": 7.8 },
-    { "left": 1, "top": 4.2 }
+    { "id": "3c1", "left": 1.8, "top": 0.8 },
+    { "id": "3c2", "left": 9.25, "top": 0.8 },
+    { "id": "3c3", "left": 13.5, "top": 1.8 },
+    { "id": "3c4", "left": 3.8, "top": 0.8 },
+    { "id": "3c5", "left": 5.8, "top": 0.8 },
+    { "id": "3c6", "left": 11.5, "top": 3.8 },
+    { "id": "3c7", "left": 11.5, "top": 5.8 },
+    { "id": "3c8", "left": 13, "top": 6.8 },
+    { "id": "3c9", "left": 14.5, "top": 7.8 },
+    { "id": "3c10", "left": 1, "top": 7.8 },
+    { "id": "3c11", "left": 1, "top": 4.2 }
   ],
   "death": [
     {
@@ -54,14 +55,14 @@
       "destinationY": 24
     },
     {
-      "x": 255,
+      "x": 256,
       "y": 0,
       "height": 48,
       "width": 8,
       "direction": 1,
       "destinationArea": 4,
       "destinationX": 6,
-      "destinationY": 24
+      "destinationY": 42
     }
   ],
   "areaMap": [

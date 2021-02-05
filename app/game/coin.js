@@ -1,10 +1,13 @@
 import Object from "./object";
 import Animator from "./animator";
 
-export default class Coin extends Object {
-  constructor(x, y, offsetX = 0, offsetY = 0, frameSet) {
-    super(x, y, 10, 12);
+import { uid } from "../util";
 
+export default class Coin extends Object {
+  constructor(id, x, y, offsetX = 0, offsetY = 0, frameSet) {
+    super(x, y, 8, 10);
+
+    this.id = id;
     this.offsetX = offsetX;
     this.offsetY = offsetY;
 

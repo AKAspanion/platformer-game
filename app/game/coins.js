@@ -2,7 +2,7 @@
 import Coin from "./coin";
 
 export default class items {
-  constructor(objects = [], tileSize) {
+  constructor(objects = [], tileSize, collectedCoins) {
     this.items = [];
 
     const keys = [{ id: "", count: 16 }];
@@ -26,11 +26,13 @@ export default class items {
     });
 
     for (let index = 0; index < objects.length; index++) {
-      const { left, top, offsetX, offsetY } = objects[index];
+      const { id, left, top, offsetX, offsetY } = objects[index];
 
-      this.items.push(
-        new Coin(left * tileSize + 5, top * tileSize + 5, offsetX, offsetY, this.frameSets["coin"])
-      );
+      if (!collectedCoins.includes(id)) {
+        this.items.push(
+          new Coin(id, left * tileSize, top * tileSize, offsetX, offsetY, this.frameSets["coin"])
+        );
+      }
     }
   }
 
