@@ -2,7 +2,7 @@
   "short_name": "Pixel Dino",
   "name": "Pixel Dino: Platformer game",
   "description": "A pixel styled, platformer adventure game",
-  "display": "standalone",
+  "display": "fullscreen",
   "orientation": "any",
   "start_url": "./index.html",
   "theme_color": "#B4D12D",
