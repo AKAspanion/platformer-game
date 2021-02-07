@@ -4,6 +4,7 @@
   "description": "A pixel styled, platformer adventure game",
   "display": "standalone",
   "orientation": "any",
+  "start_url": "./index.js",
   "theme_color": "#B4D12D",
   "background_color": "#292929",
   "icons": [
