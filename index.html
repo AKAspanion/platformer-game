@@ -74,6 +74,20 @@
         font-size: 28px;
       }
 
+      #loadingScreen {
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        color: white;
+        position: fixed;
+        font-size: 56px;
+        visibility: visible;
+        align-items: center;
+        justify-content: center;
+        text-transform: uppercase;
+        background-color: #292929;
+      }
+
       @media only screen and (max-width: 600px) {
         .container {
           transform: rotate(90deg);
@@ -165,6 +179,9 @@
         <div id="startBtn">start</div>
       </div>
       <div style="height: 100px"></div>
+    </div>
+    <div id="loadingScreen">
+      <div>Loading...</div>
     </div>
     <script src="./bundle.js"></script>
   </body>
