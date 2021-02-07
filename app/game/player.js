@@ -30,15 +30,14 @@ export default class Player extends Object {
           if (totalCount === loadCount) {
             this.loaded = true;
           }
-          // console.log("player", e.target);
         };
 
         const imageLeft = new Image();
         imageLeft.onload = onImgLoad;
         const imageRight = new Image();
         imageRight.onload = onImgLoad;
-        imageLeft.src = `./assets/sprites/player/left/${id} (${index}).png`;
-        imageRight.src = `./assets/sprites/player/right/${id} (${index}).png`;
+        imageLeft.src = `./assets/sprites/player/left/${id} (${index}).webp`;
+        imageRight.src = `./assets/sprites/player/right/${id} (${index}).webp`;
 
         const keyLeft = `${id.toLowerCase()}Left`;
         const keyRight = `${id.toLowerCase()}Right`;

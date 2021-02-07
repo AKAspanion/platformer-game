@@ -20,9 +20,8 @@ export default class items {
           if (count === loadCount) {
             this.loaded = true;
           }
-          // console.log("coins", e.target);
         };
-        image.src = `./assets/sprites/coin/image ${index}.png`;
+        image.src = `./assets/sprites/coin/image ${index}.webp`;
 
         const addImage = (k, image) => {
           if (!this.frameSets[k]) {

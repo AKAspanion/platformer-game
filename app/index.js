@@ -156,7 +156,7 @@ window.addEventListener("load", function () {
 
     // draw coin count
     const image = new Image();
-    image.src = "./assets/sprites/coin/image 1.png";
+    image.src = "./assets/sprites/coin/image 1.webp";
     screen.drawObject(image, 13.3 * 16, 8, 10, 10);
     screen.drawText("x", 14.2 * 16, 15);
     screen.drawText(game.world.totalCoins, 14.7 * 16, 16);

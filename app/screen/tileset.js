@@ -29,7 +29,6 @@ export default class TileSet {
       if (totalCount === loadCount) {
         this.loaded = true;
       }
-      // console.log("tileset", e.target);
     };
 
     for (let index = 1; index <= meta[world].objectLen; index++) {

@@ -20,9 +20,8 @@ export default class Water {
           if (count === loadCount) {
             this.loaded = true;
           }
-          // console.log("water", e.target);
         };
-        image.src = `./assets/sprites/water/image ${index}.png`;
+        image.src = `./assets/sprites/water/image ${index}.webp`;
 
         const addImage = (k, image) => {
           if (!this.frameSets[k]) {

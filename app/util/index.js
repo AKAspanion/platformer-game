@@ -23,11 +23,12 @@ export const preLoadAndFetch = () => {
 
   const body = document.getElementsByTagName("head")[0];
 
-  const append = (href, rel) => {
+  const append = (href, rel, as = "image") => {
     const item = document.createElement("link");
-    item.as = "image";
-    item.href = href;
+
+    item.as = as;
     item.rel = rel;
+    item.href = href;
     body.prepend(item);
   };
 
@@ -44,15 +45,20 @@ export const preLoadAndFetch = () => {
 
   items.player.forEach(({ rel, key, objects }) => {
     for (let index = 1; index <= objects; index++) {
-      append(`./assets/sprites/player/left/${key} (${index}).png`, rel);
-      append(`./assets/sprites/player/right/${key} (${index}).png`, rel);
+      append(`./assets/sprites/player/left/${key} (${index}).webp`, rel);
+      append(`./assets/sprites/player/right/${key} (${index}).webp`, rel);
     }
   });
 
-  items.water.forEach(({ rel, key, objects }) => {
+  items.water.forEach(({ rel, objects }) => {
     for (let index = 1; index <= objects; index++) {
-      append(`./assets/sprites/water/image ${index}.png`, rel);
-      append(`./assets/sprites/water/image ${index}.png`, rel);
+      append(`./assets/sprites/water/image ${index}.webp`, rel);
+    }
+  });
+
+  items.coin.forEach(({ rel, objects }) => {
+    for (let index = 1; index <= objects; index++) {
+      append(`./assets/sprites/coin/image ${index}.webp`, rel);
     }
   });
 
@@ -65,7 +71,7 @@ export const preLoadAndFetch = () => {
     { rel: "prefetch", file: "iceland" },
   ];
 
-  // audioFiles.forEach(({ rel, file, ext = "mp3" }) => {
-  //   append(`./assets/audio/${file}.${ext}`, rel);
-  // });
+  audioFiles.forEach(({ rel, file, ext = "mp3" }) => {
+    append(`./assets/audio/${file}.${ext}`, rel, "media");
+  });
 };
