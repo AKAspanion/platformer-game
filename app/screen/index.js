@@ -74,7 +74,8 @@ export default class Screen {
     );
   }
 
-  drawText(text, x, y) {
+  drawText(text, x, y, color = "black") {
+    this.buffer.fillStyle = color;
     this.buffer.font = "10px Arial";
     this.buffer.fillText(text, x, y);
   }

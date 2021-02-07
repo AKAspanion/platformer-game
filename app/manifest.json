@@ -2,9 +2,9 @@
   "short_name": "Pixel Dino",
   "name": "Pixel Dino: Platformer game",
   "description": "A pixel styled, platformer adventure game",
-  "display": "standalone",
+  "display": "fullscreen",
   "orientation": "any",
-  "start_url": "platformer-game/",
+  "start_url": "./index.html",
   "theme_color": "#B4D12D",
   "background_color": "#292929",
   "icons": [
@@ -14,7 +14,7 @@
       "sizes": "192x192"
     },
     {
-      "src": "/images/icons-512.png",
+      "src": "./images/icons-512.png",
       "purpose": "maskable",
       "type": "image/png",
       "sizes": "512x512"

@@ -15,6 +15,8 @@ export default class World {
     this.columns = 16;
     this.tileSize = 16;
 
+    this.loaded = true;
+
     this.coins = [];
     this.totalCoins = 0;
     this.collectedCoins = "";
@@ -30,10 +32,27 @@ export default class World {
   setup(data) {
     if (this.theme !== data.theme) {
       if (data.theme) {
+        this.audioController.load(
+          [
+            { file: "coin", ext: "wav" },
+            { file: "fall", ext: "mp3" },
+            { file: data.theme, ext: "mp3" },
+          ],
+          (val) => {
+            this.loaded = val;
+
+            if (this.isLoaded()) {
+              this.playThemeMusic();
+            }
+          }
+        );
+
         this.stopThemeMusic();
 
         this.theme = data.theme;
-        this.playThemeMusic();
+        if (this.isLoaded()) {
+          this.playThemeMusic();
+        }
       }
     }
 
@@ -64,10 +83,12 @@ export default class World {
     this.audioController.play(this.theme, "mp3");
     this.audioController.volume(this.theme, 4);
     this.audioController.loop(this.theme);
+    this.playedThemeMusic = true;
   }
 
   stopThemeMusic() {
     this.audioController.stop(this.theme);
+    this.playedThemeMusic = undefined;
   }
 
   pauseThemeMusic() {
@@ -173,10 +194,20 @@ export default class World {
   }
 
   isLoaded() {
+    return this.loaded && this.isAssetsLoaded();
+  }
+
+  isAssetsLoaded() {
     return this.player.loaded && this.coins.loaded && this.water.loaded;
   }
 
   update(onGameOver) {
+    if (this.playedThemeMusic === undefined) {
+      if (this.loaded && this.isAssetsLoaded()) {
+        this.playThemeMusic();
+      }
+    }
+
     this.player.update(this.gravity, this.friction);
 
     this.collideObject(this.player);

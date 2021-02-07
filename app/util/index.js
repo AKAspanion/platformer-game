@@ -63,15 +63,20 @@ export const preLoadAndFetch = () => {
   });
 
   const audioFiles = [
-    { rel: "prefetch", file: "coin", ext: "wav" },
-    { rel: "prefetch", file: "desert" },
-    { rel: "prefetch", file: "dungeon" },
-    { rel: "prefetch", file: "fall" },
-    { rel: "prefetch", file: "grasslands" },
-    { rel: "prefetch", file: "iceland" },
+    { rel: "preload", file: "coin", ext: "wav" },
+    { rel: "preload", file: "desert" },
+    { rel: "preload", file: "dungeon" },
+    { rel: "preload", file: "fall" },
+    { rel: "preload", file: "grasslands" },
+    { rel: "preload", file: "iceland" },
   ];
 
   audioFiles.forEach(({ rel, file, ext = "mp3" }) => {
-    append(`./assets/audio/${file}.${ext}`, rel, "media");
+    if (rel === "preload") {
+      const audio = new Audio();
+      audio.url = `./assets/audio/${file}.${ext}`;
+    } else {
+      append(`./assets/audio/${file}.${ext}`, rel, "audio");
+    }
   });
 };

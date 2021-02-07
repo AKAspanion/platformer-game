@@ -20,6 +20,32 @@ export default class AudioController {
     return this;
   }
 
+  load(audios = [], loaded) {
+    const filteredAudios = audios.filter(({ file }) => !this.audios[file]);
+
+    if (!filteredAudios.length) {
+      loaded(true);
+      return;
+    }
+
+    loaded(false);
+
+    let done = 0;
+    const onload = () => {
+      done += 1;
+      if (filteredAudios.length === done) {
+        loaded(true);
+      }
+    };
+
+    audios.forEach(({ file, ext = "mp3" }) => {
+      this.audios[file] = new Audio();
+      this.audios[file].addEventListener("canplaythrough", onload, false);
+      this.audios[file].src = `./assets/audio/${file}.${ext}`;
+      this.audios[file].volume = 0.5;
+    });
+  }
+
   loop(key) {
     if (this.audios[key]) {
       this.audios[key].loop = true;
