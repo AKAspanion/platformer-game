@@ -32,6 +32,7 @@
       .controller-jump,
       .controller-arrows {
         top: -100px;
+        opacity: 0.6;
         position: absolute;
         visibility: hidden;
       }
@@ -82,12 +83,12 @@
           visibility: visible;
         }
         .controller-jump {
-          top: calc(100% - 88px);
-          right: 0px;
+          top: calc(100% - 96px);
+          right: 8px;
         }
         .controller-arrows {
-          top: calc(100% - 72px);
-          left: 0px;
+          top: calc(100% - 80px);
+          left: 8px;
         }
         .controller-arrows {
           bottom: 0;
@@ -128,6 +129,21 @@
         }
       }
     </style>
+    <script src="./sw.js"></script>
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", function () {
+          navigator.serviceWorker.register("./sw.js").then(
+            function (registration) {
+              console.log(`SW: register successful with scope - ${registration.scope}`);
+            },
+            function (err) {
+              console.log(`SWS: registration failed with ${err}`);
+            }
+          );
+        });
+      }
+    </script>
   </head>
   <body>
     <div class="container">
