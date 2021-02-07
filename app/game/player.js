@@ -4,6 +4,7 @@ export default class Player extends Object {
   constructor() {
     super(40, 100, 12, 12);
     this.color = "#ff0000";
+    this.loaded = false;
 
     this.jumping = true;
     this.velocityX = 0;
@@ -11,18 +12,31 @@ export default class Player extends Object {
     this.direction = 1;
 
     const keys = [
+      { id: "Idle", count: 10 },
       { id: "Run", count: 8 },
       { id: "Jump", count: 8 },
       { id: "Dead", count: 8 },
-      { id: "Idle", count: 10 },
     ];
 
     this.frameSets = {};
 
+    let loadCount = 0;
+    const totalCount = 34;
     keys.forEach(({ id, count }) => {
       for (let index = 1; index <= count; index++) {
+        const onImgLoad = (e) => {
+          loadCount += 1;
+
+          if (totalCount === loadCount) {
+            this.loaded = true;
+          }
+          // console.log("player", e.target);
+        };
+
         const imageLeft = new Image();
+        imageLeft.onload = onImgLoad;
         const imageRight = new Image();
+        imageRight.onload = onImgLoad;
         imageLeft.src = `./assets/sprites/player/left/${id} (${index}).png`;
         imageRight.src = `./assets/sprites/player/right/${id} (${index}).png`;
 

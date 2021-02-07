@@ -4,24 +4,32 @@ import GameEngine from "./engine";
 import Controller from "./controller";
 import MouseInput from "./controller/mouse-input";
 
-import { prefetch } from "./util";
+import { preLoadAndFetch } from "./util";
 
-prefetch();
+preLoadAndFetch();
 
 import areas from "./areas";
+
+const startBtn = document.getElementById("startBtn");
+const startTitle = document.getElementById("startTitle");
+const startScreen = document.getElementById("startScreen");
+const loadingScreen = document.getElementById("loadingScreen");
+
+const toggleStartScreen = (value) => {
+  startScreen.style.visibility = !value ? "hidden" : "visible";
+};
+
+const toggleLoadingScreen = (value) => {
+  loadingScreen.style.visibility = !value ? "hidden" : "visible";
+};
 
 window.addEventListener("load", function () {
   "use strict";
 
   let areaId = 1;
+  let loaded = false;
 
-  const startBtn = document.getElementById("startBtn");
-  const startTitle = document.getElementById("startTitle");
-  const startScreen = document.getElementById("startScreen");
-
-  const toggleStartScreen = (value) => {
-    startScreen.style.visibility = !value ? "hidden" : "visible";
-  };
+  toggleLoadingScreen(false);
 
   const controller = new Controller();
 
@@ -30,7 +38,7 @@ window.addEventListener("load", function () {
     startTitle.textContent = "Game Over";
     setTimeout(() => {
       toggleStartScreen(true);
-    }, 1000);
+    }, 1500);
   });
 
   const setupWorld = () => {
@@ -51,7 +59,19 @@ window.addEventListener("load", function () {
 
   // GAME ENGINE
 
+  const isLoaded = () => {
+    return game.isLoaded() && screen.isLoaded();
+  };
+
   const update = () => {
+    loaded = isLoaded();
+
+    if (!loaded) {
+      toggleLoadingScreen(true);
+    } else {
+      toggleLoadingScreen(false);
+    }
+
     if (!game.over) {
       if (controller.left.active) {
         game.world.player.moveLeft();

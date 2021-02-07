@@ -3,6 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#B4D12D" />
+    <link rel="apple-touch-icon" href="./images/icons-512.png" />
+    <link rel="manifest" href="./manifest.json" />
     <link rel="icon" href="./favicon.ico" />
     <title>Pixel Dino</title>
     <style>
@@ -32,6 +35,7 @@
       .controller-jump,
       .controller-arrows {
         top: -100px;
+        opacity: 0.6;
         position: absolute;
         visibility: hidden;
       }
@@ -72,7 +76,21 @@
         font-size: 28px;
       }
 
-      @media only screen and (max-width: 600px) {
+      #loadingScreen {
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        color: white;
+        position: fixed;
+        font-size: 56px;
+        visibility: visible;
+        align-items: center;
+        justify-content: center;
+        text-transform: uppercase;
+        background-color: #292929;
+      }
+
+      @media only screen and (max-width: 480px) {
         .container {
           transform: rotate(90deg);
           justify-content: space-evenly;
@@ -82,12 +100,12 @@
           visibility: visible;
         }
         .controller-jump {
-          top: calc(100% - 88px);
-          right: 0px;
+          top: calc(100% - 96px);
+          right: 8px;
         }
         .controller-arrows {
-          top: calc(100% - 72px);
-          left: 0px;
+          top: calc(100% - 80px);
+          left: 8px;
         }
         .controller-arrows {
           bottom: 0;
@@ -121,13 +139,30 @@
         .controller-btn:hover {
           opacity: 0.6;
         }
-        #startScreen {
+        #startScreen,
+        #loadingScreen {
           width: 100vh;
           height: 100vw;
           transform: rotate(90deg);
         }
       }
     </style>
+    <!-- <script src="./sw.js"></script> -->
+    <script>
+      // if ("serviceWorker" in navigator) {
+      //   window.addEventListener("load", function () {
+      //     navigator.serviceWorker.register("./sw.js").then(
+      //       function (registration) {
+      //         console.log(`SW: register successful with scope - ${registration.scope}`);
+      //       },
+      //       function (err) {
+      //         console.log(`SWS: registration failed with ${err}`);
+      //       }
+      //     );
+      //   });
+      // }
+    </script>
+    <script></script>
   </head>
   <body>
     <div class="container">
@@ -148,6 +183,10 @@
       </div>
       <div style="height: 100px"></div>
     </div>
+    <div id="loadingScreen">
+      <div>Loading...</div>
+    </div>
     <script src="./bundle.js"></script>
+    <noscript>This app needs javascript.</noscript>
   </body>
 </html>

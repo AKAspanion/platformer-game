@@ -21,9 +21,12 @@ module.exports = {
     new ESLintPlugin({}),
     new CopyPlugin({
       patterns: [
+        { from: path.resolve(__dirname, "app/sw.js"), to: "sw.js" },
         { from: path.resolve(__dirname, "app/assets"), to: "assets" },
+        { from: path.resolve(__dirname, "app/images"), to: "images" },
         { from: path.resolve(__dirname, "app/index.html"), to: "index.html" },
         { from: path.resolve(__dirname, "app/favicon.ico"), to: "favicon.ico" },
+        { from: path.resolve(__dirname, "app/manifest.json"), to: "manifest.json" },
       ],
     }),
   ],

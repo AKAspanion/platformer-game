@@ -4,14 +4,24 @@ import Animator from "./animator";
 export default class Water {
   constructor(waterObjects = [], tileSize) {
     this.items = [];
+    this.loaded = false;
 
     const keys = [{ id: "", count: 17 }];
 
     this.frameSets = {};
 
+    let loadCount = 0;
     keys.forEach(({ count }) => {
       for (let index = 1; index <= count; index++) {
         const image = new Image();
+        image.onload = (e) => {
+          loadCount += 1;
+
+          if (count === loadCount) {
+            this.loaded = true;
+          }
+          // console.log("water", e.target);
+        };
         image.src = `./assets/sprites/water/image ${index}.png`;
 
         const addImage = (k, image) => {

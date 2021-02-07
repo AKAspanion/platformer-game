@@ -70,6 +70,10 @@ export default class World {
     this.audioController.stop(this.theme);
   }
 
+  pauseThemeMusic() {
+    this.audioController.pause(this.theme);
+  }
+
   collideObject(object) {
     if (object.getLeft() < 0 - this.player.width / 2) {
       object.setLeft(-this.player.width / 2);
@@ -166,6 +170,10 @@ export default class World {
       return true;
     }
     return false;
+  }
+
+  isLoaded() {
+    return this.player.loaded && this.coins.loaded && this.water.loaded;
   }
 
   update(onGameOver) {

@@ -1,6 +1,7 @@
 export default class TileSet {
   constructor(tileSize, columns, world = 1) {
     const worldKey = `world-${world}`;
+    this.loaded = false;
     this.columns = columns;
     this.tileSize = tileSize;
 
@@ -20,9 +21,20 @@ export default class TileSet {
       5: { objectLen: 12, tileLen: 25 },
     };
 
+    let loadCount = 0;
+    let totalCount = meta[world].objectLen + meta[world].tileLen + 1;
+    const onImgLoad = (e) => {
+      loadCount += 1;
+
+      if (totalCount === loadCount) {
+        this.loaded = true;
+      }
+      // console.log("tileset", e.target);
+    };
+
     for (let index = 1; index <= meta[world].objectLen; index++) {
       const image = new Image();
-
+      image.onload = onImgLoad;
       image.src = `./assets/sprites/${worldKey}/objects/${index}.png`;
 
       this.objectImages.push(image);
@@ -30,11 +42,13 @@ export default class TileSet {
 
     for (let index = 1; index <= meta[world].tileLen; index++) {
       const image = new Image();
+      image.onload = onImgLoad;
       image.src = `./assets/sprites/${worldKey}/tiles/${index}.png`;
 
       this.images.push(image);
     }
 
     this.tileBackground.src = `./assets/sprites/${worldKey}/bg.png`;
+    this.tileBackground.onload = onImgLoad;
   }
 }

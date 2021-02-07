@@ -11,6 +11,10 @@ export default class Game {
     };
   }
 
+  isLoaded() {
+    return this.world.isLoaded();
+  }
+
   update() {
     this.world.update(this.onGameOver);
   }

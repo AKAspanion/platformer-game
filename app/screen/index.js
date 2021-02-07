@@ -91,6 +91,10 @@ export default class Screen {
     this.buffer.fillRect(x, y, width, height);
   }
 
+  isLoaded() {
+    return this.tileSet.loaded;
+  }
+
   resize(width, height, ratio) {
     if (height / width > ratio) {
       this.context.canvas.height = width * ratio;
