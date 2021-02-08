@@ -181,12 +181,12 @@ export default class World {
     return index;
   }
 
-  checkCollision(object1, object2) {
+  checkCollision(object1, object2, offsetX = 0, offsetY = 0) {
     if (
-      object1.x < object2.x + object2.width &&
-      object1.x + object1.width > object2.x &&
-      object1.y < object2.y + object2.height &&
-      object1.y + object1.height > object2.y
+      object1.x < object2.x + object2.width + offsetX &&
+      object1.x + object1.width > object2.x - offsetX &&
+      object1.y < object2.y + object2.height + offsetY &&
+      object1.y + object1.height > object2.y - offsetY
     ) {
       return true;
     }
@@ -218,7 +218,7 @@ export default class World {
       coin.update();
       coin.updateAnimation();
 
-      if (this.checkCollision(this.player, coin)) {
+      if (this.checkCollision(this.player, coin, 5, 5)) {
         this.coins.items.splice(this.coins.items.indexOf(coin), 1);
 
         this.collectedCoins += `${coin.id},`;
