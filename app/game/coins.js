@@ -1,6 +1,5 @@
-// import Object from "./object";
-import Coin from "./coin";
-
+import Object from "./object";
+import Animator from "./animator";
 export default class items {
   constructor(objects = [], tileSize, collectedCoins) {
     this.items = [];
@@ -55,5 +54,34 @@ export default class items {
     for (let index = 0; index < this.items.length; index++) {
       this.items[index].updateAnimation();
     }
+  }
+}
+
+class Coin extends Object {
+  constructor(id, x, y, offsetX = 3, offsetY = 3, frameSet) {
+    super(x, y, 8, 10);
+
+    this.id = id;
+    this.offsetX = offsetX;
+    this.offsetY = offsetY;
+
+    this.baseX = x;
+    this.baseY = y;
+    this.positionX = Math.random() * Math.PI * 2;
+    this.positionY = this.positionX * 2;
+
+    this.animator = new Animator(frameSet);
+  }
+
+  update() {
+    this.positionX += 0.1;
+    this.positionY += 0.15;
+
+    this.x = this.baseX + Math.cos(this.positionX) * 1.5;
+    this.y = this.baseY + Math.sin(this.positionY);
+  }
+
+  updateAnimation() {
+    this.animator.animate();
   }
 }
