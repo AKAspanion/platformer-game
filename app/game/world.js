@@ -32,6 +32,7 @@ export default class World {
   setup(data) {
     if (this.theme !== data.theme) {
       if (data.theme) {
+        this.playedThemeMusic = false;
         this.audioController.load(
           [
             { file: "coin", ext: "wav" },
@@ -40,25 +41,17 @@ export default class World {
           ],
           (val) => {
             this.loaded = val;
-
-            if (this.isLoaded()) {
-              this.playThemeMusic();
-            }
           }
         );
 
         this.stopThemeMusic();
-
         this.theme = data.theme;
-        if (this.isLoaded()) {
-          this.playThemeMusic();
-        }
       }
     }
 
     this.id = data.id;
     this.map = data.areaMap;
-    this.isPlayerDead = undefined;
+    this.isPlayerDead = false;
     this.objects = data.objectsMap;
     this.collisonMap = data.collisonMap;
 
@@ -92,12 +85,10 @@ export default class World {
     this.audioController.play(this.theme, "mp3");
     this.audioController.volume(this.theme, 4);
     this.audioController.loop(this.theme);
-    this.playedThemeMusic = true;
   }
 
   stopThemeMusic() {
     this.audioController.stop(this.theme);
-    this.playedThemeMusic = undefined;
   }
 
   pauseThemeMusic() {
@@ -211,9 +202,10 @@ export default class World {
   }
 
   update(onGameOver) {
-    if (this.playedThemeMusic === undefined) {
-      if (this.loaded && this.isAssetsLoaded()) {
+    if (!this.playedThemeMusic) {
+      if (this.isLoaded()) {
         this.playThemeMusic();
+        this.playedThemeMusic = true;
       }
     }
 
@@ -241,7 +233,7 @@ export default class World {
     if (!dead) {
       for (let index = 0; index < this.deathAreas.length; index++) {
         if (this.checkCollision(this.player, this.deathAreas[index])) {
-          if (this.isPlayerDead === undefined) {
+          if (!this.isPlayerDead) {
             AudioController.play("fall", "mp3");
 
             this.player.velocityX = 0;
@@ -249,7 +241,7 @@ export default class World {
             onGameOver();
           }
           this.isPlayerDead = true;
-          this.theme = undefined;
+          this.theme = null;
           this.collectedCoins = "";
           this.totalCoins = 0;
           dead = true;
