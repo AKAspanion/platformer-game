@@ -68,9 +68,9 @@
       "height": 32,
       "width": 8,
       "direction": -1,
-      "destinationArea": 1,
+      "destinationArea": 6,
       "destinationX": 250,
-      "destinationY": 24
+      "destinationY": 42
     },
     {
       "x": 256,
