@@ -18,18 +18,25 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        const resClone = response.clone();
+        try {
+          if (!response || response.status !== 200 || response.type !== "basic") {
+            return response;
+          }
 
-        caches
-          .open(CACHE_NAME)
-          .then((cache) => {
-            cache.put(event.request, resClone);
-          })
-          .catch((error) => {
-            console.log("SW: error caching", error);
-          });
+          const resClone = response.clone();
 
-        return response;
+          caches
+            .open(CACHE_NAME)
+            .then((cache) => {
+              cache.put(event.request, resClone);
+            })
+            .catch((error) => {
+              console.log("SW: error caching", error);
+            });
+        } catch (error) {
+        } finally {
+          return response;
+        }
       })
       .catch(() => {
         caches.match(event.request).then((response) => response);

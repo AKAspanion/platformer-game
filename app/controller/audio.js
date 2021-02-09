@@ -10,12 +10,14 @@ export default class AudioController {
   }
 
   play(key, ext = "wav") {
-    if (!this.audios[key]) {
-      this.audios[key] = new Audio(`./assets/audio/${key}.${ext}`);
-    }
+    try {
+      if (!this.audios[key]) {
+        this.audios[key] = new Audio(`./assets/audio/${key}.${ext}`);
+      }
 
-    this.audios[key].volume = 0.5;
-    this.audios[key].play();
+      this.audios[key].volume = 0.5;
+      this.audios[key].play();
+    } catch (error) {}
 
     return this;
   }

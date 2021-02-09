@@ -62,6 +62,15 @@ export default class World {
     this.objects = data.objectsMap;
     this.collisonMap = data.collisonMap;
 
+    if (data.rows) {
+      this.rows = data.rows;
+      this.height = this.tileSize * this.rows;
+    }
+    if (data.columns) {
+      this.columns = data.columns;
+      this.width = this.tileSize * this.columns;
+    }
+
     this.deathAreas = data.death.map(({ x, y, height, width }) => new Object(x, y, width, height));
 
     this.coins = new Coins(data.coins, this.tileSize, this.collectedCoins);
