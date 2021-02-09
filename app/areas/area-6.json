@@ -1,6 +1,7 @@
 {
   "id": 6,
   "world": 5,
+  "theme": "lab",
   "death": [
     {
       "x": 64,
@@ -15,7 +16,28 @@
       "width": 32
     }
   ],
-  "portals": [],
+  "portals": [
+    {
+      "x": -8,
+      "y": 0,
+      "height": 48,
+      "width": 8,
+      "direction": -1,
+      "destinationArea": 5,
+      "destinationX": 250,
+      "destinationY": 42
+    },
+    {
+      "x": 256,
+      "y": 0,
+      "height": 48,
+      "width": 9,
+      "direction": 1,
+      "destinationArea": 1,
+      "destinationX": 6,
+      "destinationY": 24
+    }
+  ],
   "areaMap": [
     [18, 19, 18, 19, 18, 19, 18, 19, 18, 19, 18, 19, 18, 19, 18, 19],
     [20, 21, 20, 21, 20, 21, 20, 21, 20, 21, 20, 21, 20, 21, 20, 21],
