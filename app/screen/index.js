@@ -11,18 +11,28 @@ export default class Screen {
   drawMap(map) {
     const { images, tileSize } = this.tileSet;
 
+    const drawTile = (x, y, value) => {
+      const image = images[value];
+
+      let destinationX = x * tileSize;
+      let destinationY = y * tileSize;
+
+      this.buffer.drawImage(image, destinationX, destinationY, tileSize, tileSize);
+    };
+
     for (let i = 0; i < map.length; i++) {
       const row = map[i];
       for (let j = 0; j < row.length; j++) {
         const value = row[j];
 
         if (value) {
-          const image = images[value];
-
-          let destinationX = j * tileSize;
-          let destinationY = i * tileSize;
-
-          this.buffer.drawImage(image, destinationX, destinationY, tileSize, tileSize);
+          if (Array.isArray(value)) {
+            for (let index = 0; index < value.length; index++) {
+              drawTile(j, i, value[index]);
+            }
+          } else {
+            drawTile(j, i, value);
+          }
         }
       }
     }

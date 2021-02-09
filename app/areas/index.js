@@ -4,6 +4,7 @@ import area3 from "./area-3.json";
 import area4 from "./area-4.json";
 import area5 from "./area-5.json";
 import area6 from "./area-6.json";
+import area7 from "./area-7.json";
 
 export default {
   [area1.id]: area1,
@@ -13,4 +14,5 @@ export default {
   [area4.id]: area4,
   [area5.id]: area5,
   [area6.id]: area6,
+  [area7.id]: area7,
 };
