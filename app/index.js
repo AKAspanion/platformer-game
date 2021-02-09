@@ -103,7 +103,7 @@ window.addEventListener("load", function () {
     screen.drawBackground();
     screen.drawMap(game.world.map);
     screen.drawMapObjects(game.world.objects);
-    // screen.drawArea(game.world.portals);
+    screen.drawArea(game.world.portals);
     // screen.drawArea(game.world.deathAreas);
 
     // draw coins
@@ -120,6 +120,7 @@ window.addEventListener("load", function () {
           coin.offsetX,
           coin.offsetY
         );
+        // screen.drawText(coin.id, coin.x, coin.y);
         // screen.drawRect(coin);
       }
     }
@@ -155,11 +156,17 @@ window.addEventListener("load", function () {
     );
 
     // draw coin count
+    const scoreTextOffest =
+      game.world.totalCoins >= 10 && game.world.totalCoins <= 99
+        ? 3
+        : game.world.totalCoins > 99
+        ? 3.4
+        : 2.7;
     const image = new Image();
     image.src = "./assets/sprites/coin/image 1.webp";
-    screen.drawObject(image, 13.3 * 16, 8, 10, 10);
-    screen.drawText("x", 14.2 * 16, 15);
-    screen.drawText(game.world.totalCoins, 14.7 * 16, 16);
+    screen.drawObject(image, (game.world.columns - 1.3) * 16, 8, 10, 10);
+    screen.drawText("x", (game.world.columns - 2) * 16, 15);
+    screen.drawText(game.world.totalCoins, (game.world.columns - scoreTextOffest) * 16, 16.1);
 
     screen.render();
   };
@@ -220,10 +227,14 @@ window.addEventListener("load", function () {
     setupWorld();
     setupScreen();
 
+    resize();
+
     engine.resume();
 
     if (!engine.started) {
       engine.start();
     }
   };
+
+  startBtn.click();
 });
