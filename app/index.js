@@ -106,7 +106,7 @@ window.addEventListener("load", function () {
     screen.drawBackground();
     screen.drawMap(game.world.map);
     screen.drawMapObjects(game.world.objects);
-    screen.drawArea(game.world.portals);
+    // screen.drawArea(game.world.portals);
     // screen.drawArea(game.world.deathAreas);
 
     // draw coins
@@ -239,5 +239,5 @@ window.addEventListener("load", function () {
     }
   };
 
-  startBtn.click();
+  // startBtn.click();
 });

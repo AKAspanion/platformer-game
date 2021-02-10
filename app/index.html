@@ -4,10 +4,30 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#B4D12D" />
-    <link rel="apple-touch-icon" href="./images/icons-512.png" />
+    <link rel="shortcut icon" type="image/png" href="./images/icons-192.png" />
+    <link rel="shortcut icon" sizes="192x192" href="./images/icons-192.png" />
+    <link rel="apple-touch-icon" href="./images/icons-192.png" />
     <link rel="manifest" href="./manifest.json" />
     <link rel="icon" href="./favicon.ico" />
     <title>Pixel Dino</title>
+    <meta name="description" content="A pixel styled, platformer adventure game." />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="en_GB" />
+    <meta property="og:title" content="Pixel Dino" />
+    <meta
+      property="og:image"
+      content="https://akaspanion.github.io/platformer-game/images/ss-game.png"
+    />
+    <meta property="og:url" content="https://akaspanion.github.io/platformer-game/" />
+    <meta property="og:description" content="A pixel styled, platformer adventure game." />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Pixel Dino" />
+    <meta
+      name="twitter:image"
+      content="https://akaspanion.github.io/platformer-game/images/ss-game.png"
+    />
+    <meta name="twitter:image:alt" content="Pixel Dino platformer game" />
+    <meta name="twitter:description" content="A pixel styled, platformer adventure game." />
     <style>
       body {
         margin: 0;
@@ -147,7 +167,6 @@
         }
       }
     </style>
-    <!-- <script src="./sw.js"></script> -->
     <script>
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", function () {
