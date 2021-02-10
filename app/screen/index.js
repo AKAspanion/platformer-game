@@ -91,7 +91,7 @@ export default class Screen {
   }
 
   drawPlayer(image, destinationX, destinationY, width, height, offsetX, offsetY, rect) {
-    this.drawObject(image, destinationX + offsetX, destinationY + offsetY, width, height);
+    this.drawObject(image, destinationX + offsetX, destinationY + offsetY + 1, width, height);
   }
 
   drawObject(image, destinationX, destinationY, width, height, offsetX = 0, offsetY = 0) {

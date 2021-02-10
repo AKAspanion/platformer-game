@@ -1,11 +1,12 @@
 export default class AudioController {
   constructor() {
+    this.count = 4;
     this.audios = {};
   }
 
-  static play(key, ext = "wav") {
+  static play(key, ext = "wav", volume = 0.4) {
     const audio = new Audio(`./assets/audio/${key}.${ext}`);
-    audio.volume = 0.5;
+    audio.volume = volume;
     audio.play();
   }
 
@@ -15,7 +16,7 @@ export default class AudioController {
         this.audios[key] = new Audio(`./assets/audio/${key}.${ext}`);
       }
 
-      this.audios[key].volume = 0.5;
+      this.audios[key].volume = 0.4;
       this.audios[key].play();
     } catch (error) {}
 
@@ -70,6 +71,19 @@ export default class AudioController {
   volume(key, value) {
     if (this.audios[key]) {
       this.audios[key].volume = value / 100;
+    }
+  }
+
+  static animate(callback, go = false, delay = 12) {
+    if (go) {
+      this.count++;
+
+      while (this.count > delay) {
+        this.count -= delay;
+        callback();
+      }
+    } else {
+      this.count = 4;
     }
   }
 }

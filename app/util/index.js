@@ -63,12 +63,13 @@ export const preLoadAndFetch = () => {
   });
 
   const audioFiles = [
+    { rel: "preload", file: "grasslands" },
     { rel: "preload", file: "coin", ext: "wav" },
+    { rel: "preload", file: "jump", ext: "wav" },
+    { rel: "preload", file: "fall", ext: "mp3" },
+    { rel: "preload", file: "iceland" },
     { rel: "preload", file: "desert" },
     { rel: "preload", file: "dungeon" },
-    { rel: "preload", file: "fall" },
-    { rel: "preload", file: "grasslands" },
-    { rel: "preload", file: "iceland" },
   ];
 
   audioFiles.forEach(({ rel, file, ext = "mp3" }) => {

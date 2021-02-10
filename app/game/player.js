@@ -6,6 +6,7 @@ export default class Player extends Object {
     this.color = "#ff0000";
     this.loaded = false;
 
+    this.running = false;
     this.jumping = true;
     this.velocityX = 0;
     this.velocityY = 0;
@@ -116,5 +117,8 @@ export default class Player extends Object {
 
     this.velocityX *= friction;
     this.velocityY *= friction;
+
+    const absVelocityX = Math.abs(this.velocityX);
+    this.running = absVelocityX === 0.435 ? false : absVelocityX >= 0.2;
   }
 }

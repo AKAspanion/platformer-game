@@ -36,6 +36,8 @@ export default class World {
         this.audioController.load(
           [
             { file: "coin", ext: "wav" },
+            { file: "foot", ext: "wav" },
+            { file: "jump", ext: "wav" },
             { file: "fall", ext: "mp3" },
             { file: data.theme, ext: "mp3" },
           ],
@@ -79,6 +81,10 @@ export default class World {
 
       this.portal = null;
     }
+  }
+
+  playJumpSound() {
+    AudioController.play("jump", "wav");
   }
 
   playThemeMusic() {
@@ -202,6 +208,12 @@ export default class World {
   }
 
   update(onGameOver) {
+    // console.log(this.player.running);
+
+    AudioController.animate(() => {
+      AudioController.play("foot", "wav", 0.15);
+    }, this.player.running);
+
     if (!this.playedThemeMusic) {
       if (this.isLoaded()) {
         this.playThemeMusic();

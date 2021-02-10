@@ -80,6 +80,9 @@ window.addEventListener("load", function () {
         game.world.player.moveRight();
       }
       if (controller.up.active) {
+        if (!game.world.player.jumping) {
+          game.world.playJumpSound();
+        }
         game.world.player.jump();
         controller.up.active = false;
       }
