@@ -52,12 +52,57 @@
         border: 1px solid #292929;
       }
 
+      .controller {
+        visibility: hidden;
+      }
+
       .controller-jump,
       .controller-arrows {
         top: -100px;
         opacity: 0.6;
         position: absolute;
-        visibility: hidden;
+      }
+
+      .controller-arrows {
+        bottom: 0;
+        display: flex;
+        flex-wrap: wrap;
+        max-width: 156px;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .controller-btn {
+        margin: 2px;
+        width: 72px;
+        height: 72px;
+        display: flex;
+        font-size: 25px;
+        cursor: pointer;
+        user-select: none;
+        border-radius: 100%;
+        align-items: center;
+        box-sizing: border-box;
+        justify-content: center;
+        border: 4px solid black;
+        background: rgb(164, 164, 164);
+        -webkit-tap-highlight-color: transparent;
+      }
+      .jump-btn {
+        width: 88px;
+        height: 88px;
+        font-size: 38px;
+      }
+      .controller-btn:hover {
+        opacity: 0.6;
+      }
+
+      .controller-jump {
+        top: calc(100% - 96px);
+        right: 8px;
+      }
+      .controller-arrows {
+        top: calc(100% - 80px);
+        left: 8px;
       }
 
       #startScreen {
@@ -115,50 +160,6 @@
           transform: rotate(90deg);
           justify-content: space-evenly;
         }
-        .controller-jump,
-        .controller-arrows {
-          visibility: visible;
-        }
-        .controller-jump {
-          top: calc(100% - 96px);
-          right: 8px;
-        }
-        .controller-arrows {
-          top: calc(100% - 80px);
-          left: 8px;
-        }
-        .controller-arrows {
-          bottom: 0;
-          display: flex;
-          flex-wrap: wrap;
-          max-width: 156px;
-          align-items: center;
-          justify-content: space-between;
-        }
-        .controller-btn {
-          margin: 2px;
-          width: 72px;
-          height: 72px;
-          display: flex;
-          font-size: 25px;
-          cursor: pointer;
-          user-select: none;
-          border-radius: 100%;
-          align-items: center;
-          box-sizing: border-box;
-          justify-content: center;
-          border: 4px solid black;
-          background: rgb(164, 164, 164);
-          -webkit-tap-highlight-color: transparent;
-        }
-        .jump-btn {
-          width: 88px;
-          height: 88px;
-          font-size: 38px;
-        }
-        .controller-btn:hover {
-          opacity: 0.6;
-        }
         #startScreen,
         #loadingScreen {
           width: 100vh;
@@ -185,12 +186,12 @@
   </head>
   <body>
     <div class="container">
-      <div class="controller-arrows">
+      <div class="controller controller-arrows">
         <div id="leftBtn" class="controller-btn arrow-btn arrow-left">⬅️</div>
         <div id="rightBtn" class="controller-btn arrow-btn arrow-right">➡️</div>
       </div>
       <canvas></canvas>
-      <div class="controller-jump">
+      <div class="controller controller-jump">
         <div id="jumpBtn" class="controller-btn jump-btn">⬆️</div>
       </div>
     </div>
