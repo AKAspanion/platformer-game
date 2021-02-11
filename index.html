@@ -79,7 +79,7 @@
         display: flex;
         cursor: pointer;
         color: #cccccc;
-        font-size: 28px;
+        font-size: 24px;
         cursor: pointer;
         user-select: none;
         border-radius: 100%;
@@ -92,7 +92,7 @@
       .jump-btn {
         width: 72px;
         height: 72px;
-        font-size: 38px;
+        font-size: 34px;
       }
       .controller-btn:active {
         color: #c2c2c2;
@@ -107,8 +107,8 @@
         top: calc(100% - 68px);
         left: 4px;
       }
-      .arrow-right {
-        transform: rotate(180deg);
+      .btn-icon {
+        opacity: 0.7;
       }
 
       #startScreen {
@@ -195,12 +195,18 @@
   <body>
     <div class="container">
       <div class="controller controller-arrows">
-        <div id="leftBtn" class="controller-btn arrow-btn arrow-left">⬅</div>
-        <div id="rightBtn" class="controller-btn arrow-btn arrow-right">⬅</div>
+        <div id="leftBtn" class="controller-btn arrow-btn arrow-left">
+          <span class="btn-icon">⬅️</span>
+        </div>
+        <div id="rightBtn" class="controller-btn arrow-btn arrow-right">
+          <span class="btn-icon">➡️</span>
+        </div>
       </div>
       <canvas></canvas>
       <div class="controller controller-jump">
-        <div id="jumpBtn" class="controller-btn jump-btn">⬆</div>
+        <div id="jumpBtn" class="controller-btn jump-btn">
+          <span class="btn-icon">⬆️</span>
+        </div>
       </div>
     </div>
     <div id="startScreen">
