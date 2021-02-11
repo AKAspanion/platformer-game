@@ -66,17 +66,19 @@
 
       .controller-arrows {
         bottom: 0;
+        width: 124px;
         display: flex;
         flex-wrap: wrap;
-        max-width: 156px;
         align-items: center;
         justify-content: space-between;
       }
       .controller-btn {
         margin: 2px;
-        width: 72px;
-        height: 72px;
+        width: 56px;
+        height: 56px;
         display: flex;
+        cursor: pointer;
+        color: #cccccc;
         font-size: 28px;
         cursor: pointer;
         user-select: none;
@@ -84,26 +86,29 @@
         align-items: center;
         box-sizing: border-box;
         justify-content: center;
-        border: 5px solid rgba(16, 16, 16, 0.8);
-        background: rgba(164, 164, 164, 0.4);
+        background: linear-gradient(145deg, #36413e, #262d2c);
         -webkit-tap-highlight-color: transparent;
       }
       .jump-btn {
-        width: 88px;
-        height: 88px;
+        width: 72px;
+        height: 72px;
         font-size: 38px;
       }
-      .controller-btn:hover {
-        opacity: 0.6;
+      .controller-btn:active {
+        color: #c2c2c2;
+        background: linear-gradient(145deg, #262d2c, #36413e);
       }
 
       .controller-jump {
-        top: calc(100% - 96px);
-        right: 8px;
+        top: calc(100% - 80px);
+        right: 4px;
       }
       .controller-arrows {
-        top: calc(100% - 80px);
-        left: 8px;
+        top: calc(100% - 68px);
+        left: 4px;
+      }
+      .arrow-right {
+        transform: rotate(180deg);
       }
 
       #startScreen {
@@ -190,12 +195,12 @@
   <body>
     <div class="container">
       <div class="controller controller-arrows">
-        <div id="leftBtn" class="controller-btn arrow-btn arrow-left">⬅️</div>
-        <div id="rightBtn" class="controller-btn arrow-btn arrow-right">➡️</div>
+        <div id="leftBtn" class="controller-btn arrow-btn arrow-left">⬅</div>
+        <div id="rightBtn" class="controller-btn arrow-btn arrow-right">⬅</div>
       </div>
       <canvas></canvas>
       <div class="controller controller-jump">
-        <div id="jumpBtn" class="controller-btn jump-btn">⬆️</div>
+        <div id="jumpBtn" class="controller-btn jump-btn">⬆</div>
       </div>
     </div>
     <div id="startScreen">
