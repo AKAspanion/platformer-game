@@ -37,6 +37,8 @@ window.addEventListener("load", function () {
 
   let areaId = 1;
   let loaded = false;
+  let areaNumber = 1;
+  const totalAreaNumber = 3;
 
   toggleLoadingScreen(false);
 
@@ -102,7 +104,24 @@ window.addEventListener("load", function () {
     if (game.world.portal) {
       engine.hold();
 
-      areaId = game.world.portal.destinationArea;
+      const { direction, destinationArea } = game.world.portal;
+      if (destinationArea !== areaId) {
+        if (direction < 0) {
+          areaNumber--;
+        } else {
+          areaNumber++;
+        }
+
+        if (areaNumber === 0) {
+          areaNumber = 1;
+        }
+
+        if (areaNumber > totalAreaNumber) {
+          areaNumber = totalAreaNumber;
+        }
+      }
+
+      areaId = destinationArea;
 
       setupWorld();
       setupScreen();
@@ -181,6 +200,10 @@ window.addEventListener("load", function () {
     screen.drawObject(image, (game.world.columns - 1.3) * 16, 8, 10, 10);
     screen.drawText("x", (game.world.columns - 2) * 16, 15);
     screen.drawText(game.world.totalCoins, (game.world.columns - scoreTextOffest) * 16, 16.1);
+
+    screen.drawText(areaNumber, 48, 15.3);
+    screen.drawText("Area", 12, 15.3);
+    screen.drawText("x", 38, 15);
 
     screen.render();
   };
