@@ -254,5 +254,13 @@ window.addEventListener("load", function () {
     }
   };
 
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "visible") {
+      game.world.playThemeMusic();
+    } else {
+      game.world.pauseThemeMusic();
+    }
+  });
+
   // startBtn.click();
 });

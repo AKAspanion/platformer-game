@@ -88,16 +88,22 @@ export default class World {
   }
 
   playThemeMusic() {
+    if (!this.theme) return;
+
     this.audioController.play(this.theme, "mp3");
     this.audioController.volume(this.theme, 4);
     this.audioController.loop(this.theme);
   }
 
   stopThemeMusic() {
+    if (!this.theme) return;
+
     this.audioController.stop(this.theme);
   }
 
   pauseThemeMusic() {
+    if (!this.theme) return;
+
     this.audioController.pause(this.theme);
   }
 
@@ -208,8 +214,6 @@ export default class World {
   }
 
   update(onGameOver) {
-    // console.log(this.player.running);
-
     AudioController.animate(() => {
       AudioController.play("foot", "wav", 0.15);
     }, this.player.running);
