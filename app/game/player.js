@@ -63,7 +63,8 @@ export default class Player extends Object {
     this.y = 100;
     this.xOld = 40;
     this.yOld = 100;
-    this.jumping = true;
+    this.running = false;
+    this.jumping = false;
     this.velocityX = 0;
     this.velocityY = 0;
     this.direction = 1;

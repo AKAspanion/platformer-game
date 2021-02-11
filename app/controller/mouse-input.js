@@ -10,6 +10,12 @@ export default class MouseInput {
       clearTimeout(timeout);
     };
 
+    const preventDefault = (e) => {
+      if (e.preventDefault) {
+        e.preventDefault();
+      }
+    };
+
     const repeat = function () {
       action("keydown");
 
@@ -17,17 +23,14 @@ export default class MouseInput {
       start = start / speedup;
     };
 
-    btn.onpointerdown = function () {
+    btn.ontouchstart = function (e) {
+      preventDefault(e);
+
       repeat();
     };
 
-    btn.onpointerup = function () {
-      action("keyup");
-
-      clear();
-    };
-
-    btn.onmouseup = function () {
+    btn.ontouchend = function (e) {
+      preventDefault(e);
       action("keyup");
 
       clear();

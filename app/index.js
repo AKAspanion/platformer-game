@@ -10,10 +10,19 @@ preLoadAndFetch();
 
 import areas from "./areas";
 
+const isTouchesEnabled = "ontouchstart" in document.documentElement;
+
 const startBtn = document.getElementById("startBtn");
 const startTitle = document.getElementById("startTitle");
 const startScreen = document.getElementById("startScreen");
+const controllers = document.querySelectorAll(".controller");
 const loadingScreen = document.getElementById("loadingScreen");
+
+const toggleControllers = (value) => {
+  controllers.forEach(
+    (controller) => (controller.style.visibility = isTouchesEnabled && value ? "visible" : "hidden")
+  );
+};
 
 const toggleStartScreen = (value) => {
   startScreen.style.visibility = !value ? "hidden" : "visible";
@@ -67,9 +76,11 @@ window.addEventListener("load", function () {
     loaded = isLoaded();
 
     if (!loaded) {
+      toggleControllers(false);
       toggleLoadingScreen(true);
     } else {
       toggleLoadingScreen(false);
+      toggleControllers(true);
     }
 
     if (!game.over) {
@@ -184,6 +195,7 @@ window.addEventListener("load", function () {
 
     screen.resize(width - 4, height - 4, game.world.height / game.world.width);
     screen.render();
+    toggleControllers(true);
   };
 
   resize();
@@ -200,12 +212,15 @@ window.addEventListener("load", function () {
   window.addEventListener("resize", resize);
 
   const leftMouse = new MouseInput("leftBtn", (e) => {
+    clearMouse();
     controller.keyDownUp(e, 37);
   });
   const rightMouse = new MouseInput("rightBtn", (e) => {
+    clearMouse();
     controller.keyDownUp(e, 39);
   });
   const upMouse = new MouseInput("jumpBtn", (e) => {
+    clearMouse();
     controller.keyDownUp(e, 32);
   });
 
