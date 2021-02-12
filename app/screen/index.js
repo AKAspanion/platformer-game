@@ -102,6 +102,14 @@ export default class Screen {
     this.buffer.fillRect(x, y, width, height);
   }
 
+  get assetCount() {
+    return this.tileSet.assetCount;
+  }
+
+  get loadCount() {
+    return this.tileSet.loadCount;
+  }
+
   isLoaded() {
     return this.tileSet.loaded;
   }

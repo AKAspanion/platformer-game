@@ -21,12 +21,12 @@ export default class TileSet {
       5: { objectLen: 12, tileLen: 25 },
     };
 
-    let loadCount = 0;
-    let totalCount = meta[world].objectLen + meta[world].tileLen + 1;
+    this.loadCount = 0;
+    this.assetCount = meta[world].objectLen + meta[world].tileLen + 1;
     const onImgLoad = (e) => {
-      loadCount += 1;
+      this.loadCount += 1;
 
-      if (totalCount === loadCount) {
+      if (this.assetCount === this.loadCount) {
         this.loaded = true;
       }
     };

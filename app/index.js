@@ -17,6 +17,7 @@ const startTitle = document.getElementById("startTitle");
 const startScreen = document.getElementById("startScreen");
 const controllers = document.querySelectorAll(".controller");
 const loadingScreen = document.getElementById("loadingScreen");
+const progressValue = document.getElementById("progressValue");
 
 const toggleControllers = (value) => {
   controllers.forEach(
@@ -32,15 +33,24 @@ const toggleLoadingScreen = (value) => {
   loadingScreen.style.visibility = !value ? "hidden" : "visible";
 };
 
+const setProgressValue = (value) => {
+  progressValue.style.width = `${value}%`;
+};
+
+setProgressValue(50);
+
 window.addEventListener("load", function () {
   "use strict";
 
   let areaId = 1;
   let loaded = false;
   let areaNumber = 1;
+  let worldChanged = false;
   const totalAreaNumber = 3;
 
+  setProgressValue(100);
   toggleLoadingScreen(false);
+  setProgressValue(0);
 
   const controller = new Controller();
 
@@ -70,12 +80,24 @@ window.addEventListener("load", function () {
 
   // GAME ENGINE
 
+  const loadPercent = () => {
+    const totalAssets = (worldChanged ? 0 : game.world.assetCount) + screen.assetCount;
+    const totalLoaded = (worldChanged ? 0 : game.world.loadCount) + screen.loadCount;
+
+    return Math.round((totalLoaded / totalAssets) * 100);
+  };
+
   const isLoaded = () => {
     return game.isLoaded() && screen.isLoaded();
   };
 
   const update = () => {
     loaded = isLoaded();
+    const loadValue = loadPercent();
+
+    if (loadValue < 100) {
+      setProgressValue(loadValue == 99 ? 100 : loadValue);
+    }
 
     if (!loaded) {
       toggleControllers(false);
@@ -83,9 +105,10 @@ window.addEventListener("load", function () {
     } else {
       toggleLoadingScreen(false);
       toggleControllers(true);
+      setProgressValue(0);
     }
 
-    if (!game.over) {
+    if (!game.over && loaded) {
       if (controller.left.active) {
         game.world.player.moveLeft();
       }
@@ -102,6 +125,7 @@ window.addEventListener("load", function () {
     }
 
     if (game.world.portal) {
+      worldChanged = true;
       engine.hold();
 
       const { direction, destinationArea } = game.world.portal;

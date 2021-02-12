@@ -205,6 +205,14 @@ export default class World {
     return false;
   }
 
+  get assetCount() {
+    return this.player.assetCount + this.coins.assetCount + this.water.assetCount;
+  }
+
+  get loadCount() {
+    return this.player.loadCount + this.coins.loadCount + this.water.loadCount;
+  }
+
   isLoaded() {
     return this.loaded && this.isAssetsLoaded();
   }

@@ -21,14 +21,14 @@ export default class Player extends Object {
 
     this.frameSets = {};
 
-    let loadCount = 0;
-    const totalCount = 34;
+    this.loadCount = 0;
+    this.assetCount = 34 * 2;
     keys.forEach(({ id, count }) => {
       for (let index = 1; index <= count; index++) {
         const onImgLoad = (e) => {
-          loadCount += 1;
+          this.loadCount += 1;
 
-          if (totalCount === loadCount) {
+          if (this.assetCount === this.loadCount) {
             this.loaded = true;
           }
         };

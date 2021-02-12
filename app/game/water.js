@@ -10,14 +10,15 @@ export default class Water {
 
     this.frameSets = {};
 
-    let loadCount = 0;
+    this.assetCount = 17;
+    this.loadCount = 0;
     keys.forEach(({ count }) => {
       for (let index = 1; index <= count; index++) {
         const image = new Image();
-        image.onload = (e) => {
-          loadCount += 1;
+        image.onload = () => {
+          this.loadCount += 1;
 
-          if (count === loadCount) {
+          if (count === this.loadCount) {
             this.loaded = true;
           }
         };
