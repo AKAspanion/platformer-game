@@ -8,6 +8,7 @@ export default class Player extends Object {
 
     this.running = false;
     this.jumping = true;
+    this.firing = true;
     this.velocityX = 0;
     this.velocityY = 0;
     this.direction = 1;
@@ -17,12 +18,13 @@ export default class Player extends Object {
       { id: "Run", count: 8 },
       { id: "Jump", count: 8 },
       { id: "Dead", count: 8 },
+      { id: "Fire", count: 4 },
     ];
 
     this.frameSets = {};
 
     this.loadCount = 0;
-    this.assetCount = 34 * 2;
+    this.assetCount = 38 * 2;
     keys.forEach(({ id, count }) => {
       for (let index = 1; index <= count; index++) {
         const onImgLoad = (e) => {
@@ -63,6 +65,7 @@ export default class Player extends Object {
     this.y = 100;
     this.xOld = 40;
     this.yOld = 100;
+    this.firing = false;
     this.running = false;
     this.jumping = false;
     this.velocityX = 0;
@@ -74,6 +77,15 @@ export default class Player extends Object {
     if (!this.jumping) {
       this.jumping = true;
       this.velocityY -= 18;
+    }
+  }
+
+  fire() {
+    if (!this.firing) {
+      this.firing = true;
+      setTimeout(() => {
+        this.firing = false;
+      }, 300);
     }
   }
 
@@ -96,14 +108,31 @@ export default class Player extends Object {
     }
 
     if (this.velocityY < 0) {
-      if (this.direction < 0) this.animator.changeFrameSet(this.frameSets["jumpLeft"], 2);
-      else this.animator.changeFrameSet(this.frameSets["jumpRight"], 2);
+      if (this.direction < 0) {
+        this.animator.changeFrameSet(this.frameSets["jumpLeft"], 2);
+      } else {
+        this.animator.changeFrameSet(this.frameSets["jumpRight"], 2);
+      }
     } else if (this.direction < 0) {
-      if (this.velocityX < -0.1) this.animator.changeFrameSet(this.frameSets["runLeft"]);
-      else this.animator.changeFrameSet(this.frameSets["idleLeft"]);
+      if (this.velocityX < -0.1) {
+        this.animator.changeFrameSet(this.frameSets["runLeft"]);
+      } else {
+        if (this.firing) {
+          this.animator.changeFrameSet(this.frameSets["fireLeft"], 2);
+        } else {
+          this.animator.changeFrameSet(this.frameSets["idleLeft"]);
+        }
+      }
     } else if (this.direction > 0) {
-      if (this.velocityX > 0.1) this.animator.changeFrameSet(this.frameSets["runRight"]);
-      else this.animator.changeFrameSet(this.frameSets["idleRight"]);
+      if (this.velocityX > 0.1) {
+        this.animator.changeFrameSet(this.frameSets["runRight"]);
+      } else {
+        if (this.firing) {
+          this.animator.changeFrameSet(this.frameSets["fireRight"], 2);
+        } else {
+          this.animator.changeFrameSet(this.frameSets["idleRight"]);
+        }
+      }
     }
 
     this.animator.animate();

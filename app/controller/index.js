@@ -5,6 +5,7 @@ export default class Controller {
     this.up = new Input();
     this.left = new Input();
     this.right = new Input();
+    this.fire = new Input();
   }
 
   keyDownUp(type, keyCode) {
@@ -22,6 +23,10 @@ export default class Controller {
       case 39:
       case 68:
         this.right.getInput(down);
+        break;
+      case 13:
+      case 16:
+        this.fire.getInput(down);
     }
   }
 }

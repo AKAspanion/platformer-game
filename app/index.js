@@ -4,7 +4,7 @@ import GameEngine from "./engine";
 import Controller from "./controller";
 import MouseInput from "./controller/mouse-input";
 
-import { preLoadAndFetch } from "./util";
+import { uid, preLoadAndFetch } from "./util";
 
 preLoadAndFetch();
 
@@ -44,6 +44,7 @@ window.addEventListener("load", function () {
 
   let areaId = 1;
   let loaded = false;
+  let firing = false;
   let areaNumber = 1;
   let worldChanged = false;
   const totalAreaNumber = 3;
@@ -109,18 +110,29 @@ window.addEventListener("load", function () {
     }
 
     if (!game.over && loaded) {
+      const { player } = game.world;
+
       if (controller.left.active) {
-        game.world.player.moveLeft();
+        player.moveLeft();
       }
       if (controller.right.active) {
-        game.world.player.moveRight();
+        player.moveRight();
       }
       if (controller.up.active) {
-        if (!game.world.player.jumping) {
+        if (!player.jumping) {
           game.world.playJumpSound();
         }
-        game.world.player.jump();
+        player.jump();
         controller.up.active = false;
+      }
+      if (controller.fire.active && !player.firing) {
+        const { fireballs } = game.world;
+        const offsetX = player.direction < 0 ? -32 : 8;
+
+        player.fire();
+        game.world.playFireSound();
+        fireballs.add(uid(), player.x + offsetX, player.y - 16, player.direction);
+        controller.fire.active = false;
       }
     }
 
@@ -195,6 +207,21 @@ window.addEventListener("load", function () {
           waterItem.height,
           waterItem.offsetX,
           waterItem.offsetY
+        );
+      }
+    }
+
+    // draw fireballs
+    if (game.world.fireballs) {
+      for (let index = 0; index < game.world.fireballs.items.length; index++) {
+        const fireball = game.world.fireballs.items[index];
+
+        screen.drawObject(
+          fireball.animator.frameValue,
+          fireball.x,
+          fireball.y,
+          fireball.width,
+          fireball.height
         );
       }
     }

@@ -4,6 +4,7 @@ import Player from "./player";
 import Object from "./object";
 import Portal from "./portal";
 import Collider from "./collider";
+import Fireballs from "./fireballs";
 import AudioController from "../controller/audio";
 
 export default class World {
@@ -25,6 +26,7 @@ export default class World {
 
     this.player = new Player();
     this.collider = new Collider();
+    this.fireballs = new Fireballs();
 
     this.audioController = new AudioController();
   }
@@ -35,6 +37,7 @@ export default class World {
         this.playedThemeMusic = false;
         this.audioController.load(
           [
+            { file: "fire", ext: "wav" },
             { file: "coin", ext: "wav" },
             { file: "foot", ext: "wav" },
             { file: "jump", ext: "wav" },
@@ -74,6 +77,8 @@ export default class World {
 
     this.water = new Water(data.water, this.tileSize);
 
+    this.fireballs.reset();
+
     if (this.portal) {
       this.player.setCenterX(this.portal.destinationX);
       this.player.setCenterY(this.portal.destinationY);
@@ -85,6 +90,10 @@ export default class World {
 
   playJumpSound() {
     AudioController.play("jump", "wav");
+  }
+
+  playFireSound() {
+    AudioController.play("fire", "wav");
   }
 
   playThemeMusic() {
@@ -250,6 +259,17 @@ export default class World {
 
         AudioController.play("coin");
         this.totalCoins += 1;
+      }
+    }
+
+    for (let index = 0; index < this.fireballs.items.length; index++) {
+      const fireball = this.fireballs.items[index];
+
+      fireball.update();
+      fireball.updateAnimation(this.player);
+
+      if (fireball.x >= this.width + 50) {
+        this.fireballs.remove(fireball.id);
       }
     }
 
