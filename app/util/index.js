@@ -2,6 +2,14 @@ export const uid = () => {
   return Date.now().toString(36) + Math.random().toString(36).substring(2);
 };
 
+export const setData = (key, value) => {
+  return localStorage.setItem(key, JSON.stringify(value));
+};
+
+export const getData = (key) => {
+  return JSON.parse(localStorage.getItem(key));
+};
+
 export const preLoadAndFetch = () => {
   const items = {
     sprites: [

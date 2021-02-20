@@ -4,7 +4,7 @@ import GameEngine from "./engine";
 import Controller from "./controller";
 import MouseInput from "./controller/mouse-input";
 
-import { uid, preLoadAndFetch } from "./util";
+import { uid, getData, setData, preLoadAndFetch } from "./util";
 
 preLoadAndFetch();
 
@@ -16,17 +16,31 @@ const isTouchesEnabled = "ontouchstart" in document.documentElement;
 
 const startBtn = document.getElementById("startBtn");
 const pauseBtn = document.getElementById("pauseBtn");
+const soundBtn = document.getElementById("soundBtn");
+const musicBtn = document.getElementById("musicBtn");
 const refreshBtn = document.getElementById("refreshBtn");
 const startTitle = document.getElementById("startTitle");
 const startScreen = document.getElementById("startScreen");
 const controllers = document.querySelectorAll(".controller");
 const loadingScreen = document.getElementById("loadingScreen");
 const progressValue = document.getElementById("progressValue");
+const persistentControllers = document.querySelectorAll(".persistent-controller");
+
+const toggleSoundBtn = (value) => {
+  soundBtn.classList[value ? "add" : "remove"]("cancel-cross");
+};
+
+const toggleMusicBtn = (value) => {
+  musicBtn.classList[value ? "add" : "remove"]("cancel-cross");
+};
 
 const toggleControllers = (value) => {
   controllerActive = value;
   controllers.forEach(
     (controller) => (controller.style.visibility = isTouchesEnabled && value ? "visible" : "hidden")
+  );
+  persistentControllers.forEach(
+    (controller) => (controller.style.visibility = value ? "visible" : "hidden")
   );
 };
 
@@ -53,6 +67,8 @@ window.addEventListener("load", function () {
   let worldChanged = false;
   const totalAreaNumber = 3;
 
+  toggleSoundBtn(getData("mute_sounds"));
+  toggleMusicBtn(getData("mute_music"));
   clearInterval(loadInterval);
   toggleLoadingScreen(false);
   setProgressValue(0);
@@ -381,6 +397,20 @@ window.addEventListener("load", function () {
   refreshBtn.onclick = () => {
     areaNumber = 1;
     startBtn.click();
+  };
+
+  soundBtn.onclick = () => {
+    const isMuted = !getData("mute_sounds");
+
+    setData("mute_sounds", isMuted);
+    toggleSoundBtn(isMuted);
+  };
+
+  musicBtn.onclick = () => {
+    const isMuted = !getData("mute_music");
+
+    setData("mute_music", isMuted);
+    toggleMusicBtn(isMuted);
   };
 
   document.addEventListener("visibilitychange", function () {

@@ -1,3 +1,4 @@
+import { getData } from "../util/";
 export default class AudioController {
   constructor() {
     this.count = 4;
@@ -5,6 +6,8 @@ export default class AudioController {
   }
 
   static play(key, ext = "wav", volume = 0.4) {
+    if (getData("mute_sounds")) return;
+
     const audio = new Audio(`./assets/audio/${key}.${ext}`);
     audio.volume = volume;
     audio.play();
@@ -17,6 +20,9 @@ export default class AudioController {
       }
 
       this.audios[key].volume = 0.4;
+
+      if (getData("mute_music")) return;
+
       this.audios[key].play();
     } catch (error) {}
 

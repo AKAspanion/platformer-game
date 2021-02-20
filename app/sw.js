@@ -1,4 +1,4 @@
-const CACHE_NAME = "dino-v5";
+const CACHE_NAME = "dino-v6";
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
