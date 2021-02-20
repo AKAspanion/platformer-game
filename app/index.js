@@ -13,6 +13,8 @@ import areas from "./areas";
 const isTouchesEnabled = "ontouchstart" in document.documentElement;
 
 const startBtn = document.getElementById("startBtn");
+const pauseBtn = document.getElementById("pauseBtn");
+const refreshBtn = document.getElementById("refreshBtn");
 const startTitle = document.getElementById("startTitle");
 const startScreen = document.getElementById("startScreen");
 const controllers = document.querySelectorAll(".controller");
@@ -42,12 +44,11 @@ window.addEventListener("load", function () {
 
   let areaId = 1;
   let loaded = false;
-
+  let paused = false;
   let areaNumber = 1;
   let worldChanged = false;
   const totalAreaNumber = 3;
 
-  setProgressValue(100);
   toggleLoadingScreen(false);
   setProgressValue(0);
 
@@ -107,7 +108,7 @@ window.addEventListener("load", function () {
       setProgressValue(0);
     }
 
-    if (!game.over && loaded) {
+    if (!game.over && loaded && !paused) {
       const { player } = game.world;
 
       if (controller.left.active) {
@@ -329,23 +330,44 @@ window.addEventListener("load", function () {
     startTitle.textContent = "";
     toggleStartScreen(false);
 
-    game.world.reset();
-    game.over = false;
+    if (paused) {
+      paused = false;
 
-    engine.hold();
+      game.world.playThemeMusic();
+      startBtn.textContent = "play";
+    } else {
+      game.world.reset();
+      game.over = false;
 
-    areaId = 1;
+      engine.hold();
 
-    setupWorld();
-    setupScreen();
+      areaId = 1;
 
-    resize();
+      setupWorld();
+      setupScreen();
 
-    engine.resume();
+      resize();
+
+      engine.resume();
+    }
 
     if (!engine.started) {
       engine.start();
     }
+  };
+
+  pauseBtn.onclick = () => {
+    clearMouse();
+    toggleStartScreen(true);
+
+    game.world.pauseThemeMusic();
+    startBtn.textContent = "resume";
+
+    paused = true;
+  };
+
+  refreshBtn.onclick = () => {
+    startBtn.click();
   };
 
   document.addEventListener("visibilitychange", function () {

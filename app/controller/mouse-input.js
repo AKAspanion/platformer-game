@@ -27,16 +27,12 @@ export default class MouseInput {
       btn.ontouchstart = function (e) {
         preventDefault(e);
 
-        btn.style.background = "linear-gradient(145deg, #262d2c, #36413e)";
-
         repeat();
       };
 
       btn.ontouchend = function (e) {
         preventDefault(e);
         action("keyup");
-
-        btn.style.background = "linear-gradient(145deg, #36413e, #262d2c)";
 
         clear();
       };

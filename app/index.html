@@ -4,6 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#B4D12D" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Grandstander&display=swap"
+      rel="stylesheet"
+    />
     <link rel="shortcut icon" type="image/png" href="./images/icons-192.png" />
     <link rel="shortcut icon" sizes="192x192" href="./images/icons-192.png" />
     <link rel="apple-touch-icon" href="./images/icons-192.png" />
@@ -32,23 +37,22 @@
       body {
         margin: 0;
         padding: 0;
-        display: flex;
         height: 100vh;
         user-select: none;
+        --small-btn-size: 56px;
+        background-color: #292929;
+      }
+      .flex-item {
+        display: flex;
         align-items: center;
         justify-content: center;
-        background-color: #292929;
       }
       .container {
         z-index: 5;
-        display: flex;
         margin: 0px auto;
         position: relative;
-        align-items: center;
-        justify-content: center;
         background-color: #292929;
-        font-family: "Lucida Sans", "Lucida Sans Regular", "Lucida Grande", "Lucida Sans Unicode",
-          Geneva, Verdana, sans-serif;
+        font-family: "Grandstander", cursive;
       }
       canvas {
         border: 1px solid #292929;
@@ -69,26 +73,22 @@
 
       .controller-arrows {
         bottom: 0;
-        width: 124px;
+        width: 112px;
         justify-content: space-between;
       }
       .controller-actions {
         align-items: flex-end;
       }
       .controller-btn {
-        margin: 2px;
         width: 56px;
         height: 56px;
-        display: flex;
         cursor: pointer;
         color: #cccccc;
         font-size: 24px;
         cursor: pointer;
         user-select: none;
         border-radius: 100%;
-        align-items: center;
         box-sizing: border-box;
-        justify-content: center;
         background: linear-gradient(145deg, #36413e, #262d2c);
         -webkit-tap-highlight-color: transparent;
       }
@@ -106,38 +106,76 @@
         top: calc(100% - 68px);
         left: 4px;
       }
-      .btn-icon {
-        opacity: 0.7;
-      }
 
       #startScreen {
         z-index: 8;
         width: 100vw;
         height: 100vh;
-        display: flex;
         position: fixed;
-        align-items: center;
         flex-direction: column;
         background-color: #292929;
         justify-content: space-evenly;
+        font-family: "Grandstander", cursive;
       }
 
       #startBtn {
         width: 100px;
-        font-size: 16px;
+        height: 48px;
+        color: white;
+        font-size: 20px;
         cursor: pointer;
         margin: 0px auto;
         padding: 12px 8px;
         border-radius: 6px;
         text-align: center;
-        background-color: white;
+        letter-spacing: 1px;
         text-transform: uppercase;
+        background-color: #ef5350;
+        -webkit-tap-highlight-color: transparent;
+        background: url(images/large_btn.webp) center center / 120px 52px no-repeat;
+      }
+
+      #pauseBtn,
+      #refreshBtn {
+        bottom: 0px;
+        left: 50%;
+        cursor: pointer;
+        position: absolute;
+        width: var(--small-btn-size);
+        height: var(--small-btn-size);
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      #pauseBtn {
+        transform: translate(calc(-50% - 28px), -8px);
+        background: url(images/pause_btn.webp) center center / var(--small-btn-size) no-repeat;
+      }
+
+      #refreshBtn {
+        transform: translate(calc(-50% + 28px), -8px);
+        background: url(images/refresh_btn.webp) center center / var(--small-btn-size) no-repeat;
+      }
+
+      #leftBtn {
+        background: url(images/left_btn.webp) center center / var(--small-btn-size) no-repeat;
+      }
+
+      #rightBtn {
+        background: url(images/right_btn.webp) center center / var(--small-btn-size) no-repeat;
+      }
+
+      #fireBtn {
+        background: url(images/small_btn.webp) center center / var(--small-btn-size) no-repeat;
+      }
+
+      #jumpBtn {
+        background: url(images/up_btn.webp) center center / 72px no-repeat;
       }
 
       .start-title {
         padding: 48px;
         color: white;
-        font-size: 36px;
+        font-size: max(36px, 7vw);
         text-transform: uppercase;
       }
 
@@ -151,17 +189,18 @@
         z-index: 10;
         width: 100vw;
         height: 100vh;
-        display: flex;
         color: white;
         position: fixed;
         font-size: 56px;
         visibility: visible;
-        align-items: center;
-        justify-content: center;
         text-transform: uppercase;
         background-color: #292929;
+        font-family: "Grandstander", monospace;
       }
 
+      #progressContainer {
+        width: max(200px, 10vw);
+      }
       #progressBar {
         width: 100%;
         height: 10px;
@@ -203,39 +242,34 @@
         });
       }
     </script>
-    <script></script>
+    <script>
+      document.addEventListener("contextmenu", (e) => e.preventDefault());
+    </script>
   </head>
-  <body>
-    <div class="container">
+  <body class="flex-item">
+    <div class="flex-item container">
       <div class="controller controller-arrows">
-        <div id="leftBtn" class="controller-btn arrow-btn arrow-left">
-          <span class="btn-icon">⬅️</span>
-        </div>
-        <div id="rightBtn" class="controller-btn arrow-btn arrow-right">
-          <span class="btn-icon">➡️</span>
-        </div>
+        <div id="leftBtn" class="flex-item controller-btn arrow-btn arrow-left"></div>
+        <div id="rightBtn" class="flex-item controller-btn arrow-btn arrow-right"></div>
       </div>
+      <div id="pauseBtn"></div>
+      <div id="refreshBtn"></div>
       <canvas></canvas>
       <div class="controller controller-actions">
-        <div id="fireBtn" class="controller-btn fire-btn">
-          <span class="btn-icon">🔥</span>
-        </div>
-        <div id="jumpBtn" class="controller-btn jump-btn">
-          <span class="btn-icon">⬆️</span>
-        </div>
+        <div id="fireBtn" class="flex-item controller-btn fire-btn">⚪️</div>
+        <div id="jumpBtn" class="flex-item controller-btn jump-btn"></div>
       </div>
     </div>
-    <div id="startScreen">
+    <div id="startScreen" class="flex-item">
       <div class="start-title">Dino's adventure</div>
       <div>
         <div id="startTitle" class="start-title game-over-title"></div>
-        <div id="startBtn">start</div>
+        <div id="startBtn" class="flex-item">Play</div>
       </div>
       <div style="height: 100px"></div>
     </div>
-    <div id="loadingScreen">
-      <div>
-        <div>Loading...</div>
+    <div id="loadingScreen" class="flex-item">
+      <div id="progressContainer">
         <div id="progressBar">
           <div id="progressValue"></div>
         </div>
