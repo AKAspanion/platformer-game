@@ -34,6 +34,10 @@
     <meta name="twitter:image:alt" content="Pixel Dino platformer game" />
     <meta name="twitter:description" content="A pixel styled, platformer adventure game." />
     <style>
+      * {
+        margin: 0;
+        padding: 0;
+      }
       body {
         margin: 0;
         padding: 0;
@@ -41,6 +45,14 @@
         user-select: none;
         --small-btn-size: 56px;
         background-color: #292929;
+      }
+      code {
+        font-size: 90%;
+        padding: 0px 4px;
+        padding-top: 3px;
+        border-radius: 3px;
+        background: #e4e4e4;
+        font-family: "Grandstander", monospace;
       }
       .flex-item {
         display: flex;
@@ -52,7 +64,7 @@
         margin: 0px auto;
         position: relative;
         background-color: #292929;
-        font-family: "Grandstander", cursive;
+        font-family: "Grandstander", monospace;
       }
       canvas {
         border: 1px solid #292929;
@@ -93,11 +105,6 @@
         box-sizing: border-box;
         -webkit-tap-highlight-color: transparent;
       }
-      .jump-btn {
-        width: 72px;
-        height: 72px;
-        font-size: 34px;
-      }
 
       .controller-actions {
         right: 4px;
@@ -106,17 +113,6 @@
       .controller-arrows {
         left: 4px;
         top: calc(100% - 68px);
-      }
-
-      #startScreen {
-        z-index: 8;
-        width: 100vw;
-        height: 100vh;
-        position: fixed;
-        flex-direction: column;
-        background-color: #292929;
-        justify-content: space-evenly;
-        font-family: "Grandstander", cursive;
       }
 
       #startBtn {
@@ -136,11 +132,15 @@
         background: url(images/large_btn.webp) center center / 120px 52px no-repeat;
       }
 
+      .btn,
       #infoBtn,
+      #helpBtn,
       #musicBtn,
       #soundBtn,
       #pauseBtn,
-      #refreshBtn {
+      #refreshBtn,
+      #infoCloseBtn,
+      #helpCloseBtn {
         z-index: 5;
         cursor: pointer;
         width: var(--small-btn-size);
@@ -153,6 +153,15 @@
         left: 50%;
         bottom: 0px;
         position: absolute;
+      }
+
+      #helpCloseBtn,
+      #infoCloseBtn {
+        background: url(images/close_btn.webp) center center / var(--small-btn-size) no-repeat;
+      }
+
+      #helpBtn {
+        background: url(images/help_btn.webp) center center / var(--small-btn-size) no-repeat;
       }
 
       #infoBtn {
@@ -177,24 +186,75 @@
         background: url(images/refresh_btn.webp) center center / var(--small-btn-size) no-repeat;
       }
 
+      .left-btn,
       #leftBtn {
         background: url(images/left_btn.webp) center center / var(--small-btn-size) no-repeat;
       }
+      .left-key-btn {
+        background: url(images/key_left.webp) center center / var(--small-btn-size) no-repeat;
+      }
 
+      .right-btn,
       #rightBtn {
         background: url(images/right_btn.webp) center center / var(--small-btn-size) no-repeat;
       }
+      .right-key-btn {
+        background: url(images/key_right.webp) center center / var(--small-btn-size) no-repeat;
+      }
 
+      .fire-btn,
       #fireBtn {
         background: url(images/small_btn.webp) center center / var(--small-btn-size) no-repeat;
       }
+      .fire-btn {
+        font-size: 24px;
+      }
+      .fire-key-btn {
+        width: 120px;
+        background: url(images/key_shift.webp) center center / 120px no-repeat;
+      }
 
       #jumpBtn {
+        width: 72px;
+        height: 72px;
+        font-size: 34px;
         background: url(images/up_btn.webp) center center / 75px no-repeat;
       }
 
+      .jump-btn {
+        background: url(images/up_btn.webp) center center / var(--small-btn-size) no-repeat;
+      }
+      .jump-key-btn {
+        background: url(images/key_up.webp) center center / var(--small-btn-size) no-repeat;
+      }
+
+      .social-btn {
+        --social-btn-size: 24px;
+        width: var(--social-btn-size);
+        height: var(--social-btn-size);
+      }
+      .gh-btn {
+        background: url(images/github.svg) center center / var(--social-btn-size) no-repeat;
+      }
+      .li-btn {
+        background: url(images/linkedin.svg) center center / var(--social-btn-size) no-repeat;
+      }
+      .in-btn {
+        background: url(images/instagram.svg) center center / var(--social-btn-size) no-repeat;
+      }
+      .fb-btn {
+        background: url(images/facebook.svg) center center / var(--social-btn-size) no-repeat;
+      }
+
+      .btn-tut {
+        margin: 0px 8px;
+      }
+      .key-btn {
+        padding: 2px 0px;
+      }
+
       .settings {
-        width: 240px;
+        width: 280px;
         justify-content: space-evenly;
         padding: min(48px, 8vh) 8px 8px 8px;
       }
@@ -223,17 +283,84 @@
         padding: min(40px, 3vh);
       }
 
-      #loadingScreen {
-        z-index: 10;
+      .modal-screen {
         width: 100vw;
         height: 100vh;
-        color: white;
         position: fixed;
-        font-size: 56px;
-        visibility: visible;
+        visibility: hidden;
         text-transform: uppercase;
         background-color: #292929;
         font-family: "Grandstander", monospace;
+      }
+
+      #startScreen {
+        z-index: 8;
+        visibility: visible;
+        flex-direction: column;
+        justify-content: space-evenly;
+        font-family: "Grandstander", monospace;
+      }
+
+      #loadingScreen {
+        z-index: 10;
+        color: white;
+        font-size: 56px;
+        visibility: visible;
+        text-transform: uppercase;
+        font-family: "Grandstander", monospace;
+      }
+
+      #helpScreen,
+      #infoScreen {
+        z-index: 12;
+        background-color: transparent;
+      }
+
+      .modal-container {
+        --modal-padding: min(36px, 10vw);
+        width: 80%;
+        color: #ef534f;
+        border-radius: 16px;
+        flex-direction: column;
+        background-color: white;
+        justify-content: flex-start;
+        padding: var(--modal-padding);
+        height: calc(80% - var(--modal-padding));
+      }
+      .modal-header {
+        width: 100%;
+        padding-bottom: 16px;
+        justify-content: space-between;
+      }
+      .modal-title {
+        font-size: 52px;
+        text-align: center;
+      }
+      .modal-content-wrapper {
+        width: 100%;
+        overflow-y: auto;
+        padding-top: 16px;
+      }
+      .modal-content {
+        width: 100%;
+        flex-wrap: wrap;
+        padding-bottom: 16px;
+        align-items: flex-start;
+        justify-content: flex-start;
+      }
+      .modal-content-head {
+        font-size: 24px;
+        padding: 16px 0px;
+        width: min(180px, 30%);
+      }
+      .modal-content-desc {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .modal-content-desc-text {
+        color: #ef534f;
+        padding: 19px 0px;
+        text-decoration: none;
       }
 
       #progressContainer {
@@ -258,11 +385,14 @@
           transform: rotate(90deg);
           justify-content: space-evenly;
         }
-        #startScreen,
-        #loadingScreen {
+        .modal-screen {
           width: 100vh;
           height: 100vw;
           transform: rotate(90deg);
+        }
+        .modal-container {
+          width: 100%;
+          height: calc(100% - var(--modal-padding));
         }
       }
     </style>
@@ -303,11 +433,11 @@
       </div>
       <canvas></canvas>
       <div class="controller controller-actions">
-        <div id="fireBtn" class="flex-item controller-btn fire-btn">⚪️</div>
-        <div id="jumpBtn" class="flex-item controller-btn jump-btn"></div>
+        <div id="fireBtn" class="flex-item controller-btn">⚪️</div>
+        <div id="jumpBtn" class="flex-item controller-btn"></div>
       </div>
     </div>
-    <div id="startScreen" class="flex-item">
+    <div id="startScreen" class="flex-item modal-screen">
       <div class="start-title">Dino's adventure</div>
       <div>
         <div id="startTitle" class="start-title game-over-title"></div>
@@ -315,15 +445,134 @@
         <div class="flex-item settings">
           <div id="musicBtn"></div>
           <div id="soundBtn"></div>
+          <div id="helpBtn"></div>
           <div id="infoBtn"></div>
         </div>
       </div>
       <div style="height: min(100px, 15vh)"></div>
     </div>
-    <div id="loadingScreen" class="flex-item">
+    <div id="loadingScreen" class="flex-item modal-screen">
       <div id="progressContainer">
         <div id="progressBar">
           <div id="progressValue"></div>
+        </div>
+      </div>
+    </div>
+    <div id="helpScreen" class="flex-item modal-screen">
+      <div class="flex-item modal-container">
+        <div class="flex-item modal-header">
+          <div class="modal-title">Help</div>
+          <div id="helpCloseBtn"></div>
+        </div>
+        <div class="modal-content-wrapper">
+          <div class="flex-item modal-content">
+            <div class="modal-content-head">Mobile</div>
+            <div class="flex-item modal-content-desc">
+              <div class="flex-item">
+                Tap
+                <div class="btn left-btn btn-tut"></div>
+                to run left
+                <div class="btn right-btn btn-tut"></div>
+                to run right
+              </div>
+              <div class="flex-item">
+                Tap
+                <div class="btn fire-btn btn-tut flex-item">⚪️</div>
+                to spit fire
+              </div>
+              <div class="flex-item">
+                Tap
+                <div class="btn jump-btn btn-tut"></div>
+                to jump
+              </div>
+            </div>
+          </div>
+          <div class="flex-item modal-content">
+            <div class="modal-content-head">Desktop</div>
+            <div class="flex-item modal-content-desc">
+              <div class="flex-item">
+                Tap
+                <div class="btn left-key-btn btn-tut key-btn"></div>
+                to run left
+                <div class="btn right-key-btn btn-tut key-btn"></div>
+                to run right
+              </div>
+              <div class="flex-item">
+                Tap
+                <div class="btn fire-key-btn btn-tut flex-item key-btn"></div>
+                to spit fire
+              </div>
+              <div class="flex-item">
+                Tap
+                <div class="btn jump-key-btn btn-tut key-btn"></div>
+                to jump
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="infoScreen" class="flex-item modal-screen">
+      <div class="flex-item modal-container">
+        <div class="flex-item modal-header">
+          <div class="modal-title">Info</div>
+          <div id="infoCloseBtn"></div>
+        </div>
+        <div class="modal-content-wrapper">
+          <div class="flex-item modal-content">
+            <div class="modal-content-head">About</div>
+            <div class="flex-item modal-content-desc">
+              <p class="modal-content-desc-text">
+                Dino's adventure/pixel dino is a platformer style game made with pixel art style.<br /><br />
+                Game is made entirly using <code>Vanilla JS</code>, <code>HTML5 Canvas</code>, and
+                <code>CSS</code>.
+                <br />
+                Game is also mobile responsive and can be installed on mobile as a PWA.<br /><br />
+                Game is open-source and its code can be found in the repository link below.
+              </p>
+            </div>
+          </div>
+          <div class="flex-item modal-content">
+            <div class="modal-content-head">Author</div>
+            <div class="flex-item modal-content-desc">
+              <p class="modal-content-desc-text">Ankit Kumar Pandit</p>
+              <div class="flex-item">
+                <a
+                  href="https://github.com/AKAspanion"
+                  class="btn gh-btn social-btn btn-tut"
+                  style="margin-left: 0px"
+                  target="_blank"
+                ></a>
+                <a
+                  href="https://www.linkedin.com/in/spanion/"
+                  class="btn li-btn social-btn btn-tut"
+                  target="_blank"
+                ></a>
+                <a
+                  href="https://www.instagram.com/spanionkumar/"
+                  class="btn in-btn social-btn btn-tut"
+                  target="_blank"
+                ></a>
+                <a
+                  href="https://www.facebook.com/AKAspanion/"
+                  class="btn fb-btn social-btn btn-tut"
+                  target="_blank"
+                ></a>
+              </div>
+            </div>
+          </div>
+          <div class="flex-item modal-content">
+            <div class="modal-content-head">Repository</div>
+            <div class="flex-item modal-content-desc">
+              <a
+                class="modal-content-desc-text"
+                href="https://github.com/AKAspanion/platformer-game"
+                target="_blank"
+              >
+                https://github.com/AKAspanion/platformer-game</a
+              >
+            </div>
+          </div>
         </div>
       </div>
     </div>
