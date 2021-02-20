@@ -1,11 +1,11 @@
 {
-  "short_name": "Pixel Dino",
-  "name": "Pixel Dino: Platformer game",
+  "short_name": "Dino's Adventure",
+  "name": "Dino's Adventure: Platformer game",
   "description": "A pixel styled, platformer adventure game",
   "display": "fullscreen",
   "orientation": "any",
   "start_url": "./index.html",
-  "theme_color": "#B4D12D",
+  "theme_color": "#EF534F",
   "background_color": "#292929",
   "icons": [
     {
