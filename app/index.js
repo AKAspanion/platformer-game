@@ -173,7 +173,7 @@ window.addEventListener("load", function () {
     screen.drawMap(game.world.map);
     screen.drawMapObjects(game.world.objects);
     // screen.drawArea(game.world.portals);
-    // screen.drawArea(game.world.deathAreas);
+    // screen.drawArea(game.world.enemies.items);
 
     // draw coins
     if (game.world.coins) {
@@ -222,6 +222,22 @@ window.addEventListener("load", function () {
           fireball.y,
           fireball.width,
           fireball.height
+        );
+      }
+    }
+
+    if (game.world.enemies) {
+      for (let index = 0; index < game.world.enemies.items.length; index++) {
+        const enemy = game.world.enemies.items[index];
+
+        screen.drawObject(
+          enemy.animator.frameValue,
+          enemy.x,
+          enemy.y,
+          enemy.width,
+          enemy.height,
+          0,
+          1
         );
       }
     }
@@ -336,5 +352,5 @@ window.addEventListener("load", function () {
     }
   });
 
-  // startBtn.click();
+  startBtn.click();
 });

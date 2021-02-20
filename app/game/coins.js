@@ -45,6 +45,10 @@ export default class items {
     }
   }
 
+  remove(coin) {
+    this.items.splice(this.items.indexOf(coin), 1);
+  }
+
   update() {
     for (let index = 0; index < this.items.length; index++) {
       this.items[index].update();

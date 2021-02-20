@@ -3,6 +3,7 @@ import Water from "./water";
 import Player from "./player";
 import Object from "./object";
 import Portal from "./portal";
+import Enemies from "./enemies";
 import Collider from "./collider";
 import Fireballs from "./fireballs";
 import AudioController from "../controller/audio";
@@ -20,6 +21,7 @@ export default class World {
 
     this.coins = [];
     this.totalCoins = 0;
+    this.killedEnemies = "";
     this.collectedCoins = "";
     this.height = this.tileSize * this.rows;
     this.width = this.tileSize * this.columns;
@@ -41,6 +43,7 @@ export default class World {
             { file: "coin", ext: "wav" },
             { file: "foot", ext: "wav" },
             { file: "jump", ext: "wav" },
+            { file: "hurt", ext: "wav" },
             { file: "fall", ext: "mp3" },
             { file: data.theme, ext: "mp3" },
           ],
@@ -55,6 +58,7 @@ export default class World {
     }
 
     this.id = data.id;
+    this.totalCoins = 0;
     this.map = data.areaMap;
     this.isPlayerDead = false;
     this.objects = data.objectsMap;
@@ -70,6 +74,8 @@ export default class World {
     }
 
     this.deathAreas = data.death.map(({ x, y, height, width }) => new Object(x, y, width, height));
+
+    this.enemies = new Enemies(data.enemies, this.tileSize, this.killedEnemies);
 
     this.coins = new Coins(data.coins, this.tileSize, this.collectedCoins);
 
@@ -230,6 +236,20 @@ export default class World {
     return this.player.loaded && this.coins.loaded && this.water.loaded;
   }
 
+  onPlayerDead(onGameOver, audio = "fall") {
+    if (!this.isPlayerDead) {
+      AudioController.play(audio, "mp3");
+
+      this.player.velocityX = 0;
+      this.stopThemeMusic();
+      onGameOver();
+    }
+    this.isPlayerDead = true;
+    this.collectedCoins = "";
+    this.killedEnemies = "";
+    this.theme = null;
+  }
+
   update(onGameOver) {
     AudioController.animate(() => {
       AudioController.play("foot", "wav", 0.15);
@@ -246,6 +266,7 @@ export default class World {
 
     this.collideObject(this.player);
 
+    // coins
     for (let index = 0; index < this.coins.items.length; index++) {
       const coin = this.coins.items[index];
 
@@ -253,7 +274,7 @@ export default class World {
       coin.updateAnimation();
 
       if (this.checkCollision(this.player, coin, 5, 5)) {
-        this.coins.items.splice(this.coins.items.indexOf(coin), 1);
+        this.coins.remove(coin);
 
         this.collectedCoins += `${coin.id},`;
 
@@ -262,11 +283,24 @@ export default class World {
       }
     }
 
+    // fireballs
     for (let index = 0; index < this.fireballs.items.length; index++) {
       const fireball = this.fireballs.items[index];
 
       fireball.update();
       fireball.updateAnimation(this.player);
+
+      for (let j = 0; j < this.enemies.items.length; j++) {
+        const enemy = this.enemies.items[j];
+
+        if (this.checkCollision(enemy, fireball)) {
+          this.enemies.remove(enemy);
+
+          this.killedEnemies += `${enemy.id},`;
+
+          AudioController.play("hurt");
+        }
+      }
 
       if (fireball.x >= this.width + 50) {
         this.fireballs.remove(fireball.id);
@@ -277,20 +311,25 @@ export default class World {
     if (!dead) {
       for (let index = 0; index < this.deathAreas.length; index++) {
         if (this.checkCollision(this.player, this.deathAreas[index])) {
-          if (!this.isPlayerDead) {
-            AudioController.play("fall", "mp3");
-
-            this.player.velocityX = 0;
-            this.stopThemeMusic();
-            onGameOver();
-          }
-          this.isPlayerDead = true;
-          this.theme = null;
-          this.collectedCoins = "";
-          this.totalCoins = 0;
+          this.onPlayerDead(onGameOver);
           dead = true;
           break;
         }
+      }
+    }
+
+    if (!dead) {
+      for (let index = 0; index < this.enemies.items.length; index++) {
+        const enemy = this.enemies.items[index];
+
+        if (this.checkCollision(this.player, enemy)) {
+          this.onPlayerDead(onGameOver);
+          dead = true;
+          break;
+        }
+
+        enemy.update();
+        enemy.updateAnimation();
       }
     }
 
