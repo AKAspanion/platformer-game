@@ -14,10 +14,16 @@ let loadingActive = false;
 let controllerActive = false;
 const isTouchesEnabled = "ontouchstart" in document.documentElement;
 
+const helpBtn = document.getElementById("helpBtn");
+const infoBtn = document.getElementById("infoBtn");
 const startBtn = document.getElementById("startBtn");
 const pauseBtn = document.getElementById("pauseBtn");
 const soundBtn = document.getElementById("soundBtn");
 const musicBtn = document.getElementById("musicBtn");
+const helpScreen = document.getElementById("helpScreen");
+const helpCloseBtn = document.getElementById("helpCloseBtn");
+const infoScreen = document.getElementById("infoScreen");
+const infoCloseBtn = document.getElementById("infoCloseBtn");
 const refreshBtn = document.getElementById("refreshBtn");
 const startTitle = document.getElementById("startTitle");
 const startScreen = document.getElementById("startScreen");
@@ -42,6 +48,14 @@ const toggleControllers = (value) => {
   persistentControllers.forEach(
     (controller) => (controller.style.visibility = value ? "visible" : "hidden")
   );
+};
+
+const toggleHelpScreen = (value) => {
+  helpScreen.style.visibility = !value ? "hidden" : "visible";
+};
+
+const toggleInfoScreen = (value) => {
+  infoScreen.style.visibility = !value ? "hidden" : "visible";
 };
 
 const toggleStartScreen = (value) => {
@@ -413,9 +427,27 @@ window.addEventListener("load", function () {
     toggleMusicBtn(isMuted);
   };
 
+  helpBtn.onclick = () => {
+    toggleHelpScreen(true);
+  };
+
+  helpCloseBtn.onclick = () => {
+    toggleHelpScreen(false);
+  };
+
+  infoBtn.onclick = () => {
+    toggleInfoScreen(true);
+  };
+
+  infoCloseBtn.onclick = () => {
+    toggleInfoScreen(false);
+  };
+
   document.addEventListener("visibilitychange", function () {
     if (document.visibilityState === "visible") {
-      game.world.playThemeMusic();
+      if (!paused) {
+        game.world.playThemeMusic();
+      }
     } else {
       game.world.pauseThemeMusic();
     }
