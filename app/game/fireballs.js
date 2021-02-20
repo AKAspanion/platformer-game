@@ -65,24 +65,12 @@ export default class Fireballs {
     );
   }
 
-  remove(id) {
-    const index = this._findIndex(id);
-    if (index > -1) {
-      this.items.splice(index, 1);
-    }
+  remove(fireball) {
+    this.items.splice(this.items.indexOf(fireball), 1);
   }
 
   reset() {
     this.items = [];
-  }
-
-  _findIndex(id) {
-    for (let index = 0; index < this.items.length; index++) {
-      if (this.items[index].id === id) {
-        return index;
-      }
-    }
-    return -1;
   }
 }
 

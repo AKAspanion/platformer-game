@@ -303,7 +303,7 @@ export default class World {
       }
 
       if (fireball.x >= this.width + 50) {
-        this.fireballs.remove(fireball.id);
+        this.fireballs.remove(fireball);
       }
     }
 

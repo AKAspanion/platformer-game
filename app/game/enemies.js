@@ -1,11 +1,31 @@
 import Object from "./object";
 import Animator from "./animator";
 
+const enemyTypes = {
+  pig: {
+    maxV: 0.8,
+    minV: 0.5,
+    delay: 2,
+    width: 21,
+    height: 20,
+  },
+  slime: {
+    maxV: 0.4,
+    minV: 0.2,
+    delay: 4,
+    width: 23,
+    height: 20,
+  },
+};
+
 export default class Enemies {
   constructor(enemies = [], tileSize = 16, killedEnemies = "") {
     this.items = [];
 
-    const keys = [{ id: "pig", count: 16 }];
+    const keys = [
+      { id: "pig", count: 16 },
+      { id: "slime", count: 10 },
+    ];
 
     this.frameSets = {};
 
@@ -41,16 +61,18 @@ export default class Enemies {
     });
 
     for (let index = 0; index < enemies.length; index++) {
-      const { id, type, left, top, sway } = enemies[index];
+      const { id, type, left, top, sway, dir } = enemies[index];
 
       if (!killedEnemies.includes(id)) {
         this.items.push(
           new Enemy(
             id,
+            type,
             left * tileSize,
             top * tileSize,
             [this.frameSets[`${type}Left`], this.frameSets[`${type}Right`]],
-            sway
+            sway,
+            dir
           )
         );
       }
@@ -75,8 +97,10 @@ export default class Enemies {
 }
 
 class Enemy extends Object {
-  constructor(id, x, y, frameSets, sway = 24) {
-    super(x, y - 4, 20, 20);
+  constructor(id, type, x, y, frameSets, sway = 24, direction = 1) {
+    const { width = 20, height = 20, delay = 2, maxV = 0.8, minV = 0.5 } = enemyTypes[type] || {};
+
+    super(x, y - 4, width, height);
 
     this.id = id;
     this.sway = sway;
@@ -84,20 +108,22 @@ class Enemy extends Object {
 
     this.baseX = x;
     this.baseY = y;
-    this.direction = 1;
+    this.delay = delay;
+    this.direction = direction;
+    this.velocity = Math.random() * (maxV - minV) + minV;
 
-    this.animator = new Animator(frameSets[1], 2);
+    this.animator = new Animator(frameSets[direction < 0 ? 0 : 1], delay);
   }
 
   update() {
-    this.x += 0.5 * this.direction;
+    this.x += this.velocity * this.direction;
 
     if (this.x > this.baseX + this.sway) {
       this.direction = -1;
-      this.animator.changeFrameSet(this.frameSets[0], 2);
+      this.animator.changeFrameSet(this.frameSets[0], this.delay);
     } else if (this.x <= this.baseX - this.sway) {
       this.direction = 1;
-      this.animator.changeFrameSet(this.frameSets[1], 2);
+      this.animator.changeFrameSet(this.frameSets[1], this.delay);
     }
   }
 
