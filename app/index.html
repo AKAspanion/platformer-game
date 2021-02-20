@@ -64,6 +64,7 @@
 
       .controller-actions,
       .controller-arrows {
+        z-index: 5;
         top: -100px;
         display: flex;
         flex-wrap: wrap;
@@ -137,8 +138,9 @@
 
       #pauseBtn,
       #refreshBtn {
-        bottom: 0px;
         left: 50%;
+        z-index: 5;
+        bottom: 0px;
         cursor: pointer;
         position: absolute;
         width: var(--small-btn-size);
@@ -147,12 +149,12 @@
       }
 
       #pauseBtn {
-        transform: translate(calc(-50% - 28px), -8px);
+        transform: translate(calc(-50% - 28px), -6px);
         background: url(images/pause_btn.webp) center center / var(--small-btn-size) no-repeat;
       }
 
       #refreshBtn {
-        transform: translate(calc(-50% + 28px), -8px);
+        transform: translate(calc(-50% + 28px), -6px);
         background: url(images/refresh_btn.webp) center center / var(--small-btn-size) no-repeat;
       }
 
@@ -169,7 +171,7 @@
       }
 
       #jumpBtn {
-        background: url(images/up_btn.webp) center center / 72px no-repeat;
+        background: url(images/up_btn.webp) center center / 75px no-repeat;
       }
 
       .start-title {
@@ -244,6 +246,13 @@
     </script>
     <script>
       document.addEventListener("contextmenu", (e) => e.preventDefault());
+      let tempPercent = 0;
+      let loadInterval = setInterval(() => {
+        if (tempPercent >= 100) return;
+
+        document.getElementById("progressValue").style.width = `${tempPercent}%`;
+        tempPercent += 10;
+      }, 200);
     </script>
   </head>
   <body class="flex-item">
@@ -252,8 +261,10 @@
         <div id="leftBtn" class="flex-item controller-btn arrow-btn arrow-left"></div>
         <div id="rightBtn" class="flex-item controller-btn arrow-btn arrow-right"></div>
       </div>
-      <div id="pauseBtn"></div>
-      <div id="refreshBtn"></div>
+      <div class="controller">
+        <div id="pauseBtn"></div>
+        <div id="refreshBtn"></div>
+      </div>
       <canvas></canvas>
       <div class="controller controller-actions">
         <div id="fireBtn" class="flex-item controller-btn fire-btn">⚪️</div>

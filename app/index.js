@@ -10,6 +10,8 @@ preLoadAndFetch();
 
 import areas from "./areas";
 
+let loadingActive = false;
+let controllerActive = false;
 const isTouchesEnabled = "ontouchstart" in document.documentElement;
 
 const startBtn = document.getElementById("startBtn");
@@ -22,6 +24,7 @@ const loadingScreen = document.getElementById("loadingScreen");
 const progressValue = document.getElementById("progressValue");
 
 const toggleControllers = (value) => {
+  controllerActive = value;
   controllers.forEach(
     (controller) => (controller.style.visibility = isTouchesEnabled && value ? "visible" : "hidden")
   );
@@ -32,6 +35,7 @@ const toggleStartScreen = (value) => {
 };
 
 const toggleLoadingScreen = (value) => {
+  loadingActive = value;
   loadingScreen.style.visibility = !value ? "hidden" : "visible";
 };
 
@@ -49,6 +53,7 @@ window.addEventListener("load", function () {
   let worldChanged = false;
   const totalAreaNumber = 3;
 
+  clearInterval(loadInterval);
   toggleLoadingScreen(false);
   setProgressValue(0);
 
@@ -100,12 +105,20 @@ window.addEventListener("load", function () {
     }
 
     if (!loaded) {
-      toggleControllers(false);
-      toggleLoadingScreen(true);
+      if (controllerActive) {
+        toggleControllers(false);
+      }
+      if (!loadingActive) {
+        toggleLoadingScreen(true);
+      }
     } else {
-      toggleLoadingScreen(false);
-      toggleControllers(true);
-      setProgressValue(0);
+      if (loadingActive) {
+        toggleLoadingScreen(false);
+        setProgressValue(0);
+      }
+      if (!controllerActive) {
+        toggleControllers(true);
+      }
     }
 
     if (!game.over && loaded && !paused) {
@@ -284,7 +297,6 @@ window.addEventListener("load", function () {
 
     screen.resize(width - 4, height - 4, game.world.height / game.world.width);
     screen.render();
-    toggleControllers(true);
   };
 
   resize();
@@ -367,6 +379,7 @@ window.addEventListener("load", function () {
   };
 
   refreshBtn.onclick = () => {
+    areaNumber = 1;
     startBtn.click();
   };
 
