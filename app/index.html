@@ -269,18 +269,25 @@
         transform: rotate(-45deg) translate(-12px, 24px);
       }
 
-      .start-title {
+      .start-title,
+      .score-title {
         color: white;
         text-align: center;
         padding: min(48px, 5vh);
-        font-size: max(36px, 8vw);
+        font-size: max(36px, 6vw);
         text-transform: uppercase;
+      }
+      .score-title {
+        padding: 16px;
+        font-size: 24px;
+        padding-bottom: min(48px, 5vh);
       }
 
       .game-over-title {
         color: red;
         font-size: 28px;
         padding: min(40px, 3vh);
+        padding-bottom: 0px;
       }
 
       .modal-screen {
@@ -380,6 +387,13 @@
         transition: width 0.3s ease;
       }
 
+      #highScore {
+        color: white;
+        font-size: 24px;
+        align-items: flex-end;
+        height: min(100px, 15vh);
+      }
+
       @media only screen and (max-width: 480px) {
         .container {
           transform: rotate(90deg);
@@ -441,6 +455,7 @@
       <div class="start-title">Dino's Adventure</div>
       <div>
         <div id="startTitle" class="start-title game-over-title"></div>
+        <div id="scoreTitle" class="score-title"></div>
         <div id="startBtn" class="flex-item">Play</div>
         <div class="flex-item settings">
           <div id="musicBtn"></div>
@@ -449,7 +464,7 @@
           <div id="infoBtn"></div>
         </div>
       </div>
-      <div style="height: min(100px, 15vh)"></div>
+      <div id="highScore" class="flex-item"></div>
     </div>
     <div id="loadingScreen" class="flex-item modal-screen">
       <div id="progressContainer">
@@ -578,6 +593,12 @@
       </div>
     </div>
     <script src="./bundle.js"></script>
+    <script>
+      const highScore = localStorage.getItem("high_score") || "";
+      if (highScore) {
+        document.getElementById("highScore").innerHTML = `High Score: ${highScore}`;
+      }
+    </script>
     <noscript>This app needs javascript.</noscript>
   </body>
 </html>

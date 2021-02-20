@@ -26,6 +26,7 @@ const infoScreen = document.getElementById("infoScreen");
 const infoCloseBtn = document.getElementById("infoCloseBtn");
 const refreshBtn = document.getElementById("refreshBtn");
 const startTitle = document.getElementById("startTitle");
+const scoreTitle = document.getElementById("scoreTitle");
 const startScreen = document.getElementById("startScreen");
 const controllers = document.querySelectorAll(".controller");
 const loadingScreen = document.getElementById("loadingScreen");
@@ -90,8 +91,18 @@ window.addEventListener("load", function () {
   const controller = new Controller();
 
   // GAME
-  const game = new Game(() => {
+  const game = new Game((score) => {
     startTitle.textContent = "Game Over";
+    scoreTitle.textContent = "Score: " + score;
+
+    const savedScore = getData("high_score") || 0;
+    const highScore = savedScore < score ? score : savedScore;
+    setData("high_score", savedScore < score ? score : savedScore);
+
+    if (highScore) {
+      document.getElementById("highScore").innerHTML = `High Score: ${highScore}`;
+    }
+
     setTimeout(() => {
       toggleStartScreen(true);
     }, 1500);
@@ -298,7 +309,7 @@ window.addEventListener("load", function () {
     );
 
     // draw coin count
-    const scoreTextOffest =
+    const coinTextOffest =
       game.world.totalCoins >= 10 && game.world.totalCoins <= 99
         ? 3
         : game.world.totalCoins > 99
@@ -308,11 +319,15 @@ window.addEventListener("load", function () {
     image.src = "./assets/sprites/coin/image 1.webp";
     screen.drawObject(image, (game.world.columns - 1.3) * 16, 8, 10, 10);
     screen.drawText("x", (game.world.columns - 2) * 16, 15);
-    screen.drawText(game.world.totalCoins, (game.world.columns - scoreTextOffest) * 16, 16.1);
+    screen.drawText(game.world.totalCoins, (game.world.columns - coinTextOffest) * 16, 16.1);
 
     screen.drawText(areaNumber, 48, 15.3);
     screen.drawText("Area", 12, 15.3);
     screen.drawText("x", 38, 15);
+
+    const score = game.world.totalEnemies * 100 + game.world.totalCoins * 20;
+    const scoreTextOffest = score >= score >= 10 && score <= 99 ? 3 : score > 99 ? 3.4 : 2.7;
+    screen.drawText(score, (game.world.columns - scoreTextOffest) * 9, 15.3);
 
     screen.render();
   };
@@ -370,6 +385,7 @@ window.addEventListener("load", function () {
   startBtn.onclick = () => {
     clearMouse();
     startTitle.textContent = "";
+    scoreTitle.textContent = "";
     toggleStartScreen(false);
 
     if (paused) {

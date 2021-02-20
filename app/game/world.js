@@ -20,6 +20,7 @@ export default class World {
     this.loaded = true;
 
     this.totalCoins = 0;
+    this.totalEnemies = 0;
     this.killedEnemies = "";
     this.collectedCoins = "";
     this.height = this.tileSize * this.rows;
@@ -94,6 +95,7 @@ export default class World {
 
   reset() {
     this.totalCoins = 0;
+    this.totalEnemies = 0;
     this.killedEnemies = "";
     this.collectedCoins = "";
 
@@ -303,6 +305,7 @@ export default class World {
           this.enemies.remove(enemy);
 
           this.killedEnemies += `${enemy.id},`;
+          this.totalEnemies += 1;
 
           AudioController.play("hurt");
         }
