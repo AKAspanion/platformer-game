@@ -82,6 +82,13 @@
       "destinationY": 24
     }
   ],
+  "enemies": [
+    { "id": "a02e01", "type": "pig", "left": 8.25, "top": 8, "sway": 38, "dir": -1 },
+    { "id": "a02e02", "type": "pig", "left": 18, "top": 8, "sway": 30, "dir": 1 },
+    { "id": "a02e03", "type": "chameleon", "left": 3.75, "top": 5, "sway": 16, "dir": 1 },
+    { "id": "a02e04", "type": "chameleon", "left": 15.75, "top": 4, "sway": 18, "dir": 1 },
+    { "id": "a02e05", "type": "chameleon", "left": 13.75, "top": 2, "sway": 18, "dir": -1 }
+  ],
   "areaMap": [
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
