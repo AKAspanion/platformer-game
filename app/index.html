@@ -256,7 +256,7 @@
       .settings {
         width: 280px;
         justify-content: space-evenly;
-        padding: min(48px, 8vh) 8px 8px 8px;
+        padding: min(48px, 4vh) 8px 8px 8px;
       }
 
       .cancel-cross::after {
@@ -269,25 +269,25 @@
         transform: rotate(-45deg) translate(-12px, 24px);
       }
 
-      .start-title,
+      .heading-title,
       .score-title {
         color: white;
         text-align: center;
-        padding: min(48px, 5vh);
-        font-size: max(36px, 6vw);
         text-transform: uppercase;
       }
-      .score-title {
-        padding: 16px;
-        font-size: 24px;
-        padding-bottom: min(48px, 5vh);
+      .heading-title {
+        padding: min(48px, 3vh);
+        font-size: max(36px, 6vh);
+        padding-bottom: 0px;
       }
-
       .game-over-title {
         color: red;
         font-size: 28px;
-        padding: min(40px, 3vh);
-        padding-bottom: 0px;
+        padding: 0px min(40px, 2vh);
+      }
+      .score-title {
+        font-size: 24px;
+        padding-top: min(16px, 1vh);
       }
 
       .modal-screen {
@@ -408,6 +408,12 @@
           width: 100%;
           height: calc(100% - var(--modal-padding));
         }
+        #highScore {
+          height: min(100px, 7vh);
+        }
+        .settings {
+          padding: min(48px, 2vh) 8px 8px 8px;
+        }
       }
     </style>
     <script>
@@ -452,10 +458,12 @@
       </div>
     </div>
     <div id="startScreen" class="flex-item modal-screen">
-      <div class="start-title">Dino's Adventure</div>
+      <div class="heading-title">Dino's Adventure</div>
       <div>
-        <div id="startTitle" class="start-title game-over-title"></div>
+        <div id="startTitle" class="game-over-title"></div>
         <div id="scoreTitle" class="score-title"></div>
+      </div>
+      <div>
         <div id="startBtn" class="flex-item">Play</div>
         <div class="flex-item settings">
           <div id="musicBtn"></div>
