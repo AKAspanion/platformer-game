@@ -93,7 +93,7 @@
   ],
   "enemies": [
     { "id": "a01e01", "type": "pig", "left": 13, "top": 9, "sway": 40, "dir": -1 },
-    { "id": "a01e02", "type": "slime", "left": 13, "top": 7, "sway": 12, "dir": 1 }
+    { "id": "a01e02", "type": "chameleon", "left": 13, "top": 7, "sway": 12, "dir": 1 }
   ],
   "areaMap": [
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],

@@ -37,14 +37,12 @@ const setProgressValue = (value) => {
   progressValue.style.width = `${value}%`;
 };
 
-setProgressValue(50);
-
 window.addEventListener("load", function () {
   "use strict";
 
   let areaId = 1;
   let loaded = false;
-  let firing = false;
+
   let areaNumber = 1;
   let worldChanged = false;
   const totalAreaNumber = 3;
@@ -331,7 +329,7 @@ window.addEventListener("load", function () {
     startTitle.textContent = "";
     toggleStartScreen(false);
 
-    game.world.player.reset();
+    game.world.reset();
     game.over = false;
 
     engine.hold();

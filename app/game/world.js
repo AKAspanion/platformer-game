@@ -19,7 +19,6 @@ export default class World {
 
     this.loaded = true;
 
-    this.coins = [];
     this.totalCoins = 0;
     this.killedEnemies = "";
     this.collectedCoins = "";
@@ -58,7 +57,6 @@ export default class World {
     }
 
     this.id = data.id;
-    this.totalCoins = 0;
     this.map = data.areaMap;
     this.isPlayerDead = false;
     this.objects = data.objectsMap;
@@ -92,6 +90,14 @@ export default class World {
 
       this.portal = null;
     }
+  }
+
+  reset() {
+    this.totalCoins = 0;
+    this.killedEnemies = "";
+    this.collectedCoins = "";
+
+    this.player.reset();
   }
 
   playJumpSound() {

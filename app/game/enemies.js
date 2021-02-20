@@ -16,6 +16,13 @@ const enemyTypes = {
     width: 23,
     height: 20,
   },
+  chameleon: {
+    maxV: 0.4,
+    minV: 0.2,
+    delay: 2,
+    width: 22,
+    height: 20,
+  },
 };
 
 export default class Enemies {
@@ -25,6 +32,7 @@ export default class Enemies {
     const keys = [
       { id: "pig", count: 16 },
       { id: "slime", count: 10 },
+      { id: "chameleon", count: 8 },
     ];
 
     this.frameSets = {};
