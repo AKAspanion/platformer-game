@@ -1,5 +1,7 @@
 /*! ../controller/audio */
 
+/*! ../util/ */
+
 /*! ./animator */
 
 /*! ./area-1.json */
