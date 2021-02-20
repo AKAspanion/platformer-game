@@ -7,6 +7,7 @@ Game is made entirly using `Vanilla JS`, `HTML5 Canvas`, and
 <br />
 Game is also mobile responsive and can be installed on mobile/desktop as a PWA.<br /><br />
 
+![Dino's Adventure](https://github.com/AKAspanion/platformer-game/blob/master/demo.gif?raw=true)
 ## Live
 The game is live [here](https://akaspanion.github.io/platformer-game/).
 
