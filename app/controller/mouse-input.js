@@ -23,19 +23,26 @@ export default class MouseInput {
       start = start / speedup;
     };
 
-    btn.ontouchstart = function (e) {
-      preventDefault(e);
+    try {
+      btn.ontouchstart = function (e) {
+        preventDefault(e);
 
-      repeat();
-    };
+        btn.style.background = "linear-gradient(145deg, #262d2c, #36413e)";
 
-    btn.ontouchend = function (e) {
-      preventDefault(e);
-      action("keyup");
+        repeat();
+      };
 
-      clear();
-    };
+      btn.ontouchend = function (e) {
+        preventDefault(e);
+        action("keyup");
 
+        btn.style.background = "linear-gradient(145deg, #36413e, #262d2c)";
+
+        clear();
+      };
+    } catch (error) {
+      console.error("Error in mouse input", error);
+    }
     return { clear };
   }
 }

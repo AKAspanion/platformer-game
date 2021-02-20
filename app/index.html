@@ -58,19 +58,22 @@
         visibility: hidden;
       }
 
-      .controller-jump,
+      .controller-actions,
       .controller-arrows {
         top: -100px;
+        display: flex;
+        flex-wrap: wrap;
         position: absolute;
+        align-items: center;
       }
 
       .controller-arrows {
         bottom: 0;
         width: 124px;
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
         justify-content: space-between;
+      }
+      .controller-actions {
+        align-items: flex-end;
       }
       .controller-btn {
         margin: 2px;
@@ -94,12 +97,8 @@
         height: 72px;
         font-size: 34px;
       }
-      .controller-btn:active {
-        color: #c2c2c2;
-        background: linear-gradient(145deg, #262d2c, #36413e);
-      }
 
-      .controller-jump {
+      .controller-actions {
         top: calc(100% - 80px);
         right: 4px;
       }
@@ -217,7 +216,10 @@
         </div>
       </div>
       <canvas></canvas>
-      <div class="controller controller-jump">
+      <div class="controller controller-actions">
+        <div id="fireBtn" class="controller-btn fire-btn">
+          <span class="btn-icon">🔥</span>
+        </div>
         <div id="jumpBtn" class="controller-btn jump-btn">
           <span class="btn-icon">⬆️</span>
         </div>

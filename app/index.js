@@ -314,8 +314,14 @@ window.addEventListener("load", function () {
     controller.keyDownUp(e, 32);
   });
 
+  const fireMouse = new MouseInput("fireBtn", (e) => {
+    clearMouse();
+    controller.keyDownUp(e, 13);
+  });
+
   const clearMouse = () => {
     upMouse.actions.clear();
+    fireMouse.actions.clear();
     leftMouse.actions.clear();
     rightMouse.actions.clear();
   };
@@ -352,5 +358,5 @@ window.addEventListener("load", function () {
     }
   });
 
-  startBtn.click();
+  // startBtn.click();
 });
