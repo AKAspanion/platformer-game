@@ -229,11 +229,23 @@ export default class World {
   }
 
   get assetCount() {
-    return this.player.assetCount + this.coins.assetCount + this.water.assetCount;
+    return (
+      this.coins.assetCount +
+      this.water.assetCount +
+      this.player.assetCount +
+      this.enemies.assetCount +
+      this.fireballs.assetCount
+    );
   }
 
   get loadCount() {
-    return this.player.loadCount + this.coins.loadCount + this.water.loadCount;
+    return (
+      this.coins.loadCount +
+      this.water.loadCount +
+      this.player.loadCount +
+      this.enemies.loadCount +
+      this.fireballs.loadCount
+    );
   }
 
   isLoaded() {
@@ -241,7 +253,13 @@ export default class World {
   }
 
   isAssetsLoaded() {
-    return this.player.loaded && this.coins.loaded && this.water.loaded;
+    return (
+      this.coins.loaded &&
+      this.water.loaded &&
+      this.player.loaded &&
+      this.enemies.loaded &&
+      this.fireballs.loaded
+    );
   }
 
   onPlayerDead(onGameOver, audio = "fall") {

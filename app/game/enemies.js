@@ -28,6 +28,7 @@ const enemyTypes = {
 export default class Enemies {
   constructor(enemies = [], tileSize = 16, killedEnemies = "") {
     this.items = [];
+    this.loaded = false;
 
     const keys = [
       { id: "pig", count: 16 },

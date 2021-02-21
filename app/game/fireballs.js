@@ -17,7 +17,7 @@ export default class Fireballs {
         const onImgLoad = () => {
           this.loadCount += 1;
 
-          if (count === this.loadCount) {
+          if (this.assetCount === this.loadCount) {
             this.loaded = true;
           }
         };
@@ -35,8 +35,8 @@ export default class Fireballs {
           this.frameSets[k].push(image);
         };
 
-        addImage("fireball-left", imageLeft);
-        addImage("fireball-right", imageRight);
+        addImage("fireballLeft", imageLeft);
+        addImage("fireballRight", imageRight);
       }
     });
   }
@@ -60,7 +60,7 @@ export default class Fireballs {
         x,
         y,
         direction,
-        this.frameSets[`fireball-${direction < 0 ? "left" : "right"}`]
+        this.frameSets[`fireball${direction < 0 ? "Left" : "Right"}`]
       )
     );
   }
