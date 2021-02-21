@@ -80,7 +80,7 @@ window.addEventListener("load", function () {
   let paused = false;
   let areaNumber = 1;
   let worldChanged = false;
-  const totalAreaNumber = 3;
+  const totalAreaNumber = 4;
 
   toggleSoundBtn(getData("mute_sounds"));
   toggleMusicBtn(getData("mute_music"));
@@ -201,11 +201,10 @@ window.addEventListener("load", function () {
           areaNumber++;
         }
 
-        if (areaNumber === 0) {
+        if (areaNumber >= totalAreaNumber) {
           areaNumber = 1;
         }
-
-        if (areaNumber > totalAreaNumber) {
+        if (areaNumber <= 0) {
           areaNumber = totalAreaNumber;
         }
       }
@@ -400,6 +399,7 @@ window.addEventListener("load", function () {
       engine.hold();
 
       areaId = 1;
+      areaNumber = 1;
 
       setupWorld();
       setupScreen();
