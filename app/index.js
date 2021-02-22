@@ -137,9 +137,12 @@ window.addEventListener("load", function () {
     return game.isLoaded() && screen.isLoaded();
   };
 
+  // update game logic
   const update = () => {
     loaded = isLoaded();
     const loadValue = loadPercent();
+
+    const { player, portal } = game.world;
 
     if (loadValue < 100) {
       setProgressValue(loadValue == 99 ? 100 : loadValue);
@@ -163,8 +166,6 @@ window.addEventListener("load", function () {
     }
 
     if (!game.over && loaded && !paused) {
-      const { player } = game.world;
-
       if (controller.left.active) {
         player.moveLeft();
       }
@@ -189,11 +190,11 @@ window.addEventListener("load", function () {
       }
     }
 
-    if (game.world.portal) {
+    if (portal) {
       worldChanged = true;
       engine.hold();
 
-      const { direction, destinationArea } = game.world.portal;
+      const { direction, destinationArea } = portal;
       if (destinationArea !== areaId) {
         if (direction < 0) {
           areaNumber--;
@@ -220,17 +221,50 @@ window.addEventListener("load", function () {
     game.update();
   };
 
+  // render assets
   const render = () => {
     screen.drawBackground();
-    screen.drawMap(game.world.map);
-    screen.drawMapObjects(game.world.objects);
+
+    const {
+      map,
+      coins,
+      water,
+      player,
+      columns,
+      objects,
+      enemies,
+      fireballs,
+      totalCoins,
+      totalEnemies,
+    } = game.world;
+
+    // draw water animations
+    if (water) {
+      for (let index = 0; index < water.items.length; index++) {
+        const waterItem = water.items[index];
+
+        screen.drawObject(
+          waterItem.animator.frameValue,
+          waterItem.x,
+          waterItem.y,
+          waterItem.width,
+          waterItem.height,
+          waterItem.offsetX,
+          waterItem.offsetY
+        );
+      }
+    }
+
+    screen.drawMap(map);
+    screen.drawMapObjects(objects);
     // screen.drawArea(game.world.portals);
+    // screen.drawArea(game.world.deathAreas);
     // screen.drawArea(game.world.enemies.items);
 
     // draw coins
-    if (game.world.coins) {
-      for (let index = 0; index < game.world.coins.items.length; index++) {
-        const coin = game.world.coins.items[index];
+    if (coins) {
+      for (let index = 0; index < coins.items.length; index++) {
+        const coin = coins.items[index];
 
         screen.drawObject(
           coin.animator.frameValue,
@@ -246,27 +280,10 @@ window.addEventListener("load", function () {
       }
     }
 
-    // draw water animations
-    if (game.world.water) {
-      for (let index = 0; index < game.world.water.items.length; index++) {
-        const waterItem = game.world.water.items[index];
-
-        screen.drawObject(
-          waterItem.animator.frameValue,
-          waterItem.x,
-          waterItem.y,
-          waterItem.width,
-          waterItem.height,
-          waterItem.offsetX,
-          waterItem.offsetY
-        );
-      }
-    }
-
     // draw fireballs
-    if (game.world.fireballs) {
-      for (let index = 0; index < game.world.fireballs.items.length; index++) {
-        const fireball = game.world.fireballs.items[index];
+    if (fireballs) {
+      for (let index = 0; index < fireballs.items.length; index++) {
+        const fireball = fireballs.items[index];
 
         screen.drawObject(
           fireball.animator.frameValue,
@@ -278,9 +295,10 @@ window.addEventListener("load", function () {
       }
     }
 
-    if (game.world.enemies) {
-      for (let index = 0; index < game.world.enemies.items.length; index++) {
-        const enemy = game.world.enemies.items[index];
+    // draw enemies
+    if (enemies) {
+      for (let index = 0; index < enemies.items.length; index++) {
+        const enemy = enemies.items[index];
 
         screen.drawObject(
           enemy.animator.frameValue,
@@ -295,12 +313,13 @@ window.addEventListener("load", function () {
     }
 
     // draw player
-    const xOffset = game.world.player.direction < 0 ? -36 : -12;
-
+    const dead = game.world.isPlayerDead;
+    const deadOffset = dead ? (player.direction < 0 ? 12 : -12) : 0;
+    const xOffset = player.direction < 0 ? -36 + deadOffset : -12 + deadOffset;
     screen.drawPlayer(
-      game.world.player.animator.frameValue,
-      game.world.player.getLeft(),
-      game.world.player.getTop(),
+      player.animator.frameValue,
+      player.getLeft(),
+      player.getTop(),
       60,
       40,
       xOffset,
@@ -308,25 +327,21 @@ window.addEventListener("load", function () {
     );
 
     // draw coin count
-    const coinTextOffest =
-      game.world.totalCoins >= 10 && game.world.totalCoins <= 99
-        ? 3
-        : game.world.totalCoins > 99
-        ? 3.4
-        : 2.7;
     const image = new Image();
     image.src = "./assets/sprites/coin/image 1.webp";
-    screen.drawObject(image, (game.world.columns - 1.3) * 16, 8, 10, 10);
-    screen.drawText("x", (game.world.columns - 2) * 16, 15);
-    screen.drawText(game.world.totalCoins, (game.world.columns - coinTextOffest) * 16, 16.1);
+    const coinTextOffest = totalCoins >= 10 && totalCoins <= 99 ? 3 : totalCoins > 99 ? 3.4 : 2.7;
+
+    screen.drawObject(image, (columns - 1.3) * 16, 8, 10, 10);
+    screen.drawText("x", (columns - 2) * 16, 15);
+    screen.drawText(totalCoins, (columns - coinTextOffest) * 16, 16.1);
 
     screen.drawText(areaNumber, 48, 15.3);
     screen.drawText("Area", 12, 15.3);
     screen.drawText("x", 38, 15);
 
-    const score = game.world.totalEnemies * 100 + game.world.totalCoins * 20;
+    const score = totalEnemies * 100 + totalCoins * 20;
     const scoreTextOffest = score >= score >= 10 && score <= 99 ? 3 : score > 99 ? 3.4 : 2.7;
-    screen.drawText(score, (game.world.columns - scoreTextOffest) * 9, 15.3);
+    screen.drawText(score, (columns - scoreTextOffest) * 9, 15.3);
 
     screen.render();
   };
