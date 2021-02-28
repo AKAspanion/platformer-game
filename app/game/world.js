@@ -334,24 +334,22 @@ export default class World {
       }
     }
 
-    let dead = false;
-    if (!dead) {
+    if (!this.isPlayerDead) {
       for (let index = 0; index < this.deathAreas.length; index++) {
         if (this.checkCollision(this.player, this.deathAreas[index])) {
           this.onPlayerDead(onGameOver);
-          dead = true;
           break;
         }
       }
     }
 
-    if (!dead) {
+    // enemies
+    if (!this.isPlayerDead) {
       for (let index = 0; index < this.enemies.items.length; index++) {
         const enemy = this.enemies.items[index];
 
         if (this.checkCollision(this.player, enemy)) {
           this.onPlayerDead(onGameOver);
-          dead = true;
           break;
         }
 
@@ -369,7 +367,7 @@ export default class World {
       }
     }
 
-    this.player.updateAnimation({ dead });
+    this.player.updateAnimation({ dead: this.isPlayerDead });
 
     this.water.update();
   }
