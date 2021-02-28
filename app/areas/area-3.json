@@ -86,9 +86,9 @@
       "height": 48,
       "width": 8,
       "direction": 1,
-      "destinationArea": 1,
+      "destinationArea": 8,
       "destinationX": 16,
-      "destinationY": 24
+      "destinationY": 56
     }
   ],
   "enemies": [

@@ -80,7 +80,7 @@ window.addEventListener("load", function () {
   let paused = false;
   let areaNumber = 1;
   let worldChanged = false;
-  const totalAreaNumber = 4;
+  const totalAreaNumber = 5;
 
   toggleSoundBtn(getData("mute_sounds"));
   toggleMusicBtn(getData("mute_music"));
