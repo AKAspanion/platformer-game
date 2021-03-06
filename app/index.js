@@ -4,9 +4,19 @@ import GameEngine from "./engine";
 import Controller from "./controller";
 import MouseInput from "./controller/mouse-input";
 
-import { uid, getData, setData, preLoadAndFetch } from "./util";
+import {
+  uid,
+  getData,
+  setData,
+  populateHelp,
+  populateLinks,
+  populatePortals,
+  preLoadAndFetch,
+} from "./util";
 
 preLoadAndFetch();
+populateLinks();
+populateHelp();
 
 import areas from "./areas";
 
@@ -20,8 +30,11 @@ const startBtn = document.getElementById("startBtn");
 const pauseBtn = document.getElementById("pauseBtn");
 const soundBtn = document.getElementById("soundBtn");
 const musicBtn = document.getElementById("musicBtn");
+const portalBtn = document.getElementById("portalBtn");
 const helpScreen = document.getElementById("helpScreen");
 const helpCloseBtn = document.getElementById("helpCloseBtn");
+const portalScreen = document.getElementById("portalScreen");
+const portalCloseBtn = document.getElementById("portalCloseBtn");
 const infoScreen = document.getElementById("infoScreen");
 const infoCloseBtn = document.getElementById("infoCloseBtn");
 const refreshBtn = document.getElementById("refreshBtn");
@@ -49,6 +62,10 @@ const toggleControllers = (value) => {
   persistentControllers.forEach(
     (controller) => (controller.style.visibility = value ? "visible" : "hidden")
   );
+};
+
+const togglePortalScreen = (value) => {
+  portalScreen.style.visibility = !value ? "hidden" : "visible";
 };
 
 const toggleHelpScreen = (value) => {
@@ -396,25 +413,23 @@ window.addEventListener("load", function () {
     rightMouse.actions.clear();
   };
 
-  startBtn.onclick = () => {
+  const loadWorld = (id = 1, areaNum = 1, left = 40, top = 100, refresh = false) => {
     clearMouse();
     startTitle.textContent = "";
     scoreTitle.textContent = "";
     toggleStartScreen(false);
 
-    if (paused) {
-      paused = false;
-
-      game.world.playThemeMusic();
-      startBtn.textContent = "play";
-    } else {
+    const start = () => {
       game.world.reset();
       game.over = false;
 
       engine.hold();
 
-      areaId = 1;
-      areaNumber = 1;
+      game.world.player.setLeft(left);
+      game.world.player.setTop(top);
+
+      areaId = id;
+      areaNumber = areaNum;
 
       setupWorld();
       setupScreen();
@@ -422,11 +437,35 @@ window.addEventListener("load", function () {
       resize();
 
       engine.resume();
+    };
+
+    if (paused) {
+      paused = false;
+
+      game.world.playThemeMusic();
+      startBtn.textContent = "play";
+
+      if (refresh) {
+        start();
+      }
+    } else {
+      start();
     }
 
     if (!engine.started) {
       engine.start();
     }
+  };
+
+  const onPortalClick = ({ id, areaNum, left, top }) => {
+    togglePortalScreen(false);
+    loadWorld(id, areaNum, left, top, true);
+  };
+
+  populatePortals(onPortalClick);
+
+  startBtn.onclick = () => {
+    loadWorld();
   };
 
   pauseBtn.onclick = () => {
@@ -458,12 +497,20 @@ window.addEventListener("load", function () {
     toggleMusicBtn(isMuted);
   };
 
+  portalBtn.onclick = () => {
+    togglePortalScreen(true);
+  };
+
   helpBtn.onclick = () => {
     toggleHelpScreen(true);
   };
 
   helpCloseBtn.onclick = () => {
     toggleHelpScreen(false);
+  };
+
+  portalCloseBtn.onclick = () => {
+    togglePortalScreen(false);
   };
 
   infoBtn.onclick = () => {
