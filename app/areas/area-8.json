@@ -70,8 +70,8 @@
     { "id": "a08e02", "type": "pig", "left": 10.25, "top": 1, "sway": 52, "dir": 1 },
     { "id": "a08e03", "type": "pig", "left": 17.75, "top": 7, "sway": 28, "dir": 1 },
     { "id": "a08e04", "type": "pig", "left": 1.75, "top": 7, "sway": 28, "dir": -1 },
-    { "id": "a08e05", "type": "chameleon", "left": 6.25, "top": 9, "sway": 22, "dir": -1 },
-    { "id": "a08e06", "type": "chameleon", "left": 18.25, "top": 3, "sway": 22, "dir": 1 }
+    { "id": "a08e05", "type": "chameleon", "left": 6.25, "top": 9, "sway": 22, "dir": 1 },
+    { "id": "a08e06", "type": "chameleon", "left": 18.25, "top": 3, "sway": 22, "dir": -1 }
   ],
   "areaMap": [
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
