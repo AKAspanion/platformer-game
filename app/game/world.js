@@ -114,7 +114,7 @@ export default class World {
     if (!this.theme) return;
 
     this.audioController.play(this.theme, "mp3");
-    this.audioController.volume(this.theme, 4);
+    this.audioController.volume(this.theme, 8);
     this.audioController.loop(this.theme);
   }
 
