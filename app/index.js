@@ -4,21 +4,20 @@ import GameEngine from "./engine";
 import Controller from "./controller";
 import MouseInput from "./controller/mouse-input";
 
+import { setRandomInterval, randomIntFromInterval } from "./util";
+
 import {
   uid,
   getData,
   setData,
   populateHelp,
   populateLinks,
-  populatePortals,
   preLoadAndFetch,
 } from "./util";
 
 preLoadAndFetch();
 populateLinks();
 populateHelp();
-
-import areas from "./areas";
 
 let loadingActive = false;
 let controllerActive = false;
@@ -96,12 +95,9 @@ const setProgressValue = (value) => {
 window.addEventListener("load", function () {
   "use strict";
 
-  let areaId = 1;
+  let interval;
   let loaded = false;
   let paused = false;
-  let areaNumber = 1;
-  let worldChanged = false;
-  const totalAreaNumber = 5;
 
   toggleSoundBtn(getData("mute_sounds"));
   toggleMusicBtn(getData("mute_music"));
@@ -132,14 +128,14 @@ window.addEventListener("load", function () {
   });
 
   const setupWorld = () => {
-    game.world.setup(areas[areaId]);
+    game.world.setup();
   };
 
   // SCREEN
   let screen;
 
   const setupScreen = () => {
-    screen = new Screen(document.querySelector("canvas"), areas[areaId].world);
+    screen = new Screen(document.querySelector("canvas"));
 
     screen.buffer.canvas.height = game.world.height;
     screen.buffer.canvas.width = game.world.width;
@@ -148,12 +144,9 @@ window.addEventListener("load", function () {
   setupScreen();
 
   // GAME ENGINE
-
   const loadPercent = () => {
-    const totalAssets =
-      (worldChanged ? 0 : game.world.assetCount) + screen.assetCount;
-    const totalLoaded =
-      (worldChanged ? 0 : game.world.loadCount) + screen.loadCount;
+    const totalAssets = game.world.assetCount + screen.assetCount;
+    const totalLoaded = game.world.loadCount + screen.loadCount;
 
     return Math.round((totalLoaded / totalAssets) * 100);
   };
@@ -167,7 +160,7 @@ window.addEventListener("load", function () {
     loaded = isLoaded();
     const loadValue = loadPercent();
 
-    const { player, dino, portal } = game.world;
+    const { dino } = game.world;
 
     if (loadValue < 100) {
       setProgressValue(loadValue == 99 ? 100 : loadValue);
@@ -200,49 +193,6 @@ window.addEventListener("load", function () {
         dino.jump();
         controller.up.active = false;
       }
-      if (controller.fire.active) {
-        const { cactuses, height } = game.world;
-        // const offsetX = player.direction < 0 ? -32 : 8;
-
-        // player.fire();
-        game.world.playFireSound();
-        // fireballs.add(
-        //   uid(),
-        //   player.x + offsetX,
-        //   player.y - 16,
-        //   player.direction
-        // );
-        cactuses.add(uid(), 200, height - 50);
-        controller.fire.active = false;
-      }
-    }
-
-    if (portal) {
-      worldChanged = true;
-      engine.hold();
-
-      const { direction, destinationArea } = portal;
-      if (destinationArea !== areaId) {
-        if (direction < 0) {
-          areaNumber--;
-        } else {
-          areaNumber++;
-        }
-
-        if (areaNumber >= totalAreaNumber) {
-          areaNumber = 1;
-        }
-        if (areaNumber <= 0) {
-          areaNumber = totalAreaNumber;
-        }
-      }
-
-      areaId = destinationArea;
-
-      setupWorld();
-      setupScreen();
-
-      engine.resume();
     }
 
     game.update();
@@ -252,120 +202,9 @@ window.addEventListener("load", function () {
   const render = () => {
     screen.drawBackground();
 
-    const {
-      map,
-      coins,
-      water,
-      dino,
-      columns,
-      cactuses,
-      totalCoins,
-      totalEnemies,
-    } = game.world;
-
-    // draw water animations
-    if (water) {
-      for (let index = 0; index < water.items.length; index++) {
-        const waterItem = water.items[index];
-
-        screen.drawObject(
-          waterItem.animator.frameValue,
-          waterItem.x,
-          waterItem.y,
-          waterItem.width,
-          waterItem.height,
-          waterItem.offsetX,
-          waterItem.offsetY
-        );
-      }
-    }
+    const { dino, birds, cactuses } = game.world;
 
     // screen.drawRect(dino);
-
-    // screen.drawMap(map);
-    // screen.drawMapObjects(objects);
-    // screen.drawArea(game.world.cactuses);
-    // screen.drawArea(game.world.deathAreas);
-    // screen.drawArea(game.world.enemies.items);
-
-    // draw coins
-    if (coins) {
-      for (let index = 0; index < coins.items.length; index++) {
-        const coin = coins.items[index];
-
-        screen.drawObject(
-          coin.animator.frameValue,
-          coin.x,
-          coin.y,
-          coin.width,
-          coin.height,
-          coin.offsetX,
-          coin.offsetY
-        );
-        // screen.drawText(coin.id, coin.x, coin.y);
-        // screen.drawRect(coin);
-      }
-    }
-
-    // draw fireballs
-    // if (fireballs) {
-    //   for (let index = 0; index < fireballs.items.length; index++) {
-    //     const fireball = fireballs.items[index];
-
-    //     screen.drawObject(
-    //       fireball.animator.frameValue,
-    //       fireball.x,
-    //       fireball.y,
-    //       fireball.width,
-    //       fireball.height
-    //     );
-    //   }
-    // }
-
-    if (cactuses) {
-      for (let index = 0; index < cactuses.items.length; index++) {
-        const fireball = cactuses.items[index];
-
-        screen.drawObject(
-          fireball.animator.frameValue,
-          fireball.x,
-          fireball.y,
-          fireball.width,
-          fireball.height
-        );
-      }
-    }
-
-    // draw enemies
-    // if (enemies) {
-    //   for (let index = 0; index < enemies.items.length; index++) {
-    //     const enemy = enemies.items[index];
-
-    //     screen.drawObject(
-    //       enemy.animator.frameValue,
-    //       enemy.x,
-    //       enemy.y,
-    //       enemy.width,
-    //       enemy.height,
-    //       0,
-    //       1
-    //     );
-    //   }
-    // }
-
-    // draw player
-    // const dead = game.world.isPlayerDead;
-    // const deadOffset = dead ? (player.direction < 0 ? 12 : -12) : 0;
-    // const xOffset = player.direction < 0 ? -36 + deadOffset : -12 + deadOffset;
-    // screen.drawPlayer(
-    //   player.animator.frameValue,
-    //   player.getLeft(),
-    //   player.getTop(),
-    //   60,
-    //   40,
-    //   xOffset,
-    //   -24
-    // );
 
     screen.drawDino(
       dino.animator.frameValue,
@@ -377,24 +216,34 @@ window.addEventListener("load", function () {
       dino.getOffset()
     );
 
-    // draw coin count
-    const image = new Image();
-    image.src = "./assets/sprites/coin/image 1.webp";
-    const coinTextOffest =
-      totalCoins >= 10 && totalCoins <= 99 ? 3 : totalCoins > 99 ? 3.4 : 2.7;
+    if (cactuses) {
+      for (let index = 0; index < cactuses.items.length; index++) {
+        const cactus = cactuses.items[index];
 
-    screen.drawObject(image, (columns - 1.3) * 16, 8, 10, 10);
-    screen.drawText("x", (columns - 2) * 16, 15);
-    screen.drawText(totalCoins, (columns - coinTextOffest) * 16, 16.1);
+        screen.drawObject(
+          cactus.animator.frameValue,
+          cactus.x,
+          cactus.y,
+          cactus.width,
+          cactus.height
+        );
+      }
+    }
 
-    screen.drawText(areaNumber, 48, 15.3);
-    screen.drawText("Area", 12, 15.3);
-    screen.drawText("x", 38, 15);
+    // birds
+    if (birds) {
+      for (let index = 0; index < birds.items.length; index++) {
+        const bird = birds.items[index];
 
-    const score = totalEnemies * 100 + totalCoins * 20;
-    const scoreTextOffest =
-      score >= score >= 10 && score <= 99 ? 3 : score > 99 ? 3.4 : 2.7;
-    screen.drawText(score, (columns - scoreTextOffest) * 9, 15.3);
+        screen.drawObject(
+          bird.animator.frameValue,
+          bird.x,
+          bird.y,
+          bird.width,
+          bird.height
+        );
+      }
+    }
 
     screen.render();
   };
@@ -449,13 +298,7 @@ window.addEventListener("load", function () {
     rightMouse.actions.clear();
   };
 
-  const loadWorld = (
-    id = 1,
-    areaNum = 1,
-    left = 40,
-    top = 100,
-    refresh = false
-  ) => {
+  const loadWorld = (refresh = false) => {
     clearMouse();
     startTitle.textContent = "";
     scoreTitle.textContent = "";
@@ -467,17 +310,35 @@ window.addEventListener("load", function () {
 
       engine.hold();
 
-      // game.world.player.setLeft(left);
-      // game.world.player.setTop(top);
       game.world.dino.run();
-
-      areaId = id;
-      areaNumber = areaNum;
 
       setupWorld();
       setupScreen();
 
       resize();
+
+      if (interval && interval.clear) {
+        interval.clear();
+      }
+
+      interval = setRandomInterval(
+        () => {
+          if (!game.over && loaded && !paused) {
+            const { birds, cactuses, width, height } = game.world;
+
+            const chance = randomIntFromInterval(1, 2);
+
+            if (chance === 1) {
+              birds.add(uid(), width + 50, height);
+            } else {
+              cactuses.add(uid(), width + 50, height);
+            }
+            controller.fire.active = false;
+          }
+        },
+        1000,
+        3000
+      );
 
       engine.resume();
     };
@@ -485,7 +346,6 @@ window.addEventListener("load", function () {
     if (paused) {
       paused = false;
 
-      game.world.playThemeMusic();
       startBtn.textContent = "play";
 
       if (refresh) {
@@ -499,13 +359,6 @@ window.addEventListener("load", function () {
       engine.start();
     }
   };
-
-  const onPortalClick = ({ id, areaNum, left, top }) => {
-    togglePortalScreen(false);
-    loadWorld(id, areaNum, left, top, true);
-  };
-
-  populatePortals(onPortalClick);
 
   startBtn.onclick = () => {
     loadWorld();
@@ -522,22 +375,7 @@ window.addEventListener("load", function () {
   };
 
   refreshBtn.onclick = () => {
-    areaNumber = 1;
     startBtn.click();
-  };
-
-  soundBtn.onclick = () => {
-    const isMuted = !getData("mute_sounds");
-
-    setData("mute_sounds", isMuted);
-    toggleSoundBtn(isMuted);
-  };
-
-  musicBtn.onclick = () => {
-    const isMuted = !getData("mute_music");
-
-    setData("mute_music", isMuted);
-    toggleMusicBtn(isMuted);
   };
 
   portalBtn.onclick = () => {
@@ -574,5 +412,5 @@ window.addEventListener("load", function () {
     }
   });
 
-  startBtn.click();
+  loadWorld();
 });

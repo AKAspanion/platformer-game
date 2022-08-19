@@ -315,3 +315,26 @@ export const populateHelp = () => {
 export const randomIntFromInterval = (min, max) => {
   return Math.floor(Math.random() * (max - min + 1) + min);
 };
+
+export const setRandomInterval = (intervalFunction, minDelay, maxDelay) => {
+  let timeout;
+
+  const runInterval = () => {
+    const timeoutFunction = () => {
+      intervalFunction();
+      runInterval();
+    };
+
+    const delay = randomIntFromInterval(minDelay, maxDelay);
+
+    timeout = setTimeout(timeoutFunction, delay);
+  };
+
+  runInterval();
+
+  return {
+    clear() {
+      clearTimeout(timeout);
+    },
+  };
+};

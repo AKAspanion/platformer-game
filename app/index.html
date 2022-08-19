@@ -16,7 +16,10 @@
     <link rel="stylesheet" href="./index.css" />
     <link rel="icon" href="./favicon.ico" />
     <title>Dino's Adventure</title>
-    <meta name="description" content="A pixel styled, platformer adventure game." />
+    <meta
+      name="description"
+      content="A pixel styled, platformer adventure game."
+    />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="en_GB" />
     <meta property="og:title" content="Dino's Adventure" />
@@ -24,8 +27,14 @@
       property="og:image"
       content="https://akaspanion.github.io/platformer-game/images/ss-game.png"
     />
-    <meta property="og:url" content="https://akaspanion.github.io/platformer-game/" />
-    <meta property="og:description" content="A pixel styled, platformer adventure game." />
+    <meta
+      property="og:url"
+      content="https://akaspanion.github.io/platformer-game/"
+    />
+    <meta
+      property="og:description"
+      content="A pixel styled, platformer adventure game."
+    />
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="Dino's Adventure" />
     <meta
@@ -33,13 +42,18 @@
       content="https://akaspanion.github.io/platformer-game/images/ss-game.png"
     />
     <meta name="twitter:image:alt" content="Dino's Adventure platformer game" />
-    <meta name="twitter:description" content="A pixel styled, platformer adventure game." />
+    <meta
+      name="twitter:description"
+      content="A pixel styled, platformer adventure game."
+    />
     <script>
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", function () {
           navigator.serviceWorker.register("./sw.js").then(
             function (registration) {
-              console.log(`SW: register successful with scope - ${registration.scope}`);
+              console.log(
+                `SW: register successful with scope - ${registration.scope}`
+              );
             },
             function (err) {
               console.log(`SWS: registration failed with ${err}`);
@@ -54,7 +68,9 @@
       let loadInterval = setInterval(() => {
         if (tempPercent >= 100) return;
 
-        document.getElementById("progressValue").style.width = `${tempPercent}%`;
+        document.getElementById(
+          "progressValue"
+        ).style.width = `${tempPercent}%`;
         tempPercent += 10;
       }, 200);
     </script>
@@ -62,8 +78,14 @@
   <body class="flex-item">
     <div class="flex-item container">
       <div class="controller controller-arrows">
-        <div id="leftBtn" class="flex-item controller-btn arrow-btn arrow-left"></div>
-        <div id="rightBtn" class="flex-item controller-btn arrow-btn arrow-right"></div>
+        <div
+          id="leftBtn"
+          class="flex-item controller-btn arrow-btn arrow-left"
+        ></div>
+        <div
+          id="rightBtn"
+          class="flex-item controller-btn arrow-btn arrow-right"
+        ></div>
       </div>
       <div class="persistent-controller">
         <div id="pauseBtn"></div>
@@ -120,13 +142,17 @@
             <div class="modal-content-head">About</div>
             <div class="flex-item modal-content-desc">
               <p class="modal-content-desc-text">
-                Dino's Adventure is a platformer game made with pixel art style.<br />
-                Goal of this game is to help Dino collect coins and defeat enemies in his way.<br /><br />
-                Game is made entirly using <code>Vanilla JS</code>, <code>HTML5 Canvas</code>, and
-                <code>CSS</code>.
+                Dino's Adventure is a platformer game made with pixel art
+                style.<br />
+                Goal of this game is to help Dino collect coins and defeat
+                enemies in his way.<br /><br />
+                Game is made entirly using <code>Vanilla JS</code>,
+                <code>HTML5 Canvas</code>, and <code>CSS</code>.
                 <br />
-                Game is also mobile responsive and can be installed on mobile/desktop as a PWA.<br /><br />
-                Game is open-source and its code can be found in the repository link below.
+                Game is also mobile responsive and can be installed on
+                mobile/desktop as a PWA.<br /><br />
+                Game is open-source and its code can be found in the repository
+                link below.
               </p>
             </div>
           </div>
@@ -167,7 +193,9 @@
     <script>
       const highScore = localStorage.getItem("high_score") || "";
       if (highScore) {
-        document.getElementById("highScore").innerHTML = `High Score: ${highScore}`;
+        document.getElementById(
+          "highScore"
+        ).innerHTML = `High Score: ${highScore}`;
       }
     </script>
     <noscript>This app needs javascript.</noscript>

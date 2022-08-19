@@ -1,88 +1,13 @@
-import TileSet from "./tileset";
-
 export default class Screen {
-  constructor(canvas, world) {
+  constructor(canvas) {
     this.buffer = document.createElement("canvas").getContext("2d");
     this.context = canvas.getContext("2d");
-
-    this.tileSet = new TileSet(16, 8, world);
-  }
-
-  drawMap(map) {
-    const { images, tileSize } = this.tileSet;
-
-    const drawTile = (x, y, value) => {
-      const image = images[value];
-
-      let destinationX = x * tileSize;
-      let destinationY = y * tileSize;
-
-      this.buffer.drawImage(
-        image,
-        destinationX,
-        destinationY,
-        tileSize,
-        tileSize
-      );
-    };
-
-    for (let i = 0; i < map.length; i++) {
-      const row = map[i];
-      for (let j = 0; j < row.length; j++) {
-        const value = row[j];
-
-        if (value) {
-          if (Array.isArray(value)) {
-            for (let index = 0; index < value.length; index++) {
-              drawTile(j, i, value[index]);
-            }
-          } else {
-            drawTile(j, i, value);
-          }
-        }
-      }
-    }
   }
 
   drawArea(object) {
     for (let index = 0; index < object.length; index++) {
       const { x, y, width, height } = object[index];
       this.buffer.fillRect(x, y, width, height);
-    }
-  }
-
-  drawMapObjects(objects) {
-    const { objectImages, tileSize } = this.tileSet;
-
-    for (let i = 0; i < objects.length; i++) {
-      const row = objects[i];
-      for (let j = 0; j < row.length; j++) {
-        const value = row[j];
-
-        if (value) {
-          value.forEach((element) => {
-            const {
-              id,
-              xOffset = 0,
-              yOffset = 0,
-              width = 16,
-              height = 16,
-            } = element;
-            const image = objectImages[id];
-
-            let destinationX = j * tileSize;
-            let destinationY = i * tileSize;
-
-            this.buffer.drawImage(
-              image,
-              destinationX + xOffset,
-              destinationY + yOffset,
-              width,
-              height
-            );
-          });
-        }
-      }
     }
   }
 
@@ -159,19 +84,20 @@ export default class Screen {
   }
 
   drawRect({ x, y, width, height }) {
+    this.buffer.fillStyle = "#000";
     this.buffer.fillRect(x, y, width, height);
   }
 
   get assetCount() {
-    return this.tileSet.assetCount;
+    return 1;
   }
 
   get loadCount() {
-    return this.tileSet.loadCount;
+    return 1;
   }
 
   isLoaded() {
-    return this.tileSet.loaded;
+    return true;
   }
 
   resize(width, height, ratio) {

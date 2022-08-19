@@ -9,14 +9,14 @@ body {
   height: 100vh;
   user-select: none;
   --small-btn-size: 56px;
-  background-color: #292929;
+  background-color: #ffffff;
 }
 code {
   font-size: 90%;
   padding: 0px 4px;
   padding-top: 3px;
   border-radius: 3px;
-  background: #e4e4e4;
+  background: #ffffff;
   font-family: "Grandstander", monospace;
 }
 .flex-item {
@@ -28,11 +28,13 @@ code {
   z-index: 5;
   margin: 0px auto;
   position: relative;
-  background-color: #292929;
+  background-color: #ffffff;
   font-family: "Grandstander", monospace;
 }
 canvas {
-  border: 1px solid #292929;
+  image-rendering: pixelated;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .controller,
@@ -122,58 +124,71 @@ canvas {
 #portalCloseBtn,
 #helpCloseBtn,
 #infoCloseBtn {
-  background: url(images/close_btn.webp) center center / var(--small-btn-size) no-repeat;
+  background: url(images/close_btn.webp) center center / var(--small-btn-size)
+    no-repeat;
 }
 
 #helpBtn {
-  background: url(images/help_btn.webp) center center / var(--small-btn-size) no-repeat;
+  background: url(images/help_btn.webp) center center / var(--small-btn-size)
+    no-repeat;
 }
 
 #infoBtn {
-  background: url(images/info_btn.webp) center center / var(--small-btn-size) no-repeat;
+  background: url(images/info_btn.webp) center center / var(--small-btn-size)
+    no-repeat;
 }
 
 #soundBtn {
-  background: url(images/sound_btn.webp) center center / var(--small-btn-size) no-repeat;
+  background: url(images/sound_btn.webp) center center / var(--small-btn-size)
+    no-repeat;
 }
 
 #portalBtn {
-  background: url(images/portal_btn.webp) center center / var(--small-btn-size) no-repeat;
+  background: url(images/portal_btn.webp) center center / var(--small-btn-size)
+    no-repeat;
 }
 
 #musicBtn {
-  background: url(images/music_btn.webp) center center / var(--small-btn-size) no-repeat;
+  background: url(images/music_btn.webp) center center / var(--small-btn-size)
+    no-repeat;
 }
 
 #pauseBtn {
   transform: translate(calc(-50% - 28px), -6px);
-  background: url(images/pause_btn.webp) center center / var(--small-btn-size) no-repeat;
+  background: url(images/pause_btn.webp) center center / var(--small-btn-size)
+    no-repeat;
 }
 
 #refreshBtn {
   transform: translate(calc(-50% + 28px), -6px);
-  background: url(images/refresh_btn.webp) center center / var(--small-btn-size) no-repeat;
+  background: url(images/refresh_btn.webp) center center / var(--small-btn-size)
+    no-repeat;
 }
 
 .left-btn,
 #leftBtn {
-  background: url(images/left_btn.webp) center center / var(--small-btn-size) no-repeat;
+  background: url(images/left_btn.webp) center center / var(--small-btn-size)
+    no-repeat;
 }
 .left-key-btn {
-  background: url(images/key_left.webp) center center / var(--small-btn-size) no-repeat;
+  background: url(images/key_left.webp) center center / var(--small-btn-size)
+    no-repeat;
 }
 
 .right-btn,
 #rightBtn {
-  background: url(images/right_btn.webp) center center / var(--small-btn-size) no-repeat;
+  background: url(images/right_btn.webp) center center / var(--small-btn-size)
+    no-repeat;
 }
 .right-key-btn {
-  background: url(images/key_right.webp) center center / var(--small-btn-size) no-repeat;
+  background: url(images/key_right.webp) center center / var(--small-btn-size)
+    no-repeat;
 }
 
 .fire-btn,
 #fireBtn {
-  background: url(images/small_btn.webp) center center / var(--small-btn-size) no-repeat;
+  background: url(images/small_btn.webp) center center / var(--small-btn-size)
+    no-repeat;
 }
 .fire-btn {
   font-size: 24px;
@@ -191,10 +206,12 @@ canvas {
 }
 
 .jump-btn {
-  background: url(images/up_btn.webp) center center / var(--small-btn-size) no-repeat;
+  background: url(images/up_btn.webp) center center / var(--small-btn-size)
+    no-repeat;
 }
 .jump-key-btn {
-  background: url(images/key_up.webp) center center / var(--small-btn-size) no-repeat;
+  background: url(images/key_up.webp) center center / var(--small-btn-size)
+    no-repeat;
 }
 
 .social-btn {
@@ -203,16 +220,20 @@ canvas {
   height: var(--social-btn-size);
 }
 .gh-btn {
-  background: url(images/github.svg) center center / var(--social-btn-size) no-repeat;
+  background: url(images/github.svg) center center / var(--social-btn-size)
+    no-repeat;
 }
 .li-btn {
-  background: url(images/linkedin.svg) center center / var(--social-btn-size) no-repeat;
+  background: url(images/linkedin.svg) center center / var(--social-btn-size)
+    no-repeat;
 }
 .in-btn {
-  background: url(images/instagram.svg) center center / var(--social-btn-size) no-repeat;
+  background: url(images/instagram.svg) center center / var(--social-btn-size)
+    no-repeat;
 }
 .fb-btn {
-  background: url(images/facebook.svg) center center / var(--social-btn-size) no-repeat;
+  background: url(images/facebook.svg) center center / var(--social-btn-size)
+    no-repeat;
 }
 
 .btn-tut {

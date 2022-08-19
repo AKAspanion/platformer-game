@@ -3,7 +3,7 @@ import Animator from "./animator";
 
 export default class Dino extends Object {
   constructor() {
-    super(40, 60, 24, 24);
+    super(20, 40, 24, 24);
     this.color = "#ff0000";
     this.loaded = false;
 
@@ -75,9 +75,9 @@ export default class Dino extends Object {
   }
 
   reset() {
-    this.x = 40;
-    this.y = 100;
-    this.yOld = 100;
+    this.x = 20;
+    this.y = 40;
+    this.yOld = 40;
     this.running = false;
     this.jumping = false;
     this.running = false;
@@ -107,7 +107,6 @@ export default class Dino extends Object {
   }
 
   updateAnimation({ dead = false }) {
-    // console.log(this);
     if (dead) {
       this.animator.changeFrameSet(this.frameSets["hurt"], 1);
 
@@ -137,28 +136,6 @@ export default class Dino extends Object {
       this.setDimension(24, 24);
       this.animator.changeFrameSet(this.frameSets["idle"]);
     }
-
-    // else if (this.direction < 0) {
-    //   if (this.velocityX < -0.1) {
-    //     this.animator.changeFrameSet(this.frameSets["runLeft"]);
-    //   } else {
-    //     if (this.firing) {
-    //       this.animator.changeFrameSet(this.frameSets["fireLeft"], 2);
-    //     } else {
-    //       this.animator.changeFrameSet(this.frameSets["idleLeft"]);
-    //     }
-    //   }
-    // } else if (this.direction > 0) {
-    //   if (this.velocityX > 0.1) {
-    //     this.animator.changeFrameSet(this.frameSets["runRight"]);
-    //   } else {
-    //     if (this.firing) {
-    //       this.animator.changeFrameSet(this.frameSets["fireRight"], 2);
-    //     } else {
-    //       this.animator.changeFrameSet(this.frameSets["idleRight"]);
-    //     }
-    //   }
-    // }
 
     this.animator.animate();
   }

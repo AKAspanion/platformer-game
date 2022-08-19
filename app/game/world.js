@@ -1,106 +1,40 @@
 import Dino from "./dino";
-import Cactuses from "./catuses";
+import Cactuses from "./cactuses";
 import Collider from "./collider";
 import AudioController from "../controller/audio";
+import Birds from "./birds";
 
 export default class World {
-  constructor(friction = 0.87, gravity = 2) {
+  constructor(friction = 0.92, gravity = 2) {
     this.friction = friction;
     this.gravity = gravity;
 
-    this.rows = 12;
+    this.rows = 4;
     this.columns = 16;
-    this.tileSize = 16;
+    this.tileSize = 20;
 
     this.loaded = true;
 
-    // this.totalCoins = 0;
-    // this.totalEnemies = 0;
-    // this.killedEnemies = "";
-    // this.collectedCoins = "";
     this.height = this.tileSize * this.rows;
     this.width = this.tileSize * this.columns;
 
     this.dino = new Dino();
-    // this.player = new Player();
     this.collider = new Collider();
-    // this.fireballs = new Fireballs();
+    this.birds = new Birds();
     this.cactuses = new Cactuses();
 
     this.audioController = new AudioController();
   }
 
-  setup(data) {
-    // if (this.theme !== data.theme) {
-    //   if (data.theme) {
-    //     this.playedThemeMusic = false;
-    //     this.audioController.load(
-    //       [
-    //         { file: "fire", ext: "wav" },
-    //         { file: "coin", ext: "wav" },
-    //         { file: "foot", ext: "wav" },
-    //         { file: "jump", ext: "wav" },
-    //         { file: "hurt", ext: "wav" },
-    //         { file: "fall", ext: "mp3" },
-    //         { file: data.theme, ext: "mp3" },
-    //       ],
-    //       (val) => {
-    //         this.loaded = val;
-    //       }
-    //     );
-
-    //     this.stopThemeMusic();
-    //     this.theme = data.theme;
-    //   }
-    // }
-
-    this.id = data.id;
-    // this.map = data.areaMap;
+  setup() {
     this.isPlayerDead = false;
-    // this.objects = data.objectsMap;
-    // this.collisonMap = data.collisonMap;
 
-    // if (data.rows) {
-    //   this.rows = data.rows;
-    //   this.height = this.tileSize * this.rows;
-    // }
-    // if (data.columns) {
-    //   this.columns = data.columns;
-    //   this.width = this.tileSize * this.columns;
-    // }
-
-    // this.deathAreas = data.death.map(
-    //   ({ x, y, height, width }) => new Object(x, y, width, height)
-    // );
-
-    // this.enemies = new Enemies(data.enemies, this.tileSize, this.killedEnemies);
-
-    // this.coins = new Coins(data.coins, this.tileSize, this.collectedCoins);
-
-    // this.portals = data.portals.map((p) => new Portal(p));
-
-    // this.water = new Water(data.water, this.tileSize);
-
-    // this.fireballs.reset();
+    this.birds.reset();
     this.cactuses.reset();
-
-    // if (this.portal) {
-    //   this.player.setCenterX(this.portal.destinationX);
-    //   this.player.setCenterY(this.portal.destinationY);
-    //   this.player.direction = this.portal.direction;
-
-    //   this.portal = null;
-    // }
   }
 
   reset() {
-    // this.totalCoins = 0;
-    // this.totalEnemies = 0;
-    // this.killedEnemies = "";
-    // this.collectedCoins = "";
-
     this.dino.reset();
-    // this.player.reset();
   }
 
   playJumpSound() {
@@ -147,70 +81,6 @@ export default class World {
       object.velocityY = 0;
       object.jumping = false;
     }
-
-    let bottom, left, right, top;
-
-    const setTop = () => {
-      top = this._normalizeIndex(
-        Math.floor(object.getTop() / this.tileSize),
-        this.rows
-      );
-    };
-
-    const setBottom = () => {
-      bottom = this._normalizeIndex(
-        Math.floor(object.getBottom() / this.tileSize),
-        this.rows
-      );
-    };
-
-    const setLeft = () => {
-      left = Math.floor(object.getLeft() / this.tileSize);
-    };
-
-    const setRight = () => {
-      right = Math.floor(object.getRight() / this.tileSize);
-    };
-
-    // setTop();
-    // setLeft();
-    // this.collider.collide(
-    //   this.collisonMap[top][left],
-    //   object,
-    //   left * this.tileSize,
-    //   top * this.tileSize,
-    //   this.tileSize
-    // );
-
-    // setTop();
-    // setRight();
-    // this.collider.collide(
-    //   this.collisonMap[top][right],
-    //   object,
-    //   right * this.tileSize,
-    //   top * this.tileSize,
-    //   this.tileSize
-    // );
-
-    // setBottom();
-    // setLeft();
-    // this.collider.collide(
-    //   this.collisonMap[bottom][left],
-    //   object,
-    //   left * this.tileSize,
-    //   bottom * this.tileSize,
-    //   this.tileSize
-    // );
-
-    // setBottom();
-    // setRight();
-    // this.collider.collide(
-    //   this.collisonMap[bottom][right],
-    //   object,
-    //   right * this.tileSize,
-    //   bottom * this.tileSize,
-    //   this.tileSize
-    // );
   }
 
   _normalizeIndex(index, maxIndex) {
@@ -255,99 +125,16 @@ export default class World {
     if (!this.isPlayerDead) {
       AudioController.play(audio, "mp3");
 
-      // this.player.velocityX = 0;
       this.stopThemeMusic();
       onGameOver();
     }
     this.isPlayerDead = true;
-    // this.collectedCoins = "";
-    // this.killedEnemies = "";
-    // this.theme = null;
   }
 
   update(onGameOver) {
-    // AudioController.animate(() => {
-    //   AudioController.play("foot", "wav", 0.15);
-    // }, this.player.running);
-
-    // if (!this.playedThemeMusic) {
-    //   if (this.isLoaded()) {
-    //     this.playThemeMusic();
-    //     this.playedThemeMusic = true;
-    //   }
-    // }
-
     this.dino.update(this.gravity, this.friction);
-    // this.player.update(this.gravity, this.friction);
 
-    // this.collideObject(this.player);
     this.collideObject(this.dino);
-
-    // coins
-    // for (let index = 0; index < this.coins.items.length; index++) {
-    //   const coin = this.coins.items[index];
-
-    //   coin.update();
-    //   coin.updateAnimation();
-
-    //   if (this.checkCollision(this.player, coin, 5, 5)) {
-    //     this.coins.remove(coin);
-
-    //     this.collectedCoins += `${coin.id},`;
-
-    //     AudioController.play("coin");
-    //     this.totalCoins += 1;
-    //   }
-    // }
-
-    // fireballs
-    // for (let index = 0; index < this.fireballs.items.length; index++) {
-    //   const fireball = this.fireballs.items[index];
-
-    //   fireball.update();
-    //   fireball.updateAnimation(this.player);
-
-    //   for (let j = 0; j < this.enemies.items.length; j++) {
-    //     const enemy = this.enemies.items[j];
-
-    //     if (this.checkCollision(enemy, fireball)) {
-    //       this.enemies.remove(enemy);
-
-    //       this.killedEnemies += `${enemy.id},`;
-    //       this.totalEnemies += 1;
-
-    //       AudioController.play("hurt");
-    //     }
-    //   }
-
-    //   if (fireball.x >= this.width + 50) {
-    //     this.fireballs.remove(fireball);
-    //   }
-    // }
-
-    // if (!this.isPlayerDead) {
-    //   for (let index = 0; index < this.deathAreas.length; index++) {
-    //     if (this.checkCollision(this.player, this.deathAreas[index])) {
-    //       this.onPlayerDead(onGameOver);
-    //       break;
-    //     }
-    //   }
-    // }
-
-    // enemies
-    // if (!this.isPlayerDead) {
-    //   for (let index = 0; index < this.enemies.items.length; index++) {
-    //     const enemy = this.enemies.items[index];
-
-    //     if (this.checkCollision(this.player, enemy)) {
-    //       this.onPlayerDead(onGameOver);
-    //       break;
-    //     }
-
-    //     enemy.update();
-    //     enemy.updateAnimation();
-    //   }
-    // }
 
     // cactuses
     if (!this.isPlayerDead) {
@@ -368,18 +155,25 @@ export default class World {
       }
     }
 
-    // if (!this.portal) {
-    //   for (let index = 0; index < this.portals.length; index++) {
-    //     if (this.checkCollision(this.player, this.portals[index])) {
-    //       this.portal = this.portals[index];
-    //       break;
-    //     }
-    //   }
-    // }
+    // birds
+    if (!this.isPlayerDead) {
+      for (let index = 0; index < this.birds.items.length; index++) {
+        const bird = this.birds.items[index];
 
-    // this.player.updateAnimation({ dead: this.isPlayerDead });
+        if (this.checkCollision(this.dino, bird)) {
+          this.onPlayerDead(onGameOver);
+          break;
+        }
+
+        if (bird.x <= -100) {
+          this.birds.remove(bird);
+        }
+
+        bird.update();
+        bird.updateAnimation();
+      }
+    }
+
     this.dino.updateAnimation({ dead: this.isPlayerDead });
-
-    // this.water.update();
   }
 }

@@ -1,18 +1,16 @@
 import Object from "./object";
 import Animator from "./animator";
 
-import { randomIntFromInterval } from "../util";
-
-export default class Cactuses {
+export default class Birds {
   constructor() {
     this.items = [];
     this.loaded = false;
 
     this.frameSets = {};
 
-    const keys = [{ id: "", count: 6 }];
+    const keys = [{ id: "", count: 2 }];
 
-    this.assetCount = 6;
+    this.assetCount = 2;
     this.loadCount = 0;
     keys.forEach(({ count }) => {
       for (let index = 1; index <= count; index++) {
@@ -25,7 +23,7 @@ export default class Cactuses {
           }
         };
 
-        image.src = `./assets/sprites/dino/cactuses (${index}).png`;
+        image.src = `./assets/sprites/dino/bird (${index}).png`;
         image.onload = onImgLoad;
 
         const addImage = (k, i) => {
@@ -35,7 +33,7 @@ export default class Cactuses {
           this.frameSets[k].push(i);
         };
 
-        addImage(`cactus-${index}`, image);
+        addImage("bird", image);
       }
     });
   }
@@ -53,18 +51,11 @@ export default class Cactuses {
   }
 
   add(id, x, y) {
-    this.items.push(
-      new Cactus(
-        id,
-        x,
-        y,
-        this.frameSets[`cactus-${randomIntFromInterval(1, 5)}`]
-      )
-    );
+    this.items.push(new Bird(id, x, y, this.frameSets["bird"]));
   }
 
-  remove(cactus) {
-    this.items.splice(this.items.indexOf(cactus), 1);
+  remove(bird) {
+    this.items.splice(this.items.indexOf(bird), 1);
   }
 
   reset() {
@@ -72,13 +63,13 @@ export default class Cactuses {
   }
 }
 
-class Cactus extends Object {
+class Bird extends Object {
   constructor(id, x, y, frameSet) {
-    super(x, y, 32, 16);
+    super(x, y - 24 - 10, 21, 18);
 
     this.id = id;
 
-    this.velocity = 5;
+    this.velocity = 6;
 
     this.animator = new Animator(frameSet);
   }
