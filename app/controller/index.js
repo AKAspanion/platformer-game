@@ -3,6 +3,7 @@ import Input from "./input";
 export default class Controller {
   constructor() {
     this.up = new Input();
+    this.down = new Input();
     this.left = new Input();
     this.right = new Input();
     this.fire = new Input();
@@ -27,6 +28,10 @@ export default class Controller {
       case 13:
       case 16:
         this.fire.getInput(down);
+        break;
+      case 40:
+        this.down.getInput(down);
+        break;
     }
   }
 }

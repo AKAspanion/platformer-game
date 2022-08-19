@@ -1,11 +1,6 @@
-import Coins from "./coins";
-import Water from "./water";
-import Player from "./player";
-import Object from "./object";
-import Portal from "./portal";
-import Enemies from "./enemies";
+import Dino from "./dino";
+import Cactuses from "./catuses";
 import Collider from "./collider";
-import Fireballs from "./fireballs";
 import AudioController from "../controller/audio";
 
 export default class World {
@@ -19,87 +14,93 @@ export default class World {
 
     this.loaded = true;
 
-    this.totalCoins = 0;
-    this.totalEnemies = 0;
-    this.killedEnemies = "";
-    this.collectedCoins = "";
+    // this.totalCoins = 0;
+    // this.totalEnemies = 0;
+    // this.killedEnemies = "";
+    // this.collectedCoins = "";
     this.height = this.tileSize * this.rows;
     this.width = this.tileSize * this.columns;
 
-    this.player = new Player();
+    this.dino = new Dino();
+    // this.player = new Player();
     this.collider = new Collider();
-    this.fireballs = new Fireballs();
+    // this.fireballs = new Fireballs();
+    this.cactuses = new Cactuses();
 
     this.audioController = new AudioController();
   }
 
   setup(data) {
-    if (this.theme !== data.theme) {
-      if (data.theme) {
-        this.playedThemeMusic = false;
-        this.audioController.load(
-          [
-            { file: "fire", ext: "wav" },
-            { file: "coin", ext: "wav" },
-            { file: "foot", ext: "wav" },
-            { file: "jump", ext: "wav" },
-            { file: "hurt", ext: "wav" },
-            { file: "fall", ext: "mp3" },
-            { file: data.theme, ext: "mp3" },
-          ],
-          (val) => {
-            this.loaded = val;
-          }
-        );
+    // if (this.theme !== data.theme) {
+    //   if (data.theme) {
+    //     this.playedThemeMusic = false;
+    //     this.audioController.load(
+    //       [
+    //         { file: "fire", ext: "wav" },
+    //         { file: "coin", ext: "wav" },
+    //         { file: "foot", ext: "wav" },
+    //         { file: "jump", ext: "wav" },
+    //         { file: "hurt", ext: "wav" },
+    //         { file: "fall", ext: "mp3" },
+    //         { file: data.theme, ext: "mp3" },
+    //       ],
+    //       (val) => {
+    //         this.loaded = val;
+    //       }
+    //     );
 
-        this.stopThemeMusic();
-        this.theme = data.theme;
-      }
-    }
+    //     this.stopThemeMusic();
+    //     this.theme = data.theme;
+    //   }
+    // }
 
     this.id = data.id;
-    this.map = data.areaMap;
+    // this.map = data.areaMap;
     this.isPlayerDead = false;
-    this.objects = data.objectsMap;
-    this.collisonMap = data.collisonMap;
+    // this.objects = data.objectsMap;
+    // this.collisonMap = data.collisonMap;
 
-    if (data.rows) {
-      this.rows = data.rows;
-      this.height = this.tileSize * this.rows;
-    }
-    if (data.columns) {
-      this.columns = data.columns;
-      this.width = this.tileSize * this.columns;
-    }
+    // if (data.rows) {
+    //   this.rows = data.rows;
+    //   this.height = this.tileSize * this.rows;
+    // }
+    // if (data.columns) {
+    //   this.columns = data.columns;
+    //   this.width = this.tileSize * this.columns;
+    // }
 
-    this.deathAreas = data.death.map(({ x, y, height, width }) => new Object(x, y, width, height));
+    // this.deathAreas = data.death.map(
+    //   ({ x, y, height, width }) => new Object(x, y, width, height)
+    // );
 
-    this.enemies = new Enemies(data.enemies, this.tileSize, this.killedEnemies);
+    // this.enemies = new Enemies(data.enemies, this.tileSize, this.killedEnemies);
 
-    this.coins = new Coins(data.coins, this.tileSize, this.collectedCoins);
+    // this.coins = new Coins(data.coins, this.tileSize, this.collectedCoins);
 
-    this.portals = data.portals.map((p) => new Portal(p));
+    // this.portals = data.portals.map((p) => new Portal(p));
 
-    this.water = new Water(data.water, this.tileSize);
+    // this.water = new Water(data.water, this.tileSize);
 
-    this.fireballs.reset();
+    // this.fireballs.reset();
+    this.cactuses.reset();
 
-    if (this.portal) {
-      this.player.setCenterX(this.portal.destinationX);
-      this.player.setCenterY(this.portal.destinationY);
-      this.player.direction = this.portal.direction;
+    // if (this.portal) {
+    //   this.player.setCenterX(this.portal.destinationX);
+    //   this.player.setCenterY(this.portal.destinationY);
+    //   this.player.direction = this.portal.direction;
 
-      this.portal = null;
-    }
+    //   this.portal = null;
+    // }
   }
 
   reset() {
-    this.totalCoins = 0;
-    this.totalEnemies = 0;
-    this.killedEnemies = "";
-    this.collectedCoins = "";
+    // this.totalCoins = 0;
+    // this.totalEnemies = 0;
+    // this.killedEnemies = "";
+    // this.collectedCoins = "";
 
-    this.player.reset();
+    this.dino.reset();
+    // this.player.reset();
   }
 
   playJumpSound() {
@@ -131,15 +132,15 @@ export default class World {
   }
 
   collideObject(object) {
-    if (object.getLeft() < 0 - this.player.width / 2) {
-      object.setLeft(-this.player.width / 2);
+    if (object.getLeft() < 0 - this.dino.width / 2) {
+      object.setLeft(-this.dino.width / 2);
       object.velocityX = 0;
-    } else if (object.getRight() > this.width + this.player.width / 2) {
-      object.setRight(this.width + this.player.width / 2);
+    } else if (object.getRight() > this.width + this.dino.width / 2) {
+      object.setRight(this.width + this.dino.width / 2);
       object.velocityX = 0;
     }
-    if (object.getTop() < 0 - this.player.height * 2.5) {
-      object.setTop(0 - this.player.height * 2.5);
+    if (object.getTop() < 0 - this.dino.height * 2.5) {
+      object.setTop(0 - this.dino.height * 2.5);
       object.velocityY = 0;
     } else if (object.getBottom() - 1 > this.height) {
       object.setBottom(this.height);
@@ -150,11 +151,17 @@ export default class World {
     let bottom, left, right, top;
 
     const setTop = () => {
-      top = this._normalizeIndex(Math.floor(object.getTop() / this.tileSize), this.rows);
+      top = this._normalizeIndex(
+        Math.floor(object.getTop() / this.tileSize),
+        this.rows
+      );
     };
 
     const setBottom = () => {
-      bottom = this._normalizeIndex(Math.floor(object.getBottom() / this.tileSize), this.rows);
+      bottom = this._normalizeIndex(
+        Math.floor(object.getBottom() / this.tileSize),
+        this.rows
+      );
     };
 
     const setLeft = () => {
@@ -165,45 +172,45 @@ export default class World {
       right = Math.floor(object.getRight() / this.tileSize);
     };
 
-    setTop();
-    setLeft();
-    this.collider.collide(
-      this.collisonMap[top][left],
-      object,
-      left * this.tileSize,
-      top * this.tileSize,
-      this.tileSize
-    );
+    // setTop();
+    // setLeft();
+    // this.collider.collide(
+    //   this.collisonMap[top][left],
+    //   object,
+    //   left * this.tileSize,
+    //   top * this.tileSize,
+    //   this.tileSize
+    // );
 
-    setTop();
-    setRight();
-    this.collider.collide(
-      this.collisonMap[top][right],
-      object,
-      right * this.tileSize,
-      top * this.tileSize,
-      this.tileSize
-    );
+    // setTop();
+    // setRight();
+    // this.collider.collide(
+    //   this.collisonMap[top][right],
+    //   object,
+    //   right * this.tileSize,
+    //   top * this.tileSize,
+    //   this.tileSize
+    // );
 
-    setBottom();
-    setLeft();
-    this.collider.collide(
-      this.collisonMap[bottom][left],
-      object,
-      left * this.tileSize,
-      bottom * this.tileSize,
-      this.tileSize
-    );
+    // setBottom();
+    // setLeft();
+    // this.collider.collide(
+    //   this.collisonMap[bottom][left],
+    //   object,
+    //   left * this.tileSize,
+    //   bottom * this.tileSize,
+    //   this.tileSize
+    // );
 
-    setBottom();
-    setRight();
-    this.collider.collide(
-      this.collisonMap[bottom][right],
-      object,
-      right * this.tileSize,
-      bottom * this.tileSize,
-      this.tileSize
-    );
+    // setBottom();
+    // setRight();
+    // this.collider.collide(
+    //   this.collisonMap[bottom][right],
+    //   object,
+    //   right * this.tileSize,
+    //   bottom * this.tileSize,
+    //   this.tileSize
+    // );
   }
 
   _normalizeIndex(index, maxIndex) {
@@ -229,23 +236,11 @@ export default class World {
   }
 
   get assetCount() {
-    return (
-      this.coins.assetCount +
-      this.water.assetCount +
-      this.player.assetCount +
-      this.enemies.assetCount +
-      this.fireballs.assetCount
-    );
+    return 1;
   }
 
   get loadCount() {
-    return (
-      this.coins.loadCount +
-      this.water.loadCount +
-      this.player.loadCount +
-      this.enemies.loadCount +
-      this.fireballs.loadCount
-    );
+    return true;
   }
 
   isLoaded() {
@@ -253,122 +248,138 @@ export default class World {
   }
 
   isAssetsLoaded() {
-    return (
-      this.coins.loaded &&
-      this.water.loaded &&
-      this.player.loaded &&
-      this.enemies.loaded &&
-      this.fireballs.loaded
-    );
+    return true;
   }
 
   onPlayerDead(onGameOver, audio = "fall") {
     if (!this.isPlayerDead) {
       AudioController.play(audio, "mp3");
 
-      this.player.velocityX = 0;
+      // this.player.velocityX = 0;
       this.stopThemeMusic();
       onGameOver();
     }
     this.isPlayerDead = true;
-    this.collectedCoins = "";
-    this.killedEnemies = "";
-    this.theme = null;
+    // this.collectedCoins = "";
+    // this.killedEnemies = "";
+    // this.theme = null;
   }
 
   update(onGameOver) {
-    AudioController.animate(() => {
-      AudioController.play("foot", "wav", 0.15);
-    }, this.player.running);
+    // AudioController.animate(() => {
+    //   AudioController.play("foot", "wav", 0.15);
+    // }, this.player.running);
 
-    if (!this.playedThemeMusic) {
-      if (this.isLoaded()) {
-        this.playThemeMusic();
-        this.playedThemeMusic = true;
-      }
-    }
+    // if (!this.playedThemeMusic) {
+    //   if (this.isLoaded()) {
+    //     this.playThemeMusic();
+    //     this.playedThemeMusic = true;
+    //   }
+    // }
 
-    this.player.update(this.gravity, this.friction);
+    this.dino.update(this.gravity, this.friction);
+    // this.player.update(this.gravity, this.friction);
 
-    this.collideObject(this.player);
+    // this.collideObject(this.player);
+    this.collideObject(this.dino);
 
     // coins
-    for (let index = 0; index < this.coins.items.length; index++) {
-      const coin = this.coins.items[index];
+    // for (let index = 0; index < this.coins.items.length; index++) {
+    //   const coin = this.coins.items[index];
 
-      coin.update();
-      coin.updateAnimation();
+    //   coin.update();
+    //   coin.updateAnimation();
 
-      if (this.checkCollision(this.player, coin, 5, 5)) {
-        this.coins.remove(coin);
+    //   if (this.checkCollision(this.player, coin, 5, 5)) {
+    //     this.coins.remove(coin);
 
-        this.collectedCoins += `${coin.id},`;
+    //     this.collectedCoins += `${coin.id},`;
 
-        AudioController.play("coin");
-        this.totalCoins += 1;
-      }
-    }
+    //     AudioController.play("coin");
+    //     this.totalCoins += 1;
+    //   }
+    // }
 
     // fireballs
-    for (let index = 0; index < this.fireballs.items.length; index++) {
-      const fireball = this.fireballs.items[index];
+    // for (let index = 0; index < this.fireballs.items.length; index++) {
+    //   const fireball = this.fireballs.items[index];
 
-      fireball.update();
-      fireball.updateAnimation(this.player);
+    //   fireball.update();
+    //   fireball.updateAnimation(this.player);
 
-      for (let j = 0; j < this.enemies.items.length; j++) {
-        const enemy = this.enemies.items[j];
+    //   for (let j = 0; j < this.enemies.items.length; j++) {
+    //     const enemy = this.enemies.items[j];
 
-        if (this.checkCollision(enemy, fireball)) {
-          this.enemies.remove(enemy);
+    //     if (this.checkCollision(enemy, fireball)) {
+    //       this.enemies.remove(enemy);
 
-          this.killedEnemies += `${enemy.id},`;
-          this.totalEnemies += 1;
+    //       this.killedEnemies += `${enemy.id},`;
+    //       this.totalEnemies += 1;
 
-          AudioController.play("hurt");
-        }
-      }
+    //       AudioController.play("hurt");
+    //     }
+    //   }
 
-      if (fireball.x >= this.width + 50) {
-        this.fireballs.remove(fireball);
-      }
-    }
+    //   if (fireball.x >= this.width + 50) {
+    //     this.fireballs.remove(fireball);
+    //   }
+    // }
 
-    if (!this.isPlayerDead) {
-      for (let index = 0; index < this.deathAreas.length; index++) {
-        if (this.checkCollision(this.player, this.deathAreas[index])) {
-          this.onPlayerDead(onGameOver);
-          break;
-        }
-      }
-    }
+    // if (!this.isPlayerDead) {
+    //   for (let index = 0; index < this.deathAreas.length; index++) {
+    //     if (this.checkCollision(this.player, this.deathAreas[index])) {
+    //       this.onPlayerDead(onGameOver);
+    //       break;
+    //     }
+    //   }
+    // }
 
     // enemies
-    if (!this.isPlayerDead) {
-      for (let index = 0; index < this.enemies.items.length; index++) {
-        const enemy = this.enemies.items[index];
+    // if (!this.isPlayerDead) {
+    //   for (let index = 0; index < this.enemies.items.length; index++) {
+    //     const enemy = this.enemies.items[index];
 
-        if (this.checkCollision(this.player, enemy)) {
+    //     if (this.checkCollision(this.player, enemy)) {
+    //       this.onPlayerDead(onGameOver);
+    //       break;
+    //     }
+
+    //     enemy.update();
+    //     enemy.updateAnimation();
+    //   }
+    // }
+
+    // cactuses
+    if (!this.isPlayerDead) {
+      for (let index = 0; index < this.cactuses.items.length; index++) {
+        const cactus = this.cactuses.items[index];
+
+        if (this.checkCollision(this.dino, cactus)) {
           this.onPlayerDead(onGameOver);
           break;
         }
 
-        enemy.update();
-        enemy.updateAnimation();
-      }
-    }
-
-    if (!this.portal) {
-      for (let index = 0; index < this.portals.length; index++) {
-        if (this.checkCollision(this.player, this.portals[index])) {
-          this.portal = this.portals[index];
-          break;
+        if (cactus.x <= -100) {
+          this.cactuses.remove(cactus);
         }
+
+        cactus.update();
+        cactus.updateAnimation();
       }
     }
 
-    this.player.updateAnimation({ dead: this.isPlayerDead });
+    // if (!this.portal) {
+    //   for (let index = 0; index < this.portals.length; index++) {
+    //     if (this.checkCollision(this.player, this.portals[index])) {
+    //       this.portal = this.portals[index];
+    //       break;
+    //     }
+    //   }
+    // }
 
-    this.water.update();
+    // this.player.updateAnimation({ dead: this.isPlayerDead });
+    this.dino.updateAnimation({ dead: this.isPlayerDead });
+
+    // this.water.update();
   }
 }

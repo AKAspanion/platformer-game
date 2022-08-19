@@ -100,7 +100,8 @@ export default class Player extends Object {
 
   updateAnimation({ dead = false }) {
     if (dead) {
-      if (this.direction < 0) this.animator.changeFrameSet(this.frameSets["deadLeft"], 2);
+      if (this.direction < 0)
+        this.animator.changeFrameSet(this.frameSets["deadLeft"], 2);
       else this.animator.changeFrameSet(this.frameSets["deadRight"], 2);
 
       this.animator.animate(dead);

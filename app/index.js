@@ -44,7 +44,9 @@ const startScreen = document.getElementById("startScreen");
 const controllers = document.querySelectorAll(".controller");
 const loadingScreen = document.getElementById("loadingScreen");
 const progressValue = document.getElementById("progressValue");
-const persistentControllers = document.querySelectorAll(".persistent-controller");
+const persistentControllers = document.querySelectorAll(
+  ".persistent-controller"
+);
 
 const toggleSoundBtn = (value) => {
   soundBtn.classList[value ? "add" : "remove"]("cancel-cross");
@@ -57,7 +59,9 @@ const toggleMusicBtn = (value) => {
 const toggleControllers = (value) => {
   controllerActive = value;
   controllers.forEach(
-    (controller) => (controller.style.visibility = isTouchesEnabled && value ? "visible" : "hidden")
+    (controller) =>
+      (controller.style.visibility =
+        isTouchesEnabled && value ? "visible" : "hidden")
   );
   persistentControllers.forEach(
     (controller) => (controller.style.visibility = value ? "visible" : "hidden")
@@ -117,7 +121,9 @@ window.addEventListener("load", function () {
     setData("high_score", savedScore < score ? score : savedScore);
 
     if (highScore) {
-      document.getElementById("highScore").innerHTML = `High Score: ${highScore}`;
+      document.getElementById(
+        "highScore"
+      ).innerHTML = `High Score: ${highScore}`;
     }
 
     setTimeout(() => {
@@ -144,8 +150,10 @@ window.addEventListener("load", function () {
   // GAME ENGINE
 
   const loadPercent = () => {
-    const totalAssets = (worldChanged ? 0 : game.world.assetCount) + screen.assetCount;
-    const totalLoaded = (worldChanged ? 0 : game.world.loadCount) + screen.loadCount;
+    const totalAssets =
+      (worldChanged ? 0 : game.world.assetCount) + screen.assetCount;
+    const totalLoaded =
+      (worldChanged ? 0 : game.world.loadCount) + screen.loadCount;
 
     return Math.round((totalLoaded / totalAssets) * 100);
   };
@@ -159,7 +167,7 @@ window.addEventListener("load", function () {
     loaded = isLoaded();
     const loadValue = loadPercent();
 
-    const { player, portal } = game.world;
+    const { player, dino, portal } = game.world;
 
     if (loadValue < 100) {
       setProgressValue(loadValue == 99 ? 100 : loadValue);
@@ -183,26 +191,28 @@ window.addEventListener("load", function () {
     }
 
     if (!game.over && loaded && !paused) {
-      if (controller.left.active) {
-        player.moveLeft();
-      }
-      if (controller.right.active) {
-        player.moveRight();
-      }
+      dino.duck(controller.down.active);
+
       if (controller.up.active) {
-        if (!player.jumping) {
+        if (!dino.jumping) {
           game.world.playJumpSound();
         }
-        player.jump();
+        dino.jump();
         controller.up.active = false;
       }
-      if (controller.fire.active && !player.firing) {
-        const { fireballs } = game.world;
-        const offsetX = player.direction < 0 ? -32 : 8;
+      if (controller.fire.active) {
+        const { cactuses, height } = game.world;
+        // const offsetX = player.direction < 0 ? -32 : 8;
 
-        player.fire();
+        // player.fire();
         game.world.playFireSound();
-        fireballs.add(uid(), player.x + offsetX, player.y - 16, player.direction);
+        // fireballs.add(
+        //   uid(),
+        //   player.x + offsetX,
+        //   player.y - 16,
+        //   player.direction
+        // );
+        cactuses.add(uid(), 200, height - 50);
         controller.fire.active = false;
       }
     }
@@ -246,11 +256,9 @@ window.addEventListener("load", function () {
       map,
       coins,
       water,
-      player,
+      dino,
       columns,
-      objects,
-      enemies,
-      fireballs,
+      cactuses,
       totalCoins,
       totalEnemies,
     } = game.world;
@@ -272,9 +280,11 @@ window.addEventListener("load", function () {
       }
     }
 
-    screen.drawMap(map);
-    screen.drawMapObjects(objects);
-    // screen.drawArea(game.world.portals);
+    // screen.drawRect(dino);
+
+    // screen.drawMap(map);
+    // screen.drawMapObjects(objects);
+    // screen.drawArea(game.world.cactuses);
     // screen.drawArea(game.world.deathAreas);
     // screen.drawArea(game.world.enemies.items);
 
@@ -298,9 +308,23 @@ window.addEventListener("load", function () {
     }
 
     // draw fireballs
-    if (fireballs) {
-      for (let index = 0; index < fireballs.items.length; index++) {
-        const fireball = fireballs.items[index];
+    // if (fireballs) {
+    //   for (let index = 0; index < fireballs.items.length; index++) {
+    //     const fireball = fireballs.items[index];
+
+    //     screen.drawObject(
+    //       fireball.animator.frameValue,
+    //       fireball.x,
+    //       fireball.y,
+    //       fireball.width,
+    //       fireball.height
+    //     );
+    //   }
+    // }
+
+    if (cactuses) {
+      for (let index = 0; index < cactuses.items.length; index++) {
+        const fireball = cactuses.items[index];
 
         screen.drawObject(
           fireball.animator.frameValue,
@@ -313,40 +337,51 @@ window.addEventListener("load", function () {
     }
 
     // draw enemies
-    if (enemies) {
-      for (let index = 0; index < enemies.items.length; index++) {
-        const enemy = enemies.items[index];
+    // if (enemies) {
+    //   for (let index = 0; index < enemies.items.length; index++) {
+    //     const enemy = enemies.items[index];
 
-        screen.drawObject(
-          enemy.animator.frameValue,
-          enemy.x,
-          enemy.y,
-          enemy.width,
-          enemy.height,
-          0,
-          1
-        );
-      }
-    }
+    //     screen.drawObject(
+    //       enemy.animator.frameValue,
+    //       enemy.x,
+    //       enemy.y,
+    //       enemy.width,
+    //       enemy.height,
+    //       0,
+    //       1
+    //     );
+    //   }
+    // }
 
     // draw player
-    const dead = game.world.isPlayerDead;
-    const deadOffset = dead ? (player.direction < 0 ? 12 : -12) : 0;
-    const xOffset = player.direction < 0 ? -36 + deadOffset : -12 + deadOffset;
-    screen.drawPlayer(
-      player.animator.frameValue,
-      player.getLeft(),
-      player.getTop(),
-      60,
-      40,
-      xOffset,
-      -24
+    // const dead = game.world.isPlayerDead;
+    // const deadOffset = dead ? (player.direction < 0 ? 12 : -12) : 0;
+    // const xOffset = player.direction < 0 ? -36 + deadOffset : -12 + deadOffset;
+    // screen.drawPlayer(
+    //   player.animator.frameValue,
+    //   player.getLeft(),
+    //   player.getTop(),
+    //   60,
+    //   40,
+    //   xOffset,
+    //   -24
+    // );
+
+    screen.drawDino(
+      dino.animator.frameValue,
+      dino.getLeft(),
+      dino.getTop(),
+      dino.getRenderWidth(),
+      dino.getRenderHeight(),
+      0,
+      dino.getOffset()
     );
 
     // draw coin count
     const image = new Image();
     image.src = "./assets/sprites/coin/image 1.webp";
-    const coinTextOffest = totalCoins >= 10 && totalCoins <= 99 ? 3 : totalCoins > 99 ? 3.4 : 2.7;
+    const coinTextOffest =
+      totalCoins >= 10 && totalCoins <= 99 ? 3 : totalCoins > 99 ? 3.4 : 2.7;
 
     screen.drawObject(image, (columns - 1.3) * 16, 8, 10, 10);
     screen.drawText("x", (columns - 2) * 16, 15);
@@ -357,7 +392,8 @@ window.addEventListener("load", function () {
     screen.drawText("x", 38, 15);
 
     const score = totalEnemies * 100 + totalCoins * 20;
-    const scoreTextOffest = score >= score >= 10 && score <= 99 ? 3 : score > 99 ? 3.4 : 2.7;
+    const scoreTextOffest =
+      score >= score >= 10 && score <= 99 ? 3 : score > 99 ? 3.4 : 2.7;
     screen.drawText(score, (columns - scoreTextOffest) * 9, 15.3);
 
     screen.render();
@@ -413,7 +449,13 @@ window.addEventListener("load", function () {
     rightMouse.actions.clear();
   };
 
-  const loadWorld = (id = 1, areaNum = 1, left = 40, top = 100, refresh = false) => {
+  const loadWorld = (
+    id = 1,
+    areaNum = 1,
+    left = 40,
+    top = 100,
+    refresh = false
+  ) => {
     clearMouse();
     startTitle.textContent = "";
     scoreTitle.textContent = "";
@@ -425,8 +467,9 @@ window.addEventListener("load", function () {
 
       engine.hold();
 
-      game.world.player.setLeft(left);
-      game.world.player.setTop(top);
+      // game.world.player.setLeft(left);
+      // game.world.player.setTop(top);
+      game.world.dino.run();
 
       areaId = id;
       areaNumber = areaNum;
@@ -531,5 +574,5 @@ window.addEventListener("load", function () {
     }
   });
 
-  // startBtn.click();
+  startBtn.click();
 });

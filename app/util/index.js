@@ -92,11 +92,46 @@ export const preLoadAndFetch = () => {
 
 export const populatePortals = (onPortalClick) => {
   const data = [
-    { name: "Grassland 1", id: 1, areaNum: 1, left: 40, top: 100, ss: "images/area_1.png" },
-    { name: "Grassland 2", id: 2, areaNum: 2, left: 40, top: 100, ss: "images/area_2.png" },
-    { name: "Grassland 3", id: 7, areaNum: 3, left: 40, top: 120, ss: "images/area_3.png" },
-    { name: "Iceland 1", id: 3, areaNum: 4, left: 48, top: 100, ss: "images/area_4.png" },
-    { name: "Iceland 2", id: 8, areaNum: 5, left: 32, top: 20, ss: "images/area_5.png" },
+    {
+      name: "Grassland 1",
+      id: 1,
+      areaNum: 1,
+      left: 40,
+      top: 100,
+      ss: "images/area_1.png",
+    },
+    {
+      name: "Grassland 2",
+      id: 2,
+      areaNum: 2,
+      left: 40,
+      top: 100,
+      ss: "images/area_2.png",
+    },
+    {
+      name: "Grassland 3",
+      id: 7,
+      areaNum: 3,
+      left: 40,
+      top: 120,
+      ss: "images/area_3.png",
+    },
+    {
+      name: "Iceland 1",
+      id: 3,
+      areaNum: 4,
+      left: 48,
+      top: 100,
+      ss: "images/area_4.png",
+    },
+    {
+      name: "Iceland 2",
+      id: 8,
+      areaNum: 5,
+      left: 32,
+      top: 20,
+      ss: "images/area_5.png",
+    },
   ];
 
   const portalsWrapper = document.getElementById("portalsWrapper");
@@ -178,12 +213,20 @@ export const populateHelp = () => {
         {
           items: [
             { className: "btn left-btn btn-tut", text: "to run left" },
-            { className: "btn right-btn btn-tut", text: "to run right", notap: true },
+            {
+              className: "btn right-btn btn-tut",
+              text: "to run right",
+              notap: true,
+            },
           ],
         },
         {
           items: [
-            { className: "btn fire-btn btn-tut flex-item", text: "to spit fire", child: "⚪️" },
+            {
+              className: "btn fire-btn btn-tut flex-item",
+              text: "to spit fire",
+              child: "⚪️",
+            },
           ],
         },
         {
@@ -196,17 +239,29 @@ export const populateHelp = () => {
       content: [
         {
           items: [
-            { className: "btn left-key-btn btn-tut key-btn", text: "to run left" },
-            { className: "btn right-key-btn btn-tut key-btn", text: "to run right", notap: true },
+            {
+              className: "btn left-key-btn btn-tut key-btn",
+              text: "to run left",
+            },
+            {
+              className: "btn right-key-btn btn-tut key-btn",
+              text: "to run right",
+              notap: true,
+            },
           ],
         },
         {
           items: [
-            { className: "btn fire-key-btn btn-tut flex-item key-btn", text: "to spit fire" },
+            {
+              className: "btn fire-key-btn btn-tut flex-item key-btn",
+              text: "to spit fire",
+            },
           ],
         },
         {
-          items: [{ className: "btn jump-key-btn btn-tut key-btn", text: "to jump" }],
+          items: [
+            { className: "btn jump-key-btn btn-tut key-btn", text: "to jump" },
+          ],
         },
       ],
     },
@@ -255,4 +310,8 @@ export const populateHelp = () => {
 
     helpWrapper.appendChild(modalContent);
   });
+};
+
+export const randomIntFromInterval = (min, max) => {
+  return Math.floor(Math.random() * (max - min + 1) + min);
 };

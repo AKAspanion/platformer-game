@@ -17,7 +17,13 @@ export default class Screen {
       let destinationX = x * tileSize;
       let destinationY = y * tileSize;
 
-      this.buffer.drawImage(image, destinationX, destinationY, tileSize, tileSize);
+      this.buffer.drawImage(
+        image,
+        destinationX,
+        destinationY,
+        tileSize,
+        tileSize
+      );
     };
 
     for (let i = 0; i < map.length; i++) {
@@ -55,7 +61,13 @@ export default class Screen {
 
         if (value) {
           value.forEach((element) => {
-            const { id, xOffset = 0, yOffset = 0, width = 16, height = 16 } = element;
+            const {
+              id,
+              xOffset = 0,
+              yOffset = 0,
+              width = 16,
+              height = 16,
+            } = element;
             const image = objectImages[id];
 
             let destinationX = j * tileSize;
@@ -75,8 +87,8 @@ export default class Screen {
   }
 
   drawBackground() {
-    this.buffer.drawImage(
-      this.tileSet.tileBackground,
+    this.buffer.fillStyle = "#ffffff";
+    this.buffer.fillRect(
       0,
       0,
       this.buffer.canvas.width,
@@ -90,12 +102,60 @@ export default class Screen {
     this.buffer.fillText(text, x, y);
   }
 
-  drawPlayer(image, destinationX, destinationY, width, height, offsetX, offsetY, rect) {
-    this.drawObject(image, destinationX + offsetX, destinationY + offsetY + 1, width, height);
+  drawPlayer(
+    image,
+    destinationX,
+    destinationY,
+    width,
+    height,
+    offsetX,
+    offsetY,
+    rect
+  ) {
+    this.drawObject(
+      image,
+      destinationX + offsetX,
+      destinationY + offsetY + 1,
+      width,
+      height
+    );
   }
 
-  drawObject(image, destinationX, destinationY, width, height, offsetX = 0, offsetY = 0) {
-    this.buffer.drawImage(image, destinationX + offsetX, destinationY + offsetY, width, height);
+  drawDino(
+    image,
+    destinationX,
+    destinationY,
+    width,
+    height,
+    offsetX,
+    offsetY,
+    rect
+  ) {
+    this.drawObject(
+      image,
+      destinationX + offsetX,
+      destinationY + offsetY + 1,
+      width,
+      height
+    );
+  }
+
+  drawObject(
+    image,
+    destinationX,
+    destinationY,
+    width,
+    height,
+    offsetX = 0,
+    offsetY = 0
+  ) {
+    this.buffer.drawImage(
+      image,
+      destinationX + offsetX,
+      destinationY + offsetY,
+      width,
+      height
+    );
   }
 
   drawRect({ x, y, width, height }) {
