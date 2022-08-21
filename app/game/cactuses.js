@@ -105,7 +105,7 @@ class Cactus extends Object {
     this.id = id;
     this.type = type;
 
-    this.velocity = 5;
+    this.velocity = 6;
 
     this.animator = new Animator(frameSet);
   }

@@ -266,7 +266,7 @@ window.addEventListener("load", function () {
       [width, height] = [height, width];
     }
 
-    screen.resize(width - 4, height - 4, game.world.height / game.world.width);
+    screen.resize(width, height, game.world.height / game.world.width);
     screen.render();
   };
 

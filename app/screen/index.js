@@ -1,7 +1,7 @@
 export default class Screen {
   constructor(canvas) {
-    this.buffer = document.createElement("canvas").getContext("2d");
-    this.context = canvas.getContext("2d");
+    this.buffer = canvas.getContext("2d");
+    this.canvas = canvas;
   }
 
   drawArea(object) {
@@ -100,22 +100,29 @@ export default class Screen {
     return true;
   }
 
-  resize(width, height, ratio) {
-    if (height / width > ratio) {
-      this.context.canvas.height = width * ratio;
-      this.context.canvas.width = width;
-    } else {
-      this.context.canvas.height = height;
-      this.context.canvas.width = height / ratio;
-    }
+  resize(w) {
+    const width = 600;
+    const height = 300;
 
-    this.context.webkitImageSmoothingEnabled = false;
-    this.context.mozImageSmoothingEnabled = false;
-    this.context.imageSmoothingEnabled = false;
+    const scale = window.devicePixelRatio;
+
+    this.canvas.style.width = width + "px";
+    this.canvas.style.height = height + "px";
+    this.canvas.width = Math.floor(width * scale);
+    this.canvas.height = Math.floor(height * scale);
+    this.buffer.scale(scale, scale);
+
+    const cssScale = w / width;
+
+    this.canvas.style.transform = `scale(${cssScale})`;
+
+    this.buffer.webkitImageSmoothingEnabled = false;
+    this.buffer.mozImageSmoothingEnabled = false;
+    this.buffer.imageSmoothingEnabled = false;
   }
 
   render() {
-    this.context.drawImage(
+    this.buffer.drawImage(
       this.buffer.canvas,
       0,
       0,
@@ -123,8 +130,8 @@ export default class Screen {
       this.buffer.canvas.height,
       0,
       0,
-      this.context.canvas.width,
-      this.context.canvas.height
+      this.buffer.canvas.width,
+      this.buffer.canvas.height
     );
   }
 }

@@ -68,7 +68,6 @@ export default class Ground {
     this.update();
     for (let index = 0; index < this.items.length; index++) {
       const g = this.items[index];
-      console.log(g.width, g.x, index);
       g.updateAnimation();
 
       if (g.x <= this.width * -1) {
@@ -91,7 +90,7 @@ class GroundItem extends Object {
 
     this.id = id;
 
-    this.velocity = 5;
+    this.velocity = 6;
 
     this.animator = new Animator(frameSet);
   }

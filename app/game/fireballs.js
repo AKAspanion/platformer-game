@@ -81,7 +81,7 @@ class Fireball extends Object {
     this.id = id;
     this.direction = direction;
 
-    this.velocity = 5;
+    this.velocity = 6;
 
     this.animator = new Animator(frameSet);
   }
