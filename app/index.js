@@ -202,19 +202,17 @@ window.addEventListener("load", function () {
   const render = () => {
     screen.drawBackground();
 
-    const { dino, birds, cactuses } = game.world;
+    const { ground, dino, birds, cactuses } = game.world;
 
-    // screen.drawRect(dino);
+    // ground
+    if (ground) {
+      for (let index = 0; index < ground.items.length; index++) {
+        const g = ground.items[index];
+        // screen.drawRect(g);
 
-    screen.drawDino(
-      dino.animator.frameValue,
-      dino.getLeft(),
-      dino.getTop(),
-      dino.getRenderWidth(),
-      dino.getRenderHeight(),
-      0,
-      dino.getOffset()
-    );
+        screen.drawObject(g.animator.frameValue, g.x, g.y, g.width, g.height);
+      }
+    }
 
     if (cactuses) {
       for (let index = 0; index < cactuses.items.length; index++) {
@@ -244,6 +242,18 @@ window.addEventListener("load", function () {
         );
       }
     }
+
+    // screen.drawRect(dino);
+    // dino
+    screen.drawDino(
+      dino.animator.frameValue,
+      dino.getLeft(),
+      dino.getTop(),
+      dino.getRenderWidth(),
+      dino.getRenderHeight(),
+      0,
+      dino.getOffset()
+    );
 
     screen.render();
   };
@@ -337,7 +347,7 @@ window.addEventListener("load", function () {
           }
         },
         1000,
-        3000
+        2000
       );
 
       engine.resume();

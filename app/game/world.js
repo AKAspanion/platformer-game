@@ -3,6 +3,7 @@ import Cactuses from "./cactuses";
 import Collider from "./collider";
 import AudioController from "../controller/audio";
 import Birds from "./birds";
+import Ground from "./ground";
 
 export default class World {
   constructor(friction = 0.92, gravity = 2) {
@@ -18,6 +19,8 @@ export default class World {
     this.height = this.tileSize * this.rows;
     this.width = this.tileSize * this.columns;
 
+    this.ground = new Ground(this.width, this.height);
+
     this.dino = new Dino();
     this.collider = new Collider();
     this.birds = new Birds();
@@ -28,13 +31,13 @@ export default class World {
 
   setup() {
     this.isPlayerDead = false;
-
-    this.birds.reset();
-    this.cactuses.reset();
   }
 
   reset() {
     this.dino.reset();
+    this.birds.reset();
+    this.ground.reset();
+    this.cactuses.reset();
   }
 
   playJumpSound() {
@@ -135,6 +138,9 @@ export default class World {
     this.dino.update(this.gravity, this.friction);
 
     this.collideObject(this.dino);
+    if (!this.isPlayerDead) {
+      this.ground.updateAnimation();
+    }
 
     // cactuses
     if (!this.isPlayerDead) {
@@ -146,12 +152,12 @@ export default class World {
           break;
         }
 
+        cactus.update();
+        cactus.updateAnimation();
+
         if (cactus.x <= -100) {
           this.cactuses.remove(cactus);
         }
-
-        cactus.update();
-        cactus.updateAnimation();
       }
     }
 
@@ -165,12 +171,12 @@ export default class World {
           break;
         }
 
+        bird.update();
+        bird.updateAnimation();
+
         if (bird.x <= -100) {
           this.birds.remove(bird);
         }
-
-        bird.update();
-        bird.updateAnimation();
       }
     }
 
