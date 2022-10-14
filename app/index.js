@@ -57,10 +57,11 @@ const toggleMusicBtn = (value) => {
 const toggleControllers = (value) => {
   controllerActive = value;
   controllers.forEach(
-    (controller) => (controller.style.visibility = isTouchesEnabled && value ? "visible" : "hidden")
+    (controller) =>
+      (controller.style.visibility = isTouchesEnabled && value ? "visible" : "hidden"),
   );
   persistentControllers.forEach(
-    (controller) => (controller.style.visibility = value ? "visible" : "hidden")
+    (controller) => (controller.style.visibility = value ? "visible" : "hidden"),
   );
 };
 
@@ -89,7 +90,7 @@ const setProgressValue = (value) => {
   progressValue.style.width = `${value}%`;
 };
 
-window.addEventListener("load", function () {
+window.addEventListener("load", function() {
   "use strict";
 
   let areaId = 1;
@@ -132,11 +133,21 @@ window.addEventListener("load", function () {
   // SCREEN
   let screen;
 
+  // resize game window
+  const resize = () => {
+    let width = document.documentElement.clientWidth;
+    let height = document.documentElement.clientHeight;
+
+    screen.resize(width, height, game.world.width, game.world.height);
+    screen.render();
+  };
+
   const setupScreen = () => {
     screen = new Screen(document.querySelector("canvas"), areas[areaId].world);
 
     screen.buffer.canvas.height = game.world.height;
     screen.buffer.canvas.width = game.world.width;
+    resize();
   };
 
   setupScreen();
@@ -267,7 +278,7 @@ window.addEventListener("load", function () {
           waterItem.width,
           waterItem.height,
           waterItem.offsetX,
-          waterItem.offsetY
+          waterItem.offsetY,
         );
       }
     }
@@ -290,7 +301,7 @@ window.addEventListener("load", function () {
           coin.width,
           coin.height,
           coin.offsetX,
-          coin.offsetY
+          coin.offsetY,
         );
         // screen.drawText(coin.id, coin.x, coin.y);
         // screen.drawRect(coin);
@@ -307,7 +318,7 @@ window.addEventListener("load", function () {
           fireball.x,
           fireball.y,
           fireball.width,
-          fireball.height
+          fireball.height,
         );
       }
     }
@@ -324,7 +335,7 @@ window.addEventListener("load", function () {
           enemy.width,
           enemy.height,
           0,
-          1
+          1,
         );
       }
     }
@@ -340,7 +351,7 @@ window.addEventListener("load", function () {
       60,
       40,
       xOffset,
-      -24
+      -24,
     );
 
     // draw coin count
@@ -360,18 +371,6 @@ window.addEventListener("load", function () {
     const scoreTextOffest = score >= score >= 10 && score <= 99 ? 3 : score > 99 ? 3.4 : 2.7;
     screen.drawText(score, (columns - scoreTextOffest) * 9, 15.3);
 
-    screen.render();
-  };
-
-  const resize = () => {
-    let width = document.documentElement.clientWidth;
-    let height = document.documentElement.clientHeight;
-
-    if (width < 600) {
-      [width, height] = [height, width];
-    }
-
-    screen.resize(width - 4, height - 4, game.world.height / game.world.width);
     screen.render();
   };
 
@@ -521,7 +520,7 @@ window.addEventListener("load", function () {
     toggleInfoScreen(false);
   };
 
-  document.addEventListener("visibilitychange", function () {
+  document.addEventListener("visibilitychange", function() {
     if (document.visibilityState === "visible") {
       if (!paused) {
         game.world.playThemeMusic();

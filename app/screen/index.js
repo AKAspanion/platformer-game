@@ -2,8 +2,8 @@ import TileSet from "./tileset";
 
 export default class Screen {
   constructor(canvas, world) {
-    this.buffer = document.createElement("canvas").getContext("2d");
-    this.context = canvas.getContext("2d");
+    this.buffer = canvas.getContext("2d");
+    this.canvas = canvas;
 
     this.tileSet = new TileSet(16, 8, world);
   }
@@ -66,7 +66,7 @@ export default class Screen {
               destinationX + xOffset,
               destinationY + yOffset,
               width,
-              height
+              height,
             );
           });
         }
@@ -80,7 +80,7 @@ export default class Screen {
       0,
       0,
       this.buffer.canvas.width,
-      this.buffer.canvas.height
+      this.buffer.canvas.height,
     );
   }
 
@@ -91,6 +91,10 @@ export default class Screen {
   }
 
   drawPlayer(image, destinationX, destinationY, width, height, offsetX, offsetY, rect) {
+    this.drawObject(image, destinationX + offsetX, destinationY + offsetY + 1, width, height);
+  }
+
+  drawDino(image, destinationX, destinationY, width, height, offsetX, offsetY, rect) {
     this.drawObject(image, destinationX + offsetX, destinationY + offsetY + 1, width, height);
   }
 
@@ -114,22 +118,44 @@ export default class Screen {
     return this.tileSet.loaded;
   }
 
-  resize(width, height, ratio) {
-    if (height / width > ratio) {
-      this.context.canvas.height = width * ratio;
-      this.context.canvas.width = width;
+  getContainSize(parentWidth, parentHeight, childWidth, childHeight) {
+    const contains = true;
+    const doRatio = childWidth / childHeight;
+    const cRatio = parentWidth / parentHeight;
+    let width = parentWidth;
+    let height = parentHeight;
+
+    if (contains ? doRatio > cRatio : doRatio < cRatio) {
+      height = width / doRatio;
     } else {
-      this.context.canvas.height = height;
-      this.context.canvas.width = height / ratio;
+      width = height * doRatio;
     }
 
-    this.context.webkitImageSmoothingEnabled = false;
-    this.context.mozImageSmoothingEnabled = false;
-    this.context.imageSmoothingEnabled = false;
+    return [width, height];
+  }
+
+  resize(ww, wh, gW, gH) {
+    const [width] = this.getContainSize(ww, wh, gW, gH);
+
+    const scale = window.devicePixelRatio;
+
+    this.canvas.style.height = gH + "px";
+    this.canvas.style.width = gW + "px";
+    this.canvas.height = Math.floor(gH * scale * scale);
+    this.canvas.width = Math.floor(gW * scale * scale);
+    this.buffer.scale(scale, scale);
+
+    const cssScale = width / gW;
+
+    this.canvas.style.transform = `scale(${cssScale})`;
+
+    this.buffer.webkitImageSmoothingEnabled = false;
+    this.buffer.mozImageSmoothingEnabled = false;
+    this.buffer.imageSmoothingEnabled = false;
   }
 
   render() {
-    this.context.drawImage(
+    this.buffer.drawImage(
       this.buffer.canvas,
       0,
       0,
@@ -137,8 +163,8 @@ export default class Screen {
       this.buffer.canvas.height,
       0,
       0,
-      this.context.canvas.width,
-      this.context.canvas.height
+      this.buffer.canvas.width,
+      this.buffer.canvas.height,
     );
   }
 }
