@@ -8,9 +8,9 @@ self.addEventListener("activate", (event) => {
           if (CACHE_NAME !== cacheName) {
             return caches.delete(cacheName);
           }
-        })
+        }),
       );
-    })
+    }),
   );
 });
 
@@ -40,6 +40,6 @@ self.addEventListener("fetch", (event) => {
       })
       .catch(() => {
         caches.match(event.request).then((response) => response);
-      })
+      }),
   );
 });

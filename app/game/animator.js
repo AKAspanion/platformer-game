@@ -32,8 +32,7 @@ export default class Animator {
       if (last && this.frameIndex === this.frameSet.length - 1) {
         this.frameIndex = this.frameSet.length - 1;
       } else {
-        this.frameIndex =
-          this.frameIndex < this.frameSet.length - 1 ? this.frameIndex + 1 : 0;
+        this.frameIndex = this.frameIndex < this.frameSet.length - 1 ? this.frameIndex + 1 : 0;
       }
 
       this.frameValue = this.frameSet[this.frameIndex];

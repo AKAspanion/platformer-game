@@ -81,8 +81,8 @@ export default class Enemies {
             top * tileSize,
             [this.frameSets[`${type}Left`], this.frameSets[`${type}Right`]],
             sway,
-            dir
-          )
+            dir,
+          ),
         );
       }
     }

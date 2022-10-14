@@ -10,6 +10,7 @@ body {
   user-select: none;
   --small-btn-size: 56px;
   background-color: #292929;
+  overflow: hidden;
 }
 code {
   font-size: 90%;
@@ -116,7 +117,7 @@ canvas {
 #refreshBtn {
   left: 50%;
   bottom: 0px;
-  position: absolute;
+  position: fixed;
 }
 
 #portalCloseBtn,

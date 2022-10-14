@@ -39,7 +39,7 @@ export default class items {
 
       if (!collectedCoins.includes(id)) {
         this.items.push(
-          new Coin(id, left * tileSize, top * tileSize, offsetX, offsetY, this.frameSets["coin"])
+          new Coin(id, left * tileSize, top * tileSize, offsetX, offsetY, this.frameSets["coin"]),
         );
       }
     }

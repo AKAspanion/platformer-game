@@ -60,8 +60,8 @@ export default class Fireballs {
         x,
         y,
         direction,
-        this.frameSets[`fireball${direction < 0 ? "Left" : "Right"}`]
-      )
+        this.frameSets[`fireball${direction < 0 ? "Left" : "Right"}`],
+      ),
     );
   }
 

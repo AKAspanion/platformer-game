@@ -39,7 +39,7 @@ export default class Water {
       const { left, top } = waterObjects[index];
 
       this.items.push(
-        new WaterObject(left * tileSize, top * tileSize, this.frameSets["water"], tileSize)
+        new WaterObject(left * tileSize, top * tileSize, this.frameSets["water"], tileSize),
       );
     }
   }

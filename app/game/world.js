@@ -49,7 +49,7 @@ export default class World {
           ],
           (val) => {
             this.loaded = val;
-          }
+          },
         );
 
         this.stopThemeMusic();
@@ -172,7 +172,7 @@ export default class World {
       object,
       left * this.tileSize,
       top * this.tileSize,
-      this.tileSize
+      this.tileSize,
     );
 
     setTop();
@@ -182,7 +182,7 @@ export default class World {
       object,
       right * this.tileSize,
       top * this.tileSize,
-      this.tileSize
+      this.tileSize,
     );
 
     setBottom();
@@ -192,7 +192,7 @@ export default class World {
       object,
       left * this.tileSize,
       bottom * this.tileSize,
-      this.tileSize
+      this.tileSize,
     );
 
     setBottom();
@@ -202,7 +202,7 @@ export default class World {
       object,
       right * this.tileSize,
       bottom * this.tileSize,
-      this.tileSize
+      this.tileSize,
     );
   }
 

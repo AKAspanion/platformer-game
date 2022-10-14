@@ -8,11 +8,15 @@ Game is made entirly using `Vanilla JS`, `HTML5 Canvas`, and
 Game is also mobile responsive and can be installed on mobile/desktop as a PWA.<br /><br />
 
 ![Dino's Adventure](https://github.com/AKAspanion/platformer-game/blob/master/demo.gif?raw=true)
+
 ## Live
+
 The game is live [here](https://akaspanion.github.io/platformer-game/).
 
 ## Locally
+
 Clone the repo and run
+
 ```bash
 npm run install
 npm run serve
@@ -21,4 +25,5 @@ npm run serve
 Game will launch at `http://localhost:2108/`
 
 ## Author
+
 Ankit Kumar Pandit

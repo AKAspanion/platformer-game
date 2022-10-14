@@ -90,7 +90,7 @@ const setProgressValue = (value) => {
   progressValue.style.width = `${value}%`;
 };
 
-window.addEventListener("load", function() {
+window.addEventListener("load", function () {
   "use strict";
 
   let areaId = 1;
@@ -520,7 +520,7 @@ window.addEventListener("load", function() {
     toggleInfoScreen(false);
   };
 
-  document.addEventListener("visibilitychange", function() {
+  document.addEventListener("visibilitychange", function () {
     if (document.visibilityState === "visible") {
       if (!paused) {
         game.world.playThemeMusic();
