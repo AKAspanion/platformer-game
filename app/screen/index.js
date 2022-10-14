@@ -139,15 +139,19 @@ export default class Screen {
 
     const scale = window.devicePixelRatio;
 
-    this.canvas.style.height = gH + "px";
-    this.canvas.style.width = gW + "px";
+    document.documentElement.style.setProperty("--canvas-height", gH + "px");
+    document.documentElement.style.setProperty("--canvas-width", gW + "px");
+
+    this.canvas.style.height = `var(--canvas-height, ${gH}px)`;
+    this.canvas.style.width = `var(--canvas-width, ${gW}px)`;
     this.canvas.height = Math.floor(gH * scale * scale);
     this.canvas.width = Math.floor(gW * scale * scale);
     this.buffer.scale(scale, scale);
 
     const cssScale = width / gW;
 
-    this.canvas.style.transform = `scale(${cssScale})`;
+    document.documentElement.style.setProperty("--canvas-scale", cssScale);
+    this.canvas.style.transform = `scale(var(--canvas-scale, ${cssScale}))`;
 
     this.buffer.webkitImageSmoothingEnabled = false;
     this.buffer.mozImageSmoothingEnabled = false;

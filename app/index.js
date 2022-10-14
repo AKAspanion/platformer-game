@@ -137,6 +137,13 @@ window.addEventListener("load", function () {
   const resize = () => {
     let width = document.documentElement.clientWidth;
     let height = document.documentElement.clientHeight;
+    let gWidth = game.world.width;
+    let gHeight = game.world.height;
+
+    if (width <= 480) {
+      [width, height] = [height, width];
+      [gWidth, gHeight] = [gHeight, gWidth];
+    }
 
     screen.resize(width, height, game.world.width, game.world.height);
     screen.render();
