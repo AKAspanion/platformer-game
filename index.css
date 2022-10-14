@@ -11,6 +11,7 @@ body {
   --small-btn-size: 56px;
   background-color: #292929;
   overflow: hidden;
+  position: relative;
 }
 code {
   font-size: 90%;
@@ -430,5 +431,29 @@ canvas {
   }
   .settings {
     padding: min(48px, 2vh) 8px 8px 8px;
+  }
+  .persistent-controller {
+    transform: rotate(90deg);
+    position: fixed;
+    z-index: 5;
+    left: 8px;
+  }
+  .controller-actions {
+    transform: rotate(90deg);
+    position: fixed;
+    bottom: 56px;
+    left: 0px;
+    z-index: 5;
+    right: unset;
+    top: unset;
+  }
+  .controller-arrows {
+    transform: rotate(90deg);
+    position: fixed;
+    bottom: 56px;
+    left: 0px;
+    z-index: 5;
+    right: unset;
+    bottom: unset;
   }
 }
