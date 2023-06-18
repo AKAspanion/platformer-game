@@ -1,9 +1,10 @@
 const path = require("path");
 const CopyPlugin = require("copy-webpack-plugin");
 const ESLintPlugin = require("eslint-webpack-plugin");
-const TerserPlugin = require("terser-webpack-plugin");
+// const TerserPlugin = require("terser-webpack-plugin");
 const DashboardPlugin = require("webpack-dashboard/plugin");
-const { CleanWebpackPlugin } = require("clean-webpack-plugin");
+// const { CleanWebpackPlugin } = require("clean-webpack-plugin");
+const { EsbuildPlugin } = require("esbuild-loader");
 
 module.exports = {
   mode: "development",
@@ -12,11 +13,23 @@ module.exports = {
     filename: "bundle.js",
   },
   optimization: {
-    minimize: true,
-    minimizer: [new TerserPlugin()],
+    minimizer: [
+      new EsbuildPlugin({
+        target: "es2015",
+        css: true,
+      }),
+    ],
+  },
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: "esbuild-loader",
+      },
+    ],
   },
   plugins: [
-    new CleanWebpackPlugin(),
+    // new CleanWebpackPlugin(),
     new DashboardPlugin(),
     new ESLintPlugin({}),
     new CopyPlugin({

@@ -4,20 +4,33 @@
   "main": "index.js",
   "scripts": {
     "build": "webpack",
-    "serve": "webpack serve",
+    "dev": "webpack serve",
     "dep": "gh-pages -d dist",
     "deploy": "gh-pages -d dist",
     "predeploy": "npm install && npm run build",
-    "dev": "webpack-dashboard -m -c green -t react -- webpack serve",
+    "serve": "webpack-dashboard -m -c green -t react -- webpack serve",
     "format": "prettier --write ."
   },
-  "author": "",
-  "license": "ISC",
-  "keywords": [],
-  "description": "",
+  "author": "Ankit Kumar Pandit",
+  "license": "MIT",
+  "keywords": [
+    "game",
+    "2d-game",
+    "platformer",
+    "platformer-game"
+  ],
+  "description": "🎮 A 2D platformer game.",
+  "bugs": {
+    "url": "https://github.com/AKAspanion/platformer-game/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AKAspanion/platformer-game.git"
+  },
   "devDependencies": {
     "clean-webpack-plugin": "^3.0.0",
     "copy-webpack-plugin": "^7.0.0",
+    "esbuild-loader": "^3.0.1",
     "eslint": "^7.19.0",
     "eslint-webpack-plugin": "^2.4.3",
     "gh-pages": "^3.1.0",
