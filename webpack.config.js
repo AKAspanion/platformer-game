@@ -41,6 +41,7 @@ module.exports = {
         { from: path.resolve(__dirname, "app/index.html"), to: "index.html" },
         { from: path.resolve(__dirname, "app/favicon.ico"), to: "favicon.ico" },
         { from: path.resolve(__dirname, "app/manifest.json"), to: "manifest.json" },
+        { from: path.resolve(__dirname, "app/assetlinks.json"), to: "assetlinks.json" },
       ],
     }),
   ],

@@ -2,3 +2,8 @@ dist
 build
 node_modules
 .DS_Store
+
+*.aab
+*.apk
+*.keystore
+signing-key-info.txt

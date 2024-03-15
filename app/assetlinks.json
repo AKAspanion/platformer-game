@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "io.github.akaspanion.twa",
+      "sha256_cert_fingerprints": [
+        "DE:AE:60:22:C4:9D:DF:99:F0:42:F1:8E:F6:AC:ED:79:C0:C8:C7:74:E9:E1:D2:20:02:40:48:55:D3:3E:B7:E0"
+      ]
+    }
+  }
+]
