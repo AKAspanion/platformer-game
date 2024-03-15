@@ -3,7 +3,6 @@
   "name": "Dino's Adventure: Platformer game",
   "description": "A pixel styled, platformer adventure game",
   "display": "fullscreen",
-  "orientation": "any",
   "start_url": "./index.html",
   "theme_color": "#EF534F",
   "background_color": "#292929",
