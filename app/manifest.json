@@ -6,6 +6,11 @@
   "start_url": "./index.html",
   "theme_color": "#EF534F",
   "background_color": "#292929",
+  "id": "platform-game",
+  "dir": "ltr",
+  "lang": "en",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "categories": ["game", "2d-game"],
   "icons": [
     {
       "src": "./images/icons-192.png",
@@ -17,6 +22,39 @@
       "purpose": "maskable",
       "type": "image/png",
       "sizes": "512x512"
+    },
+    {
+      "src": "./images/icons-512.png",
+      "purpose": "any",
+      "type": "image/png",
+      "sizes": "512x512"
     }
-  ]
+  ],
+  "screenshots": [
+    {
+      "src": "images/ss/feature-1.png",
+      "sizes": "2110x1206",
+      "type": "image/png",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "images/ss/feature-2.png",
+      "sizes": "2110x1206",
+      "type": "image/png",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "images/ss/feature-3.png",
+      "sizes": "2110x1206",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
+  ],
+  "launch_handler": {
+    "client_mode": ["navigate-existing", "auto"]
+  },
+  "handle_links": "preferred",
+  "edge_side_panel": {
+    "preferred_width": 400
+  }
 }

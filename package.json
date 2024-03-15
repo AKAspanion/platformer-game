@@ -7,7 +7,7 @@
     "dev": "webpack serve",
     "dep": "gh-pages -d dist",
     "deploy": "gh-pages -d dist",
-    "predeploy": "npm install && npm run build",
+    "predeploy": "yarn && yarn build",
     "serve": "webpack-dashboard -m -c green -t react -- webpack serve",
     "format": "prettier --write ."
   },
