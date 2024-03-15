@@ -1,0 +1,52 @@
+# Simple workflow for deploying static content to GitHub Pages
+name: Deploy to Pages
+
+on:
+  push:
+    paths:
+      - pages/**
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: 'pages'
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@v3
+
+      - name: Install Node.js, NPM and Yarn ⚙
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Install & Build Pages 🔧
+        run: |
+          yarn
+          yarn build
+        shell: bash
+
+      - name: Setup Pages 🔧
+        uses: actions/configure-pages@v3
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v2
+        with:
+          path: dist
+
+      - name: Deploy 🚀
+        id: deployment
+        uses: actions/deploy-pages@v2
