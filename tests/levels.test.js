@@ -138,19 +138,35 @@ test("generated levels are up to date and pass the reachability check", () => {
   }
 });
 
-test("sky levels have an upper tier of platforms like the hand-made ones", () => {
-  const sky = generator.LEVELS.filter((l) => l.sky).map((l) => l.id);
-  assert.deepEqual(sky, [9, 10, 12, 13, 14, 15, 16]);
-  for (const id of sky) {
+test("generated levels keep ground low and fill the space above with platforms", () => {
+  const generated = generator.LEVELS.map((l) => l.id);
+  assert.deepEqual(generated, [9, 10, 11, 12, 13, 14, 15, 16]);
+  for (const id of generated) {
     const area = areas[id];
+
+    // no taller than Grassland 1-2: ground tops (solid tile under a "t") at row 8+
+    let solid = 0;
+    area.collisonMap.forEach((row, r) =>
+      row.forEach((cell, c) => {
+        const ground = cell.includes("t") && area.areaMap[r + 1] && area.areaMap[r + 1][c];
+        assert.ok(!ground || r >= 8, `${name(id)}: ground top at row ${r} col ${c}`);
+        if (area.areaMap[r][c] && !(cell === "t" && !ground)) solid++;
+      }),
+    );
+    const fill = solid / (area.rows * area.columns);
+    assert.ok(
+      fill <= 0.29,
+      `${name(id)}: ${Math.round(fill * 100)}% solid (Grassland 1-2: 21-29%)`,
+    );
+
     let upper = 0;
     area.collisonMap.forEach((row, r) =>
       row.forEach((cell, c) => {
         const floating = cell === "t" && !area.areaMap[r + 1][c];
-        if (floating && r <= 4) upper++;
+        if (floating && r <= 5) upper++;
       }),
     );
-    assert.ok(upper >= 8, `${name(id)}: only ${upper} upper platform tiles`);
+    assert.ok(upper >= 10, `${name(id)}: only ${upper} upper platform tiles`);
     assert.ok(
       area.coins.some((coin) => coin.top < 3),
       `${name(id)}: no coins up top`,

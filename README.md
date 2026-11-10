@@ -44,8 +44,13 @@ yarn levels
 to regenerate them. Each level is checked for reachability with the player's jump
 physics before it is written.
 
-Levels with `sky: true` (Grassland 4–5, Iceland 4, Desert 1–4) also get an upper tier
-of floating platforms with coins and patrolling enemies.
+Like Grassland 1–2, generated ground stays low (rows 8–10, mostly 9–10, at most 29% of
+the screen solid) and the space above is filled with tiers of floating platforms with
+coins and patrolling enemies. After regenerating, refresh the level-select thumbnails:
+
+```bash
+python3 scripts/generate-thumbnails.py
+```
 
 ## Enemy death animations
 
