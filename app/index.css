@@ -81,7 +81,8 @@ canvas {
   top: calc(100% - 68px);
 }
 
-#startBtn {
+#startBtn,
+#retryBtn {
   width: 100px;
   height: 48px;
   color: white;
@@ -95,6 +96,12 @@ canvas {
   text-transform: uppercase;
   background-color: #ef5350;
   background: url(images/large_btn.webp) center center / 120px 52px no-repeat;
+}
+
+/* only shown on the Game Over screen */
+#retryBtn {
+  display: none;
+  margin-top: 12px;
 }
 
 .btn,

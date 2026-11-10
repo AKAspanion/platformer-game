@@ -8,6 +8,13 @@ export default class Controller {
     this.fire = new Input();
   }
 
+  releaseAll() {
+    [this.up, this.left, this.right, this.fire].forEach((input) => {
+      input.down = false;
+      input.active = false;
+    });
+  }
+
   keyDownUp(type, keyCode) {
     let down = type == "keydown" ? true : false;
 

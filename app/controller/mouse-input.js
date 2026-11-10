@@ -1,44 +1,32 @@
 export default class MouseInput {
   constructor(id, action) {
-    this.actions = this.holdit(document.getElementById(id), action, 1000, 2);
+    this.actions = this.bind(document.getElementById(id), action);
   }
 
-  holdit(btn, action, start, speedup) {
-    let timeout;
-
-    const clear = () => {
-      clearTimeout(timeout);
-    };
-
+  bind(btn, action) {
     const preventDefault = (e) => {
       if (e.preventDefault) {
         e.preventDefault();
       }
     };
 
-    const repeat = function () {
-      action("keydown");
-
-      timeout = setTimeout(repeat, start);
-      start = start / speedup;
+    const release = (e) => {
+      preventDefault(e);
+      action("keyup");
     };
 
     try {
-      btn.ontouchstart = function (e) {
+      btn.ontouchstart = (e) => {
         preventDefault(e);
-
-        repeat();
+        action("keydown");
       };
-
-      btn.ontouchend = function (e) {
-        preventDefault(e);
-        action("keyup");
-
-        clear();
-      };
+      // touchcancel fires when the OS interrupts a touch (notification, system
+      // gesture); without it the key stays held and the dino runs forever.
+      btn.ontouchend = release;
+      btn.ontouchcancel = release;
     } catch (error) {
       console.error("Error in mouse input", error);
     }
-    return { clear };
+    return { clear: () => {} };
   }
 }

@@ -60,9 +60,9 @@
       "height": 64,
       "width": 8,
       "direction": 1,
-      "destinationArea": 1,
+      "destinationArea": 11,
       "destinationX": 16,
-      "destinationY": 24
+      "destinationY": 56
     }
   ],
   "enemies": [
@@ -71,7 +71,7 @@
     { "id": "a08e03", "type": "pig", "left": 17.75, "top": 7, "sway": 28, "dir": 1 },
     { "id": "a08e04", "type": "pig", "left": 1.75, "top": 7, "sway": 28, "dir": -1 },
     { "id": "a08e05", "type": "chameleon", "left": 6.25, "top": 9, "sway": 22, "dir": 1 },
-    { "id": "a08e06", "type": "chameleon", "left": 18.25, "top": 3, "sway": 22, "dir": -1 }
+    { "id": "a08e06", "type": "chameleon", "left": 14.5, "top": 5, "sway": 6, "dir": -1 }
   ],
   "areaMap": [
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],

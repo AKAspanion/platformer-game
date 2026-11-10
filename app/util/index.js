@@ -90,14 +90,30 @@ export const preLoadAndFetch = () => {
   });
 };
 
+// Levels in play order. `areaNum` is the number shown in the HUD.
+export const LEVELS = [
+  { name: "Grassland 1", id: 1, left: 40, top: 100, ss: "images/area_1.png" },
+  { name: "Grassland 2", id: 2, left: 40, top: 100, ss: "images/area_2.png" },
+  { name: "Grassland 3", id: 7, left: 40, top: 120, ss: "images/area_3.png" },
+  { name: "Grassland 4", id: 9, left: 40, top: 80, ss: "images/area_6.png" },
+  { name: "Grassland 5", id: 10, left: 40, top: 64, ss: "images/area_7.png" },
+  { name: "Iceland 1", id: 3, left: 48, top: 100, ss: "images/area_4.png" },
+  { name: "Iceland 2", id: 8, left: 32, top: 20, ss: "images/area_5.png" },
+  { name: "Iceland 3", id: 11, left: 40, top: 30, ss: "images/area_8.png" },
+  { name: "Iceland 4", id: 12, left: 40, top: 64, ss: "images/area_9.png" },
+  { name: "Desert 1", id: 13, left: 40, top: 30, ss: "images/area_10.png" },
+  { name: "Desert 2", id: 14, left: 40, top: 64, ss: "images/area_11.png" },
+  { name: "Desert 3", id: 15, left: 40, top: 48, ss: "images/area_12.png" },
+  { name: "Desert 4", id: 16, left: 40, top: 80, ss: "images/area_13.png" },
+].map((level, index) => ({ ...level, areaNum: index + 1 }));
+
+export const getAreaNumber = (areaId) => {
+  const level = LEVELS.find(({ id }) => id === areaId);
+  return level ? level.areaNum : 1;
+};
+
 export const populatePortals = (onPortalClick) => {
-  const data = [
-    { name: "Grassland 1", id: 1, areaNum: 1, left: 40, top: 100, ss: "images/area_1.png" },
-    { name: "Grassland 2", id: 2, areaNum: 2, left: 40, top: 100, ss: "images/area_2.png" },
-    { name: "Grassland 3", id: 7, areaNum: 3, left: 40, top: 120, ss: "images/area_3.png" },
-    { name: "Iceland 1", id: 3, areaNum: 4, left: 48, top: 100, ss: "images/area_4.png" },
-    { name: "Iceland 2", id: 8, areaNum: 5, left: 32, top: 20, ss: "images/area_5.png" },
-  ];
+  const data = LEVELS;
 
   const portalsWrapper = document.getElementById("portalsWrapper");
   portalsWrapper.className += "modal-content-wrapper";

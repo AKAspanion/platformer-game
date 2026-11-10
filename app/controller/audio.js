@@ -47,9 +47,10 @@ export default class AudioController {
       }
     };
 
-    audios.forEach(({ file, ext = "mp3" }) => {
+    filteredAudios.forEach(({ file, ext = "mp3" }) => {
       this.audios[file] = new Audio();
-      this.audios[file].addEventListener("canplaythrough", onload, false);
+      this.audios[file].addEventListener("canplaythrough", onload, { once: true });
+      this.audios[file].addEventListener("error", onload, { once: true });
       this.audios[file].src = `./assets/audio/${file}.${ext}`;
       this.audios[file].volume = 0.5;
     });

@@ -23,9 +23,11 @@ export default class Fireballs {
         };
         const imageLeft = new Image();
         imageLeft.onload = onImgLoad;
+        imageLeft.onerror = onImgLoad;
         imageLeft.src = `./assets/sprites/fireball/left/image ${index}.webp`;
         const imageRight = new Image();
         imageRight.onload = onImgLoad;
+        imageRight.onerror = onImgLoad;
         imageRight.src = `./assets/sprites/fireball/right/image ${index}.webp`;
 
         const addImage = (k, image) => {

@@ -37,8 +37,10 @@ export default class Player extends Object {
 
         const imageLeft = new Image();
         imageLeft.onload = onImgLoad;
+        imageLeft.onerror = onImgLoad;
         const imageRight = new Image();
         imageRight.onload = onImgLoad;
+        imageRight.onerror = onImgLoad;
         imageLeft.src = `./assets/sprites/player/left/${id} (${index}).webp`;
         imageRight.src = `./assets/sprites/player/right/${id} (${index}).webp`;
 

@@ -329,7 +329,7 @@ export default class World {
         }
       }
 
-      if (fireball.x >= this.width + 50) {
+      if (fireball.x >= this.width + 50 || fireball.x + fireball.width < -50) {
         this.fireballs.remove(fireball);
       }
     }
@@ -358,7 +358,7 @@ export default class World {
       }
     }
 
-    if (!this.portal) {
+    if (!this.portal && !this.isPlayerDead) {
       for (let index = 0; index < this.portals.length; index++) {
         if (this.checkCollision(this.player, this.portals[index])) {
           this.portal = this.portals[index];

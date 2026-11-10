@@ -34,6 +34,7 @@ export default class TileSet {
     for (let index = 1; index <= meta[world].objectLen; index++) {
       const image = new Image();
       image.onload = onImgLoad;
+      image.onerror = onImgLoad;
       image.src = `./assets/sprites/${worldKey}/objects/${index}.png`;
 
       this.objectImages.push(image);
@@ -42,6 +43,7 @@ export default class TileSet {
     for (let index = 1; index <= meta[world].tileLen; index++) {
       const image = new Image();
       image.onload = onImgLoad;
+      image.onerror = onImgLoad;
       image.src = `./assets/sprites/${worldKey}/tiles/${index}.png`;
 
       this.images.push(image);
@@ -49,5 +51,6 @@ export default class TileSet {
 
     this.tileBackground.src = `./assets/sprites/${worldKey}/bg.png`;
     this.tileBackground.onload = onImgLoad;
+    this.tileBackground.onerror = onImgLoad;
   }
 }
