@@ -10,7 +10,9 @@
     "predeploy": "yarn && yarn build",
     "serve": "webpack-dashboard -m -c green -t react -- webpack serve",
     "format": "prettier --write .",
-    "levels": "node scripts/generate-levels.js && prettier --write app/areas"
+    "levels": "node scripts/generate-levels.js && prettier --write app/areas && python3 scripts/generate-thumbnails.py",
+    "sprites": "python3 scripts/generate-enemy-death.py",
+    "test": "node scripts/test.js"
   },
   "author": "Ankit Kumar Pandit",
   "license": "MIT",

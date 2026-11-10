@@ -112,7 +112,9 @@ const ENEMY_TYPES = {
 };
 
 /**
- * The levels to generate. entryHeight / exitHeight are the ground-top rows at the
+ * The levels to generate. Like Grassland 1-2, ground stays low
+ * (rows 8-10, mostly 9-10) and the space above is filled with tiers of floating platforms
+ * with coins and patrolling enemies. entryHeight / exitHeight are the ground-top rows at the
  * left / right edges, chosen to line up with the neighbouring areas.
  */
 const LEVELS = [
@@ -122,8 +124,8 @@ const LEVELS = [
     theme: "grasslands",
     seed: 9001,
     difficulty: 2,
-    entryHeight: 7,
-    exitHeight: 6,
+    entryHeight: 9,
+    exitHeight: 9,
     prev: { area: 7, x: 330, y: 96 },
     next: { area: 10, x: 16 },
   },
@@ -133,8 +135,8 @@ const LEVELS = [
     theme: "grasslands",
     seed: 10001,
     difficulty: 3,
-    entryHeight: 6,
-    exitHeight: 4,
+    entryHeight: 9,
+    exitHeight: 10,
     prev: { area: 9, x: 330 },
     next: { area: 3, x: 6, y: 24 },
   },
@@ -144,8 +146,8 @@ const LEVELS = [
     theme: "iceland",
     seed: 11001,
     difficulty: 3,
-    entryHeight: 4,
-    exitHeight: 6,
+    entryHeight: 9,
+    exitHeight: 9,
     prev: { area: 8, x: 330, y: 42 },
     next: { area: 12, x: 16 },
   },
@@ -155,8 +157,8 @@ const LEVELS = [
     theme: "iceland",
     seed: 12001,
     difficulty: 4,
-    entryHeight: 6,
-    exitHeight: 4,
+    entryHeight: 10,
+    exitHeight: 9,
     prev: { area: 11, x: 330 },
     next: { area: 13, x: 16 },
   },
@@ -166,8 +168,8 @@ const LEVELS = [
     theme: "desert",
     seed: 13169,
     difficulty: 3,
-    entryHeight: 4,
-    exitHeight: 6,
+    entryHeight: 9,
+    exitHeight: 9,
     prev: { area: 12, x: 330 },
     next: { area: 14, x: 16 },
   },
@@ -177,8 +179,8 @@ const LEVELS = [
     theme: "desert",
     seed: 14006,
     difficulty: 3,
-    entryHeight: 6,
-    exitHeight: 5,
+    entryHeight: 9,
+    exitHeight: 10,
     prev: { area: 13, x: 330 },
     next: { area: 15, x: 16 },
   },
@@ -188,8 +190,8 @@ const LEVELS = [
     theme: "desert",
     seed: 15052,
     difficulty: 4,
-    entryHeight: 5,
-    exitHeight: 7,
+    entryHeight: 10,
+    exitHeight: 9,
     prev: { area: 14, x: 330 },
     next: { area: 16, x: 16 },
   },
@@ -199,8 +201,8 @@ const LEVELS = [
     theme: "desert",
     seed: 16189,
     difficulty: 4,
-    entryHeight: 7,
-    exitHeight: 4,
+    entryHeight: 9,
+    exitHeight: 9,
     prev: { area: 15, x: 330 },
     next: { area: 1, x: 16, y: 24 },
   },
@@ -234,7 +236,9 @@ function buildProfile(rng, level) {
 
   let col = 0;
   let h = level.entryHeight;
-  const minH = 3;
+  // Low ground, no higher than Grassland 1-2 (mostly rows 9-10): tall dirt
+  // walls waste the screen.
+  const minH = 8;
   const maxH = 10;
 
   while (col < COLS) {
@@ -257,9 +261,10 @@ function buildProfile(rng, level) {
       next = h + Math.max(-MAX_STEP_UP, Math.min(MAX_STEP_DOWN, want));
     } else {
       next = h + pick(rng, [-2, -1, -1, 1, 1, 2, 2, 3]);
+      if (next < 9 && rng() < 0.5) next = 9; // row 8 only now and then
     }
     next = Math.max(minH, Math.min(maxH, next));
-    if (next === h && left > 5) next = h < 7 ? h + 1 : h - 1;
+    if (next === h && left > 5) next = h < 9 ? h + 1 : h - 1;
 
     const pitChance = 0.35 + level.difficulty * 0.1;
     if (left > SAFE_EDGE + 1 && Math.abs(next - h) <= 1 && rng() < pitChance) {
@@ -324,10 +329,55 @@ function placePlatforms(rng, level, heights, segments, pits) {
   return platforms;
 }
 
+/**
+ * Upper tier: floating platforms climbing toward the top of the screen. Each
+ * one must be reachable (by the jump model below) from a surface placed before
+ * it, so the tier is always climbable.
+ */
+function placeSkyPlatforms(rng, level, heights, platforms) {
+  const target = 7 + Math.floor(level.difficulty / 2);
+  const added = [];
+  const clear = (r, s, e) =>
+    r >= 2 &&
+    s >= 1 &&
+    e <= COLS - 2 &&
+    // stacked platforms need 3 rows between them: room for a 20px enemy
+    platforms.every(([pr, ps, pe]) => Math.abs(pr - r) > 2 || e < ps - 1 || s > pe + 1) &&
+    [...Array(e - s + 3).keys()].every((i) => {
+      const c = s - 1 + i;
+      // one empty row under it: the player (12px) still fits below and, as the
+      // platform is one-way, can jump up through it
+      return !solidAt(heights, r, c) && !solidAt(heights, r + 1, c);
+    });
+
+  for (let attempt = 0; attempt < 800 && added.length < target; attempt++) {
+    // favour the highest rows: that's where the tier is missing
+    const r = pick(rng, [2, 2, 3, 3, 4, 4, 5, 5, 6]);
+    const w = pick(rng, [2, 3, 3, 4, 4, 5]);
+    const s = randInt(rng, 1, COLS - 1 - w);
+    const e = s + w - 1;
+    if (!clear(r, s, e)) continue;
+    // the HUD (area / coin count) covers the top corners
+    if (r <= 2 && (s <= 3 || e >= COLS - 4)) continue;
+
+    const surf = surfaces(heights, platforms);
+    const cells = [];
+    for (let c = s; c <= e; c++) cells.push({ row: r, col: c });
+    const linked = cells.some((cell) => surf.some((from) => canJump(from, cell)));
+    if (!linked) continue;
+
+    platforms.push([r, s, e]);
+    added.push([r, s, e]);
+  }
+  return added;
+}
+
 function buildLevel(level, seed) {
   const rng = mulberry32(seed);
   const { heights, segments, pits } = buildProfile(rng, level);
   const platforms = placePlatforms(rng, level, heights, segments, pits);
+  const sky = placeSkyPlatforms(mulberry32(seed * 31 + 7), level, heights, platforms);
+  const isSky = (p) => sky.includes(p);
 
   const areaMap = emptyGrid(0);
   const collisonMap = emptyGrid("");
@@ -432,11 +482,16 @@ function buildLevel(level, seed) {
     for (let c = lo; c <= hi; c++) occupied[r][c] = true;
   });
   // Platform patrollers on wide platforms.
-  platforms.forEach(([r, s, e]) => {
-    if (level.difficulty < 2 || e - s < 2 || r < 2 || enemies.length >= maxEnemies + 1) return;
+  // 5-6 in all, like the hand-made areas
+  const maxTotal = 4 + Math.floor(level.difficulty / 2);
+  platforms.forEach((platform) => {
+    const [r, s, e] = platform;
+    if (level.difficulty < 2 || e - s < 2 || r < 2 || enemies.length >= maxTotal) return;
+    // no room for a 20px enemy under a platform two rows up
+    if (platforms.some(([pr, ps, pe]) => pr === r - 2 && pe >= s && ps <= e)) return;
     enemies.push({
       id: `A${String(level.id).padStart(2, "0")}E${String(enemies.length + 1).padStart(2, "0")}`,
-      type: "pig",
+      type: isSky(platform) ? pick(rng, types) : "pig",
       left: round((s + e + 1) / 2 - 0.65),
       top: r - 1,
       sway: Math.floor(((e - s + 1) * TILE - 24) / 2),
@@ -681,10 +736,8 @@ function linkNeighbour(outDir, areaId, direction, values) {
   throw new Error(`area ${areaId}: no portal with direction ${direction}`);
 }
 
-function main() {
-  const print = process.argv.includes("--print");
-  const outDir = path.resolve(__dirname, "../app/areas");
-
+/** Builds every level in LEVELS (first valid seed) and links their portals. */
+function buildAll() {
   const results = {};
   LEVELS.forEach((level) => {
     let result;
@@ -711,6 +764,14 @@ function main() {
     });
   });
 
+  return results;
+}
+
+function main() {
+  const print = process.argv.includes("--print");
+  const outDir = path.resolve(__dirname, "../app/areas");
+  const results = buildAll();
+
   // Hand-made neighbours: point their portal into this level at the right height.
   Object.values(results).forEach(({ data, heights }) => {
     data.portals.forEach((portal) => {
@@ -735,6 +796,6 @@ function main() {
   });
 }
 
-module.exports = { buildLevel, validate, LEVELS };
+module.exports = { buildAll, buildLevel, validate, LEVELS };
 
 if (require.main === module) main();

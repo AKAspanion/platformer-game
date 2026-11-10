@@ -5,6 +5,7 @@ import Object from "./object";
 import Portal from "./portal";
 import Enemies from "./enemies";
 import Collider from "./collider";
+import Effects from "./effects";
 import Fireballs from "./fireballs";
 import AudioController from "../controller/audio";
 
@@ -29,6 +30,7 @@ export default class World {
     this.player = new Player();
     this.collider = new Collider();
     this.fireballs = new Fireballs();
+    this.effects = new Effects();
 
     this.audioController = new AudioController();
   }
@@ -83,6 +85,7 @@ export default class World {
     this.water = new Water(data.water, this.tileSize);
 
     this.fireballs.reset();
+    this.effects.reset();
 
     if (this.portal) {
       this.player.setCenterX(this.portal.destinationX);
@@ -108,6 +111,26 @@ export default class World {
 
   playFireSound() {
     AudioController.play("fire", "wav");
+  }
+
+  /** Fire from the player's mouth if the cooldown allows. Returns true if fired. */
+  shootFireball(id) {
+    const { player } = this;
+    if (this.isPlayerDead || !player.fire()) return false;
+
+    const offsetX = player.direction < 0 ? -32 : 8;
+    this.fireballs.add(id, player.x + offsetX, player.y - 16, player.direction);
+    this.effects.burst(player.getCenterX() + player.direction * 10, player.y - 8, {
+      count: 4,
+      colors: ["#fff6a8", "#ffb43f"],
+      speed: 1.2,
+      life: 5,
+      gravity: 0,
+      size: 1,
+      direction: player.direction * 1.5,
+    });
+    this.playFireSound();
+    return true;
   }
 
   playThemeMusic() {
@@ -216,6 +239,53 @@ export default class World {
     return index;
   }
 
+  /** Side walls (anything the player can't walk through) block fireballs. */
+  isWallAt(x, y) {
+    const column = Math.floor(x / this.tileSize);
+    const row = Math.floor(y / this.tileSize);
+    if (row < 0 || row >= this.rows || column < 0 || column >= this.columns) return false;
+    const value = this.collisonMap[row] && this.collisonMap[row][column];
+    return typeof value === "string" && /[lr]/.test(value);
+  }
+
+  killEnemy(enemy, direction) {
+    if (!enemy.kill(direction)) return;
+
+    this.killedEnemies += `${enemy.id},`;
+    this.totalEnemies += 1;
+
+    const x = enemy.getCenterX();
+    const y = enemy.getCenterY();
+    this.effects.enemyDeath(x, y, direction);
+    this.effects.popup("+100", x, enemy.getTop() - 2, "#ffe066");
+    this.effects.shake(2, 5);
+    this.effects.hitStop(2);
+
+    AudioController.play("hurt");
+  }
+
+  /** The first live enemy in the fireball's path, if it touches one. */
+  fireballTarget(fireball) {
+    const hitbox = fireball.hitbox();
+    let target = null;
+    for (let index = 0; index < this.enemies.items.length; index++) {
+      const enemy = this.enemies.items[index];
+      if (enemy.dying || !this.checkCollision(enemy, hitbox)) continue;
+      // nearest to where the fireball came from wins
+      if (
+        !target ||
+        (fireball.direction < 0 ? enemy.getRight() > target.getRight() : enemy.x < target.x)
+      ) {
+        target = enemy;
+      }
+    }
+    return target;
+  }
+
+  playerJumped() {
+    this.effects.dust(this.player.getCenterX(), this.player.getBottom(), 4);
+  }
+
   checkCollision(object1, object2, offsetX = 0, offsetY = 0) {
     if (
       object1.x < object2.x + object2.width + offsetX &&
@@ -288,12 +358,24 @@ export default class World {
       }
     }
 
+    // hit-stop: freeze the world for a couple of ticks when something is hit
+    if (this.effects.freeze > 0) {
+      this.effects.freeze -= 1;
+      return;
+    }
+
+    this.effects.update();
+
     this.player.update(this.gravity, this.friction);
 
+    const fallSpeed = this.player.velocityY;
     this.collideObject(this.player);
+    if (fallSpeed > 4 && this.player.velocityY === 0 && !this.isPlayerDead) {
+      this.effects.dust(this.player.getCenterX(), this.player.getBottom(), 5);
+    }
 
-    // coins
-    for (let index = 0; index < this.coins.items.length; index++) {
+    // coins (backwards: collecting removes from the list)
+    for (let index = this.coins.items.length - 1; index >= 0; index--) {
       const coin = this.coins.items[index];
 
       coin.update();
@@ -305,31 +387,32 @@ export default class World {
         this.collectedCoins += `${coin.id},`;
 
         AudioController.play("coin");
+        this.effects.coinSparkle(
+          coin.getCenterX() + coin.offsetX,
+          coin.getCenterY() + coin.offsetY,
+        );
         this.totalCoins += 1;
       }
     }
 
-    // fireballs
-    for (let index = 0; index < this.fireballs.items.length; index++) {
+    // fireballs: one fireball, one kill. It burns out on the first enemy or
+    // wall it touches. (Backwards: hits remove from the list.)
+    for (let index = this.fireballs.items.length - 1; index >= 0; index--) {
       const fireball = this.fireballs.items[index];
 
       fireball.update();
-      fireball.updateAnimation(this.player);
+      fireball.updateAnimation();
 
-      for (let j = 0; j < this.enemies.items.length; j++) {
-        const enemy = this.enemies.items[j];
-
-        if (this.checkCollision(enemy, fireball)) {
-          this.enemies.remove(enemy);
-
-          this.killedEnemies += `${enemy.id},`;
-          this.totalEnemies += 1;
-
-          AudioController.play("hurt");
-        }
-      }
-
-      if (fireball.x >= this.width + 50 || fireball.x + fireball.width < -50) {
+      const tip = fireball.tip();
+      const target = this.fireballTarget(fireball);
+      if (target) {
+        this.killEnemy(target, fireball.direction);
+        this.effects.fireImpact(tip.x, tip.y, fireball.direction);
+        this.fireballs.remove(fireball);
+      } else if (this.isWallAt(tip.x, tip.y)) {
+        this.effects.fireImpact(tip.x, tip.y, fireball.direction);
+        this.fireballs.remove(fireball);
+      } else if (fireball.x >= this.width + 50 || fireball.x + fireball.width < -50) {
         this.fireballs.remove(fireball);
       }
     }
@@ -337,26 +420,28 @@ export default class World {
     if (!this.isPlayerDead) {
       for (let index = 0; index < this.deathAreas.length; index++) {
         if (this.checkCollision(this.player, this.deathAreas[index])) {
+          this.effects.shake(2, 8);
           this.onPlayerDead(onGameOver);
           break;
         }
       }
     }
 
-    // enemies
+    // enemies. Dying enemies are harmless. The contact box is a few pixels
+    // inside the sprite so a hit only counts when the sprites really touch.
     if (!this.isPlayerDead) {
       for (let index = 0; index < this.enemies.items.length; index++) {
         const enemy = this.enemies.items[index];
 
-        if (this.checkCollision(this.player, enemy)) {
-          this.onPlayerDead(onGameOver);
+        if (!enemy.dying && this.checkCollision(this.player, enemy, -3, -3)) {
+          this.effects.shake(3, 10);
+          this.onPlayerDead(onGameOver, "fall");
           break;
         }
-
-        enemy.update();
-        enemy.updateAnimation();
       }
     }
+    this.enemies.update();
+    this.enemies.updateAnimation();
 
     if (!this.portal && !this.isPlayerDead) {
       for (let index = 0; index < this.portals.length; index++) {
