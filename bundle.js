@@ -2,11 +2,11 @@
 /******/ 	"use strict";
 /******/ 	var __webpack_modules__ = ({
 
-/***/ "./app/areas/index.js":
+/***/ "./app/areas/index.js"
 /*!****************************!*\
   !*** ./app/areas/index.js ***!
   \****************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -20,6 +20,22 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _area_6_json__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./area-6.json */ "./app/areas/area-6.json");
 /* harmony import */ var _area_7_json__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./area-7.json */ "./app/areas/area-7.json");
 /* harmony import */ var _area_8_json__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ./area-8.json */ "./app/areas/area-8.json");
+/* harmony import */ var _area_9_json__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ./area-9.json */ "./app/areas/area-9.json");
+/* harmony import */ var _area_10_json__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! ./area-10.json */ "./app/areas/area-10.json");
+/* harmony import */ var _area_11_json__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! ./area-11.json */ "./app/areas/area-11.json");
+/* harmony import */ var _area_12_json__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(/*! ./area-12.json */ "./app/areas/area-12.json");
+/* harmony import */ var _area_13_json__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(/*! ./area-13.json */ "./app/areas/area-13.json");
+/* harmony import */ var _area_14_json__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(/*! ./area-14.json */ "./app/areas/area-14.json");
+/* harmony import */ var _area_15_json__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(/*! ./area-15.json */ "./app/areas/area-15.json");
+/* harmony import */ var _area_16_json__WEBPACK_IMPORTED_MODULE_15__ = __webpack_require__(/*! ./area-16.json */ "./app/areas/area-16.json");
+
+
+
+
+
+
+
+
 
 
 
@@ -32,22 +48,29 @@ __webpack_require__.r(__webpack_exports__);
   [_area_1_json__WEBPACK_IMPORTED_MODULE_0__.id]: _area_1_json__WEBPACK_IMPORTED_MODULE_0__,
   [_area_2_json__WEBPACK_IMPORTED_MODULE_1__.id]: _area_2_json__WEBPACK_IMPORTED_MODULE_1__,
   [_area_3_json__WEBPACK_IMPORTED_MODULE_2__.id]: _area_3_json__WEBPACK_IMPORTED_MODULE_2__,
-  [_area_3_json__WEBPACK_IMPORTED_MODULE_2__.id]: _area_3_json__WEBPACK_IMPORTED_MODULE_2__,
   [_area_4_json__WEBPACK_IMPORTED_MODULE_3__.id]: _area_4_json__WEBPACK_IMPORTED_MODULE_3__,
   [_area_5_json__WEBPACK_IMPORTED_MODULE_4__.id]: _area_5_json__WEBPACK_IMPORTED_MODULE_4__,
   [_area_6_json__WEBPACK_IMPORTED_MODULE_5__.id]: _area_6_json__WEBPACK_IMPORTED_MODULE_5__,
   [_area_7_json__WEBPACK_IMPORTED_MODULE_6__.id]: _area_7_json__WEBPACK_IMPORTED_MODULE_6__,
-  [_area_8_json__WEBPACK_IMPORTED_MODULE_7__.id]: _area_8_json__WEBPACK_IMPORTED_MODULE_7__
+  [_area_8_json__WEBPACK_IMPORTED_MODULE_7__.id]: _area_8_json__WEBPACK_IMPORTED_MODULE_7__,
+  [_area_9_json__WEBPACK_IMPORTED_MODULE_8__.id]: _area_9_json__WEBPACK_IMPORTED_MODULE_8__,
+  [_area_10_json__WEBPACK_IMPORTED_MODULE_9__.id]: _area_10_json__WEBPACK_IMPORTED_MODULE_9__,
+  [_area_11_json__WEBPACK_IMPORTED_MODULE_10__.id]: _area_11_json__WEBPACK_IMPORTED_MODULE_10__,
+  [_area_12_json__WEBPACK_IMPORTED_MODULE_11__.id]: _area_12_json__WEBPACK_IMPORTED_MODULE_11__,
+  [_area_13_json__WEBPACK_IMPORTED_MODULE_12__.id]: _area_13_json__WEBPACK_IMPORTED_MODULE_12__,
+  [_area_14_json__WEBPACK_IMPORTED_MODULE_13__.id]: _area_14_json__WEBPACK_IMPORTED_MODULE_13__,
+  [_area_15_json__WEBPACK_IMPORTED_MODULE_14__.id]: _area_15_json__WEBPACK_IMPORTED_MODULE_14__,
+  [_area_16_json__WEBPACK_IMPORTED_MODULE_15__.id]: _area_16_json__WEBPACK_IMPORTED_MODULE_15__
 });
 
 
-/***/ }),
+/***/ },
 
-/***/ "./app/controller/audio.js":
+/***/ "./app/controller/audio.js"
 /*!*********************************!*\
   !*** ./app/controller/audio.js ***!
   \*********************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -61,8 +84,7 @@ class AudioController {
     this.audios = {};
   }
   static play(key, ext = "wav", volume = 0.4) {
-    if ((0,_util___WEBPACK_IMPORTED_MODULE_0__.getData)("mute_sounds"))
-      return;
+    if ((0,_util___WEBPACK_IMPORTED_MODULE_0__.getData)("mute_sounds")) return;
     const audio = new Audio(`./assets/audio/${key}.${ext}`);
     audio.volume = volume;
     audio.play();
@@ -73,8 +95,7 @@ class AudioController {
         this.audios[key] = new Audio(`./assets/audio/${key}.${ext}`);
       }
       this.audios[key].volume = 0.4;
-      if ((0,_util___WEBPACK_IMPORTED_MODULE_0__.getData)("mute_music"))
-        return;
+      if ((0,_util___WEBPACK_IMPORTED_MODULE_0__.getData)("mute_music")) return;
       this.audios[key].play();
     } catch (error) {
     }
@@ -94,9 +115,10 @@ class AudioController {
         loaded(true);
       }
     };
-    audios.forEach(({ file, ext = "mp3" }) => {
+    filteredAudios.forEach(({ file, ext = "mp3" }) => {
       this.audios[file] = new Audio();
-      this.audios[file].addEventListener("canplaythrough", onload, false);
+      this.audios[file].addEventListener("canplaythrough", onload, { once: true });
+      this.audios[file].addEventListener("error", onload, { once: true });
       this.audios[file].src = `./assets/audio/${file}.${ext}`;
       this.audios[file].volume = 0.5;
     });
@@ -136,13 +158,13 @@ class AudioController {
 }
 
 
-/***/ }),
+/***/ },
 
-/***/ "./app/controller/index.js":
+/***/ "./app/controller/index.js"
 /*!*********************************!*\
   !*** ./app/controller/index.js ***!
   \*********************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -156,6 +178,12 @@ class Controller {
     this.left = new _input__WEBPACK_IMPORTED_MODULE_0__["default"]();
     this.right = new _input__WEBPACK_IMPORTED_MODULE_0__["default"]();
     this.fire = new _input__WEBPACK_IMPORTED_MODULE_0__["default"]();
+  }
+  releaseAll() {
+    [this.up, this.left, this.right, this.fire].forEach((input) => {
+      input.down = false;
+      input.active = false;
+    });
   }
   keyDownUp(type, keyCode) {
     let down = type == "keydown" ? true : false;
@@ -180,13 +208,13 @@ class Controller {
 }
 
 
-/***/ }),
+/***/ },
 
-/***/ "./app/controller/input.js":
+/***/ "./app/controller/input.js"
 /*!*********************************!*\
   !*** ./app/controller/input.js ***!
   \*********************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -198,20 +226,19 @@ class Input {
     this.active = false;
   }
   getInput(down) {
-    if (this.down != down)
-      this.active = down;
+    if (this.down != down) this.active = down;
     this.down = down;
   }
 }
 
 
-/***/ }),
+/***/ },
 
-/***/ "./app/controller/mouse-input.js":
+/***/ "./app/controller/mouse-input.js"
 /*!***************************************!*\
   !*** ./app/controller/mouse-input.js ***!
   \***************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -219,48 +246,41 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 class MouseInput {
   constructor(id, action) {
-    this.actions = this.holdit(document.getElementById(id), action, 1e3, 2);
+    this.actions = this.bind(document.getElementById(id), action);
   }
-  holdit(btn, action, start, speedup) {
-    let timeout;
-    const clear = () => {
-      clearTimeout(timeout);
-    };
+  bind(btn, action) {
     const preventDefault = (e) => {
       if (e.preventDefault) {
         e.preventDefault();
       }
     };
-    const repeat = function() {
-      action("keydown");
-      timeout = setTimeout(repeat, start);
-      start = start / speedup;
+    const release = (e) => {
+      preventDefault(e);
+      action("keyup");
     };
     try {
-      btn.ontouchstart = function(e) {
+      btn.ontouchstart = (e) => {
         preventDefault(e);
-        repeat();
+        action("keydown");
       };
-      btn.ontouchend = function(e) {
-        preventDefault(e);
-        action("keyup");
-        clear();
-      };
+      btn.ontouchend = release;
+      btn.ontouchcancel = release;
     } catch (error) {
       console.error("Error in mouse input", error);
     }
-    return { clear };
+    return { clear: () => {
+    } };
   }
 }
 
 
-/***/ }),
+/***/ },
 
-/***/ "./app/engine/index.js":
+/***/ "./app/engine/index.js"
 /*!*****************************!*\
   !*** ./app/engine/index.js ***!
   \*****************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -317,13 +337,13 @@ class GameEngine {
 }
 
 
-/***/ }),
+/***/ },
 
-/***/ "./app/game/animator.js":
+/***/ "./app/game/animator.js"
 /*!******************************!*\
   !*** ./app/game/animator.js ***!
   \******************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -365,13 +385,13 @@ class Animator {
 }
 
 
-/***/ }),
+/***/ },
 
-/***/ "./app/game/coins.js":
+/***/ "./app/game/coins.js"
 /*!***************************!*\
   !*** ./app/game/coins.js ***!
   \***************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -392,7 +412,7 @@ class items {
     keys.forEach(({ count }) => {
       for (let index = 1; index <= count; index++) {
         const image = new Image();
-        image.onload = (e) => {
+        image.onload = image.onerror = () => {
           this.loadCount += 1;
           if (count === this.loadCount) {
             this.loaded = true;
@@ -408,9 +428,10 @@ class items {
         addImage("coin", image);
       }
     });
+    const collected = new Set(collectedCoins.split(","));
     for (let index = 0; index < objects.length; index++) {
       const { id, left, top, offsetX, offsetY } = objects[index];
-      if (!collectedCoins.includes(id)) {
+      if (!collected.has(id)) {
         this.items.push(
           new Coin(id, left * tileSize, top * tileSize, offsetX, offsetY, this.frameSets["coin"])
         );
@@ -455,13 +476,13 @@ class Coin extends _object__WEBPACK_IMPORTED_MODULE_0__["default"] {
 }
 
 
-/***/ }),
+/***/ },
 
-/***/ "./app/game/collider.js":
+/***/ "./app/game/collider.js"
 /*!******************************!*\
   !*** ./app/game/collider.js ***!
   \******************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -531,13 +552,13 @@ class Collider {
 }
 
 
-/***/ }),
+/***/ },
 
-/***/ "./app/game/enemies.js":
+/***/ "./app/game/enemies.js"
 /*!*****************************!*\
   !*** ./app/game/enemies.js ***!
   \*****************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -593,7 +614,9 @@ class Enemies {
         const imageLeft = new Image();
         const imageRight = new Image();
         imageLeft.onload = onImgLoad;
+        imageLeft.onerror = onImgLoad;
         imageRight.onload = onImgLoad;
+        imageRight.onerror = onImgLoad;
         imageLeft.src = `./assets/sprites/enemies/${id}/left/image_part_0${index}.png`;
         imageRight.src = `./assets/sprites/enemies/${id}/right/image_part_0${index}.png`;
         const addImage = (k, image) => {
@@ -606,9 +629,10 @@ class Enemies {
         addImage(`${id}Right`, imageRight);
       }
     });
+    const killed = new Set(killedEnemies.split(","));
     for (let index = 0; index < enemies.length; index++) {
       const { id, type, left, top, sway, dir } = enemies[index];
-      if (!killedEnemies.includes(id)) {
+      if (!killed.has(id)) {
         this.items.push(
           new Enemy(
             id,
@@ -667,13 +691,13 @@ class Enemy extends _object__WEBPACK_IMPORTED_MODULE_0__["default"] {
 }
 
 
-/***/ }),
+/***/ },
 
-/***/ "./app/game/fireballs.js":
+/***/ "./app/game/fireballs.js"
 /*!*******************************!*\
   !*** ./app/game/fireballs.js ***!
   \*******************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -701,9 +725,11 @@ class Fireballs {
         };
         const imageLeft = new Image();
         imageLeft.onload = onImgLoad;
+        imageLeft.onerror = onImgLoad;
         imageLeft.src = `./assets/sprites/fireball/left/image ${index}.webp`;
         const imageRight = new Image();
         imageRight.onload = onImgLoad;
+        imageRight.onerror = onImgLoad;
         imageRight.src = `./assets/sprites/fireball/right/image ${index}.webp`;
         const addImage = (k, image) => {
           if (!this.frameSets[k]) {
@@ -765,13 +791,13 @@ class Fireball extends _object__WEBPACK_IMPORTED_MODULE_0__["default"] {
 }
 
 
-/***/ }),
+/***/ },
 
-/***/ "./app/game/index.js":
+/***/ "./app/game/index.js"
 /*!***************************!*\
   !*** ./app/game/index.js ***!
   \***************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -800,13 +826,13 @@ class Game {
 }
 
 
-/***/ }),
+/***/ },
 
-/***/ "./app/game/object.js":
+/***/ "./app/game/object.js"
 /*!****************************!*\
   !*** ./app/game/object.js ***!
   \****************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -884,13 +910,13 @@ class Object {
 }
 
 
-/***/ }),
+/***/ },
 
-/***/ "./app/game/player.js":
+/***/ "./app/game/player.js"
 /*!****************************!*\
   !*** ./app/game/player.js ***!
   \****************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -931,8 +957,10 @@ class Player extends _object__WEBPACK_IMPORTED_MODULE_0__["default"] {
         };
         const imageLeft = new Image();
         imageLeft.onload = onImgLoad;
+        imageLeft.onerror = onImgLoad;
         const imageRight = new Image();
         imageRight.onload = onImgLoad;
+        imageRight.onerror = onImgLoad;
         imageLeft.src = `./assets/sprites/player/left/${id} (${index}).webp`;
         imageRight.src = `./assets/sprites/player/right/${id} (${index}).webp`;
         const keyLeft = `${id.toLowerCase()}Left`;
@@ -985,10 +1013,8 @@ class Player extends _object__WEBPACK_IMPORTED_MODULE_0__["default"] {
   }
   updateAnimation({ dead = false }) {
     if (dead) {
-      if (this.direction < 0)
-        this.animator.changeFrameSet(this.frameSets["deadLeft"], 2);
-      else
-        this.animator.changeFrameSet(this.frameSets["deadRight"], 2);
+      if (this.direction < 0) this.animator.changeFrameSet(this.frameSets["deadLeft"], 2);
+      else this.animator.changeFrameSet(this.frameSets["deadRight"], 2);
       this.animator.animate(dead);
       return;
     }
@@ -1035,13 +1061,13 @@ class Player extends _object__WEBPACK_IMPORTED_MODULE_0__["default"] {
 }
 
 
-/***/ }),
+/***/ },
 
-/***/ "./app/game/portal.js":
+/***/ "./app/game/portal.js"
 /*!****************************!*\
   !*** ./app/game/portal.js ***!
   \****************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -1060,13 +1086,13 @@ class Portal extends _object__WEBPACK_IMPORTED_MODULE_0__["default"] {
 }
 
 
-/***/ }),
+/***/ },
 
-/***/ "./app/game/water.js":
+/***/ "./app/game/water.js"
 /*!***************************!*\
   !*** ./app/game/water.js ***!
   \***************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -1087,7 +1113,7 @@ class Water {
     keys.forEach(({ count }) => {
       for (let index = 1; index <= count; index++) {
         const image = new Image();
-        image.onload = () => {
+        image.onload = image.onerror = () => {
           this.loadCount += 1;
           if (count === this.loadCount) {
             this.loaded = true;
@@ -1127,13 +1153,13 @@ class WaterObject extends _object__WEBPACK_IMPORTED_MODULE_0__["default"] {
 }
 
 
-/***/ }),
+/***/ },
 
-/***/ "./app/game/world.js":
+/***/ "./app/game/world.js"
 /*!***************************!*\
   !*** ./app/game/world.js ***!
   \***************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -1238,20 +1264,17 @@ class World {
     _controller_audio__WEBPACK_IMPORTED_MODULE_8__["default"].play("fire", "wav");
   }
   playThemeMusic() {
-    if (!this.theme)
-      return;
+    if (!this.theme) return;
     this.audioController.play(this.theme, "mp3");
     this.audioController.volume(this.theme, 8);
     this.audioController.loop(this.theme);
   }
   stopThemeMusic() {
-    if (!this.theme)
-      return;
+    if (!this.theme) return;
     this.audioController.stop(this.theme);
   }
   pauseThemeMusic() {
-    if (!this.theme)
-      return;
+    if (!this.theme) return;
     this.audioController.pause(this.theme);
   }
   collideObject(object) {
@@ -1394,7 +1417,7 @@ class World {
           _controller_audio__WEBPACK_IMPORTED_MODULE_8__["default"].play("hurt");
         }
       }
-      if (fireball.x >= this.width + 50) {
+      if (fireball.x >= this.width + 50 || fireball.x + fireball.width < -50) {
         this.fireballs.remove(fireball);
       }
     }
@@ -1417,7 +1440,7 @@ class World {
         enemy.updateAnimation();
       }
     }
-    if (!this.portal) {
+    if (!this.portal && !this.isPlayerDead) {
       for (let index = 0; index < this.portals.length; index++) {
         if (this.checkCollision(this.player, this.portals[index])) {
           this.portal = this.portals[index];
@@ -1431,13 +1454,13 @@ class World {
 }
 
 
-/***/ }),
+/***/ },
 
-/***/ "./app/screen/index.js":
+/***/ "./app/screen/index.js"
 /*!*****************************!*\
   !*** ./app/screen/index.js ***!
   \*****************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -1586,13 +1609,13 @@ class Screen {
 }
 
 
-/***/ }),
+/***/ },
 
-/***/ "./app/screen/tileset.js":
+/***/ "./app/screen/tileset.js"
 /*!*******************************!*\
   !*** ./app/screen/tileset.js ***!
   \*******************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
@@ -1627,31 +1650,36 @@ class TileSet {
     for (let index = 1; index <= meta[world].objectLen; index++) {
       const image = new Image();
       image.onload = onImgLoad;
+      image.onerror = onImgLoad;
       image.src = `./assets/sprites/${worldKey}/objects/${index}.png`;
       this.objectImages.push(image);
     }
     for (let index = 1; index <= meta[world].tileLen; index++) {
       const image = new Image();
       image.onload = onImgLoad;
+      image.onerror = onImgLoad;
       image.src = `./assets/sprites/${worldKey}/tiles/${index}.png`;
       this.images.push(image);
     }
     this.tileBackground.src = `./assets/sprites/${worldKey}/bg.png`;
     this.tileBackground.onload = onImgLoad;
+    this.tileBackground.onerror = onImgLoad;
   }
 }
 
 
-/***/ }),
+/***/ },
 
-/***/ "./app/util/index.js":
+/***/ "./app/util/index.js"
 /*!***************************!*\
   !*** ./app/util/index.js ***!
   \***************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   LEVELS: () => (/* binding */ LEVELS),
+/* harmony export */   getAreaNumber: () => (/* binding */ getAreaNumber),
 /* harmony export */   getData: () => (/* binding */ getData),
 /* harmony export */   populateHelp: () => (/* binding */ populateHelp),
 /* harmony export */   populateLinks: () => (/* binding */ populateLinks),
@@ -1660,6 +1688,25 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   setData: () => (/* binding */ setData),
 /* harmony export */   uid: () => (/* binding */ uid)
 /* harmony export */ });
+var __defProp = Object.defineProperty;
+var __defProps = Object.defineProperties;
+var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
+var __getOwnPropSymbols = Object.getOwnPropertySymbols;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __propIsEnum = Object.prototype.propertyIsEnumerable;
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __spreadValues = (a, b) => {
+  for (var prop in b || (b = {}))
+    if (__hasOwnProp.call(b, prop))
+      __defNormalProp(a, prop, b[prop]);
+  if (__getOwnPropSymbols)
+    for (var prop of __getOwnPropSymbols(b)) {
+      if (__propIsEnum.call(b, prop))
+        __defNormalProp(a, prop, b[prop]);
+    }
+  return a;
+};
+var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 const uid = () => {
   return Date.now().toString(36) + Math.random().toString(36).substring(2);
 };
@@ -1738,14 +1785,27 @@ const preLoadAndFetch = () => {
     }
   });
 };
+const LEVELS = [
+  { name: "Grassland 1", id: 1, left: 40, top: 100, ss: "images/area_1.png" },
+  { name: "Grassland 2", id: 2, left: 40, top: 100, ss: "images/area_2.png" },
+  { name: "Grassland 3", id: 7, left: 40, top: 120, ss: "images/area_3.png" },
+  { name: "Grassland 4", id: 9, left: 40, top: 80, ss: "images/area_6.png" },
+  { name: "Grassland 5", id: 10, left: 40, top: 64, ss: "images/area_7.png" },
+  { name: "Iceland 1", id: 3, left: 48, top: 100, ss: "images/area_4.png" },
+  { name: "Iceland 2", id: 8, left: 32, top: 20, ss: "images/area_5.png" },
+  { name: "Iceland 3", id: 11, left: 40, top: 30, ss: "images/area_8.png" },
+  { name: "Iceland 4", id: 12, left: 40, top: 64, ss: "images/area_9.png" },
+  { name: "Desert 1", id: 13, left: 40, top: 30, ss: "images/area_10.png" },
+  { name: "Desert 2", id: 14, left: 40, top: 64, ss: "images/area_11.png" },
+  { name: "Desert 3", id: 15, left: 40, top: 48, ss: "images/area_12.png" },
+  { name: "Desert 4", id: 16, left: 40, top: 80, ss: "images/area_13.png" }
+].map((level, index) => __spreadProps(__spreadValues({}, level), { areaNum: index + 1 }));
+const getAreaNumber = (areaId) => {
+  const level = LEVELS.find(({ id }) => id === areaId);
+  return level ? level.areaNum : 1;
+};
 const populatePortals = (onPortalClick) => {
-  const data = [
-    { name: "Grassland 1", id: 1, areaNum: 1, left: 40, top: 100, ss: "images/area_1.png" },
-    { name: "Grassland 2", id: 2, areaNum: 2, left: 40, top: 100, ss: "images/area_2.png" },
-    { name: "Grassland 3", id: 7, areaNum: 3, left: 40, top: 120, ss: "images/area_3.png" },
-    { name: "Iceland 1", id: 3, areaNum: 4, left: 48, top: 100, ss: "images/area_4.png" },
-    { name: "Iceland 2", id: 8, areaNum: 5, left: 32, top: 20, ss: "images/area_5.png" }
-  ];
+  const data = LEVELS;
   const portalsWrapper = document.getElementById("portalsWrapper");
   portalsWrapper.className += "modal-content-wrapper";
   const itemWrapper = document.createElement("div");
@@ -1879,108 +1939,194 @@ const populateHelp = () => {
 };
 
 
-/***/ }),
+/***/ },
 
-/***/ "./app/areas/area-1.json":
+/***/ "./app/areas/area-1.json"
 /*!*******************************!*\
   !*** ./app/areas/area-1.json ***!
   \*******************************/
-/***/ ((module) => {
+(module) {
 
-module.exports = /*#__PURE__*/JSON.parse('{"id":1,"world":1,"rows":12,"columns":21,"theme":"grasslands","water":[{"left":6,"top":10},{"left":6,"top":10.5},{"left":6,"top":11},{"left":7,"top":10},{"left":7,"top":10.5},{"left":7,"top":11},{"left":8,"top":10},{"left":8,"top":10.5},{"left":8,"top":11},{"left":9,"top":10},{"left":9,"top":10.5},{"left":9,"top":11},{"left":10,"top":10},{"left":10,"top":10.5},{"left":10,"top":11},{"left":16,"top":10},{"left":16,"top":10.5},{"left":16,"top":11},{"left":17,"top":10},{"left":17,"top":10.5},{"left":17,"top":11},{"left":18,"top":10},{"left":18,"top":10.5},{"left":18,"top":11},{"left":19,"top":10},{"left":19,"top":10.5},{"left":19,"top":11},{"left":20,"top":10},{"left":20,"top":10.5},{"left":20,"top":11}],"coins":[{"id":"2c01","left":3.5,"top":3.9},{"id":"2c02","left":2.2,"top":4.7},{"id":"2c03","left":1.5,"top":6.1},{"id":"2c04","left":1.2,"top":7.5},{"id":"2c05","left":6.2,"top":8.8},{"id":"2c06","left":7.3,"top":7.8},{"id":"2c07","left":8.7,"top":7.8},{"id":"2c08","left":9.8,"top":8.8},{"id":"2c09","left":5.7,"top":3.9},{"id":"2c10","left":7.1,"top":4.3},{"id":"2c11","left":8,"top":5.5},{"id":"2c12","left":7.7,"top":1.7},{"id":"2c13","left":9.55,"top":1.5},{"id":"2c14","left":11.4,"top":1.7},{"id":"2c15","left":16.3,"top":8.7},{"id":"2c16","left":17.2,"top":7.1},{"id":"2c17","left":19,"top":6.7},{"id":"2c18","left":20,"top":4.7},{"id":"2c19","left":18.9,"top":3.1},{"id":"2c20","left":17.3,"top":2.7},{"id":"2c21","left":14.8,"top":2.7},{"id":"2c22","left":13.2,"top":3.4},{"id":"2c23","left":12.5,"top":4.8},{"id":"2c24","left":5.5,"top":0},{"id":"2c25","left":3.7,"top":0.15},{"id":"2c26","left":2.5,"top":1}],"death":[{"x":112,"y":170,"height":32,"width":48},{"x":272,"y":170,"height":32,"width":64}],"portals":[{"x":-8,"y":0,"height":32,"width":8,"direction":-1,"destinationArea":8,"destinationX":330,"destinationY":56},{"x":336,"y":0,"height":48,"width":8,"direction":1,"destinationArea":2,"destinationX":16,"destinationY":24}],"enemies":[{"id":"a01e01","type":"pig","left":13,"top":9,"sway":40,"dir":-1},{"id":"a01e02","type":"pig","left":9.25,"top":2,"sway":24,"dir":1},{"id":"a01e03","type":"chameleon","left":4.25,"top":4,"sway":12,"dir":1},{"id":"a01e04","type":"chameleon","left":15.75,"top":3,"sway":18,"dir":1}],"areaMap":[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,13,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[2,3,0,0,0,0,0,0,0,0,0,0,0,0,1,2,3,0,0,0,0],[9,16,0,0,0,0,0,0,13,14,14,15,0,0,4,5,6,0,0,1,2],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,[5,13],[5,14],15,0,12,9],[0,0,0,0,13,15,0,0,0,0,0,0,0,0,12,9,16,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],[0,0,0,0,0,0,0,13,14,15,0,0,0,0,0,0,0,0,0,0,4],[0,0,0,0,0,0,0,0,0,0,0,0,1,2,3,0,0,0,0,13,14],[2,2,2,2,3,0,0,0,0,0,0,0,4,5,6,0,0,0,0,0,0],[5,5,5,5,10,2,3,0,0,0,1,2,2,2,2,2,3,0,0,0,0],[5,5,5,5,5,5,6,0,0,0,4,5,5,5,5,5,6,0,0,0,0]],"collisonMap":[["","","","","","","","","","","","","","","","","","","","",""],["","","","","","t","t","","","","","","","","","","","","","",""],["t","tr","","","","","","","","","","","","","tl","t","t","","","",""],["","r","","","","","","","t","t","t","t","","","","","","","","t","t"],["","r","","","","","","","","","","","","","","t","t","t","","",""],["","","","","t","t","","","","","","","","","","","","","","",""],["","","","","","","","","","","","","","","","","","","","","t"],["","","","","","","","t","t","t","","","","","","","","","","",""],["","","","","","","","","","","","","tl","t","tr","","","","","t","t"],["t","t","t","t","tr","","","","","","","","","","","","","","","",""],["","","","","","lt","tr","","","","tl","t","t","t","t","t","t","","","",""],["","","","","","","r","lb","b","b","lb","","","","","","","","","",""]],"objectsMap":[[0,0,0,0,0,0,[{"id":9,"xOffset":0,"yOffset":10,"width":9,"height":6},{"id":8,"xOffset":-10,"yOffset":8,"width":11,"height":8}],0,0,0,0,0,0,0,0,0],[0,[{"id":6,"xOffset":-6,"yOffset":2,"width":14,"height":14}],0,0,0,0,0,0,0,0,0,0,0,0,0,[{"id":4,"xOffset":-8,"yOffset":7,"width":20,"height":10}],[{"id":11,"xOffset":-6,"yOffset":6,"width":12,"height":10}],0],[0,0,0,0,0,0,0,0,0,[{"id":1,"xOffset":-12,"yOffset":-16,"width":32,"height":32}],[{"id":1,"xOffset":-2,"yOffset":-8,"width":24,"height":24}],[{"id":2,"xOffset":-36,"yOffset":-24,"width":40,"height":40}],0,0,0,0,0,0,0,[{"id":5,"xOffset":6,"yOffset":2,"width":14,"height":14}],0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,[{"id":1,"xOffset":10,"yOffset":-10,"width":26,"height":26}],[{"id":8,"xOffset":-4,"yOffset":10,"width":12,"height":6}],0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,[{"id":2,"xOffset":-8,"yOffset":-16,"width":32,"height":32},{"id":11,"xOffset":-8,"yOffset":8,"width":12,"height":8}],[{"id":7,"xOffset":-2,"yOffset":4,"width":12,"height":12}],0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,[{"id":3,"xOffset":-4,"yOffset":6,"width":24,"height":10}],0,0,0,0,0,[{"id":7,"xOffset":4,"yOffset":4,"width":12,"height":12}],[{"id":10,"xOffset":4,"yOffset":7,"width":12,"height":10}]],[[{"id":1,"xOffset":-6,"yOffset":-16,"width":32,"height":32},{"id":2,"xOffset":0,"yOffset":-40,"width":56,"height":56}],0,[{"id":4,"xOffset":0,"yOffset":8,"width":16,"height":8}],[{"id":7,"xOffset":4,"yOffset":4,"width":12,"height":12}],[{"id":7,"xOffset":0,"yOffset":4,"width":12,"height":12},{"id":7,"xOffset":-6,"yOffset":-8,"width":12,"height":12}],0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,[{"id":11,"xOffset":0,"yOffset":4,"width":14,"height":12},{"id":10,"xOffset":10,"yOffset":8,"width":11,"height":8}],0,0,0,0,0,[{"id":7,"xOffset":5,"yOffset":4,"width":12,"height":12}],[{"id":4,"xOffset":11,"yOffset":10,"width":11,"height":6}],[{"id":2,"xOffset":8,"yOffset":-4,"width":20,"height":20}],[{"id":1,"xOffset":0,"yOffset":-16,"width":32,"height":32}],[{"id":8,"xOffset":0,"yOffset":8,"width":14,"height":8},{"id":9,"xOffset":-7,"yOffset":10,"width":11,"height":6}]],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]]}');
+module.exports = /*#__PURE__*/JSON.parse('{"id":1,"world":1,"rows":12,"columns":21,"theme":"grasslands","water":[{"left":6,"top":10},{"left":6,"top":10.5},{"left":6,"top":11},{"left":7,"top":10},{"left":7,"top":10.5},{"left":7,"top":11},{"left":8,"top":10},{"left":8,"top":10.5},{"left":8,"top":11},{"left":9,"top":10},{"left":9,"top":10.5},{"left":9,"top":11},{"left":10,"top":10},{"left":10,"top":10.5},{"left":10,"top":11},{"left":16,"top":10},{"left":16,"top":10.5},{"left":16,"top":11},{"left":17,"top":10},{"left":17,"top":10.5},{"left":17,"top":11},{"left":18,"top":10},{"left":18,"top":10.5},{"left":18,"top":11},{"left":19,"top":10},{"left":19,"top":10.5},{"left":19,"top":11},{"left":20,"top":10},{"left":20,"top":10.5},{"left":20,"top":11}],"coins":[{"id":"2c01","left":3.5,"top":3.9},{"id":"2c02","left":2.2,"top":4.7},{"id":"2c03","left":1.5,"top":6.1},{"id":"2c04","left":1.2,"top":7.5},{"id":"2c05","left":6.2,"top":8.8},{"id":"2c06","left":7.3,"top":7.8},{"id":"2c07","left":8.7,"top":7.8},{"id":"2c08","left":9.8,"top":8.8},{"id":"2c09","left":5.7,"top":3.9},{"id":"2c10","left":7.1,"top":4.3},{"id":"2c11","left":8,"top":5.5},{"id":"2c12","left":7.7,"top":1.7},{"id":"2c13","left":9.55,"top":1.5},{"id":"2c14","left":11.4,"top":1.7},{"id":"2c15","left":16.3,"top":8.7},{"id":"2c16","left":17.2,"top":7.1},{"id":"2c17","left":19,"top":6.7},{"id":"2c18","left":20,"top":4.7},{"id":"2c19","left":18.9,"top":3.1},{"id":"2c20","left":17.3,"top":2.7},{"id":"2c21","left":14.8,"top":2.7},{"id":"2c22","left":13.2,"top":3.4},{"id":"2c23","left":12.5,"top":4.8},{"id":"2c24","left":5.5,"top":0},{"id":"2c25","left":3.7,"top":0.15},{"id":"2c26","left":2.5,"top":1}],"death":[{"x":112,"y":170,"height":32,"width":48},{"x":272,"y":170,"height":32,"width":64}],"portals":[{"x":-8,"y":0,"height":32,"width":8,"direction":-1,"destinationArea":16,"destinationX":330,"destinationY":104},{"x":336,"y":0,"height":48,"width":8,"direction":1,"destinationArea":2,"destinationX":16,"destinationY":24}],"enemies":[{"id":"a01e01","type":"pig","left":13,"top":9,"sway":40,"dir":-1},{"id":"a01e02","type":"pig","left":9.25,"top":2,"sway":24,"dir":1},{"id":"a01e03","type":"chameleon","left":4.25,"top":4,"sway":12,"dir":1},{"id":"a01e04","type":"chameleon","left":15.75,"top":3,"sway":18,"dir":1}],"areaMap":[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,13,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[2,3,0,0,0,0,0,0,0,0,0,0,0,0,1,2,3,0,0,0,0],[9,16,0,0,0,0,0,0,13,14,14,15,0,0,4,5,6,0,0,1,2],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,[5,13],[5,14],15,0,12,9],[0,0,0,0,13,15,0,0,0,0,0,0,0,0,12,9,16,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],[0,0,0,0,0,0,0,13,14,15,0,0,0,0,0,0,0,0,0,0,4],[0,0,0,0,0,0,0,0,0,0,0,0,1,2,3,0,0,0,0,13,14],[2,2,2,2,3,0,0,0,0,0,0,0,4,5,6,0,0,0,0,0,0],[5,5,5,5,10,2,3,0,0,0,1,2,2,2,2,2,3,0,0,0,0],[5,5,5,5,5,5,6,0,0,0,4,5,5,5,5,5,6,0,0,0,0]],"collisonMap":[["","","","","","","","","","","","","","","","","","","","",""],["","","","","","t","t","","","","","","","","","","","","","",""],["t","tr","","","","","","","","","","","","","tl","t","t","","","",""],["","r","","","","","","","t","t","t","t","","","","","","","","t","t"],["","r","","","","","","","","","","","","","","t","t","t","","",""],["","","","","t","t","","","","","","","","","","","","","","",""],["","","","","","","","","","","","","","","","","","","","","t"],["","","","","","","","t","t","t","","","","","","","","","","",""],["","","","","","","","","","","","","tl","t","tr","","","","","t","t"],["t","t","t","t","tr","","","","","","","","","","","","","","","",""],["","","","","","lt","tr","","","","tl","t","t","t","t","t","t","","","",""],["","","","","","","r","lb","b","b","lb","","","","","","","","","",""]],"objectsMap":[[0,0,0,0,0,0,[{"id":9,"xOffset":0,"yOffset":10,"width":9,"height":6},{"id":8,"xOffset":-10,"yOffset":8,"width":11,"height":8}],0,0,0,0,0,0,0,0,0],[0,[{"id":6,"xOffset":-6,"yOffset":2,"width":14,"height":14}],0,0,0,0,0,0,0,0,0,0,0,0,0,[{"id":4,"xOffset":-8,"yOffset":7,"width":20,"height":10}],[{"id":11,"xOffset":-6,"yOffset":6,"width":12,"height":10}],0],[0,0,0,0,0,0,0,0,0,[{"id":1,"xOffset":-12,"yOffset":-16,"width":32,"height":32}],[{"id":1,"xOffset":-2,"yOffset":-8,"width":24,"height":24}],[{"id":2,"xOffset":-36,"yOffset":-24,"width":40,"height":40}],0,0,0,0,0,0,0,[{"id":5,"xOffset":6,"yOffset":2,"width":14,"height":14}],0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,[{"id":1,"xOffset":10,"yOffset":-10,"width":26,"height":26}],[{"id":8,"xOffset":-4,"yOffset":10,"width":12,"height":6}],0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,[{"id":2,"xOffset":-8,"yOffset":-16,"width":32,"height":32},{"id":11,"xOffset":-8,"yOffset":8,"width":12,"height":8}],[{"id":7,"xOffset":-2,"yOffset":4,"width":12,"height":12}],0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,[{"id":3,"xOffset":-4,"yOffset":6,"width":24,"height":10}],0,0,0,0,0,[{"id":7,"xOffset":4,"yOffset":4,"width":12,"height":12}],[{"id":10,"xOffset":4,"yOffset":7,"width":12,"height":10}]],[[{"id":1,"xOffset":-6,"yOffset":-16,"width":32,"height":32},{"id":2,"xOffset":0,"yOffset":-40,"width":56,"height":56}],0,[{"id":4,"xOffset":0,"yOffset":8,"width":16,"height":8}],[{"id":7,"xOffset":4,"yOffset":4,"width":12,"height":12}],[{"id":7,"xOffset":0,"yOffset":4,"width":12,"height":12},{"id":7,"xOffset":-6,"yOffset":-8,"width":12,"height":12}],0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,[{"id":11,"xOffset":0,"yOffset":4,"width":14,"height":12},{"id":10,"xOffset":10,"yOffset":8,"width":11,"height":8}],0,0,0,0,0,[{"id":7,"xOffset":5,"yOffset":4,"width":12,"height":12}],[{"id":4,"xOffset":11,"yOffset":10,"width":11,"height":6}],[{"id":2,"xOffset":8,"yOffset":-4,"width":20,"height":20}],[{"id":1,"xOffset":0,"yOffset":-16,"width":32,"height":32}],[{"id":8,"xOffset":0,"yOffset":8,"width":14,"height":8},{"id":9,"xOffset":-7,"yOffset":10,"width":11,"height":6}]],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]]}');
 
-/***/ }),
+/***/ },
 
-/***/ "./app/areas/area-2.json":
+/***/ "./app/areas/area-10.json"
+/*!********************************!*\
+  !*** ./app/areas/area-10.json ***!
+  \********************************/
+(module) {
+
+module.exports = /*#__PURE__*/JSON.parse('{"id":10,"world":1,"rows":12,"columns":21,"theme":"grasslands","water":[],"coins":[{"id":"A10C01","left":5.25,"top":3.1},{"id":"A10C02","left":6.25,"top":3.1},{"id":"A10C03","left":7.25,"top":3.1},{"id":"A10C04","left":11.25,"top":2.1},{"id":"A10C05","left":12.25,"top":2.1},{"id":"A10C06","left":8,"top":4.1},{"id":"A10C07","left":8.25,"top":6.05},{"id":"A10C08","left":9.25,"top":6.05},{"id":"A10C09","left":10.25,"top":6.05},{"id":"A10C10","left":15.25,"top":6.05},{"id":"A10C11","left":16.25,"top":6.05},{"id":"A10C12","left":17.25,"top":6.05}],"death":[{"x":80,"y":170,"height":32,"width":48}],"portals":[{"x":-8,"y":-40,"height":136,"width":8,"direction":-1,"destinationArea":9,"destinationX":330,"destinationY":104},{"x":336,"y":-40,"height":152,"width":8,"direction":1,"destinationArea":3,"destinationX":6,"destinationY":24}],"enemies":[{"id":"A10E01","type":"pig","left":11.35,"top":4,"sway":4,"dir":-1},{"id":"A10E02","type":"pig","left":5.85,"top":3,"sway":12,"dir":1}],"areaMap":[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,13,15,0,0,0,0,0,0,0,0],[0,0,0,0,0,13,14,15,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,1,2,2,3,0,0,0,0,0,0],[2,2,2,2,3,0,0,0,0,0,0,4,5,5,6,0,0,0,0,0,0],[5,5,5,5,6,0,0,0,1,2,2,8,5,5,10,2,2,2,2,2,2],[5,5,5,5,6,0,0,0,4,5,5,5,5,5,5,5,5,5,5,5,5],[5,5,5,5,6,0,0,0,4,5,5,5,5,5,5,5,5,5,5,5,5],[5,5,5,5,6,0,0,0,4,5,5,5,5,5,5,5,5,5,5,5,5],[5,5,5,5,6,0,0,0,4,5,5,5,5,5,5,5,5,5,5,5,5]],"collisonMap":[["","","","","","","","","","","","","","","","","","","","",""],["","","","","","","","","","","","","","","","","","","","",""],["","","","","","","","","","","","","","","","","","","","",""],["","","","","","","","","","","","t","t","","","","","","","",""],["","","","","","t","t","t","","","","","","","","","","","","",""],["","","","","","","","","","","","tl","t","t","tr","","","","","",""],["t","t","t","t","tr","","","","","","","l","","","r","","","","","",""],["","","","","r","","","","tl","t","t","","","","","t","t","t","t","t","t"],["","","","","r","","","","l","","","","","","","","","","","",""],["","","","","r","","","","l","","","","","","","","","","","",""],["","","","","r","","","","l","","","","","","","","","","","",""],["","","","","r","","","","l","","","","","","","","","","","",""]],"objectsMap":[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,[{"id":7,"xOffset":2,"yOffset":4,"width":12,"height":12}],0,0,0,0,0,0,0],[0,[{"id":5,"xOffset":2,"yOffset":2,"width":14,"height":14}],[{"id":2,"xOffset":-12,"yOffset":-24,"width":40,"height":40}],[{"id":7,"xOffset":2,"yOffset":4,"width":12,"height":12}],[{"id":11,"xOffset":2,"yOffset":6,"width":12,"height":10}],0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,[{"id":2,"xOffset":-12,"yOffset":-24,"width":40,"height":40}],[{"id":8,"xOffset":1,"yOffset":8,"width":14,"height":8}],[{"id":6,"xOffset":0,"yOffset":2,"width":14,"height":14}],0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]]}');
+
+/***/ },
+
+/***/ "./app/areas/area-11.json"
+/*!********************************!*\
+  !*** ./app/areas/area-11.json ***!
+  \********************************/
+(module) {
+
+module.exports = /*#__PURE__*/JSON.parse('{"id":11,"world":2,"rows":12,"columns":21,"theme":"iceland","water":[],"coins":[{"id":"A11C01","left":6.25,"top":3.1},{"id":"A11C02","left":7.25,"top":3.1},{"id":"A11C03","left":8.25,"top":3.1},{"id":"A11C04","left":9.25,"top":3.1},{"id":"A11C05","left":11.25,"top":1.1},{"id":"A11C06","left":12.25,"top":1.1},{"id":"A11C07","left":9.25,"top":5.1},{"id":"A11C08","left":10.25,"top":5.1},{"id":"A11C09","left":11.25,"top":5.1},{"id":"A11C10","left":12.25,"top":5.1},{"id":"A11C11","left":13.25,"top":3.1},{"id":"A11C12","left":14.25,"top":3.1},{"id":"A11C13","left":8,"top":4.95},{"id":"A11C14","left":5.25,"top":6.05},{"id":"A11C15","left":6.25,"top":6.05},{"id":"A11C16","left":7.25,"top":6.05},{"id":"A11C17","left":13.25,"top":9.05},{"id":"A11C18","left":14.25,"top":9.05},{"id":"A11C19","left":15.25,"top":7.05},{"id":"A11C20","left":16.25,"top":7.05},{"id":"A11C21","left":17.25,"top":7.05}],"death":[{"x":128,"y":170,"height":32,"width":32}],"portals":[{"x":-8,"y":-40,"height":104,"width":8,"direction":-1,"destinationArea":8,"destinationX":330,"destinationY":42},{"x":336,"y":-40,"height":168,"width":8,"direction":1,"destinationArea":12,"destinationX":16,"destinationY":88}],"enemies":[{"id":"A11E01","type":"chameleon","left":10.85,"top":7,"sway":12,"dir":-1},{"id":"A11E02","type":"pig","left":7.35,"top":3,"sway":20,"dir":1},{"id":"A11E03","type":"pig","left":10.35,"top":5,"sway":20,"dir":1}],"areaMap":[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,13,15,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[2,2,2,2,3,0,13,14,14,15,0,0,0,13,15,0,0,0,0,0,0],[5,5,5,5,6,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[5,5,5,5,6,0,0,0,0,13,14,14,15,0,0,0,0,0,0,0,0],[5,5,5,5,10,2,2,3,0,0,0,0,0,0,0,0,0,0,0,0,0],[5,5,5,5,5,5,5,6,0,0,1,2,3,0,0,1,2,2,2,2,2],[5,5,5,5,5,5,5,6,0,0,4,5,6,0,0,4,5,5,5,5,5],[5,5,5,5,5,5,5,6,0,0,4,5,10,2,2,8,5,5,5,5,5],[5,5,5,5,5,5,5,6,0,0,4,5,5,5,5,5,5,5,5,5,5]],"collisonMap":[["","","","","","","","","","","","","","","","","","","","",""],["","","","","","","","","","","","","","","","","","","","",""],["","","","","","","","","","","","t","t","","","","","","","",""],["","","","","","","","","","","","","","","","","","","","",""],["t","t","t","t","tr","","t","t","t","t","","","","t","t","","","","","",""],["","","","","r","","","","","","","","","","","","","","","",""],["","","","","r","","","","","t","t","t","t","","","","","","","",""],["","","","","","t","t","tr","","","","","","","","","","","","",""],["","","","","","","","r","","","tl","t","tr","","","tl","t","t","t","t","t"],["","","","","","","","r","","","l","","r","","","l","","","","",""],["","","","","","","","r","","","l","","","t","t","","","","","",""],["","","","","","","","r","","","l","","","","","","","","","",""]],"objectsMap":[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[[{"id":1,"xOffset":-8,"yOffset":-32,"width":32,"height":48}],[{"id":5,"xOffset":0,"yOffset":0,"width":16,"height":16}],[{"id":1,"xOffset":-8,"yOffset":-32,"width":32,"height":48}],[{"id":1,"xOffset":-8,"yOffset":-32,"width":32,"height":48}],0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,[{"id":9,"xOffset":2,"yOffset":4,"width":12,"height":12}],0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,[{"id":2,"xOffset":-16,"yOffset":-32,"width":48,"height":48}],[{"id":6,"xOffset":0,"yOffset":0,"width":16,"height":16}],0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,[{"id":4,"xOffset":-2,"yOffset":4,"width":21,"height":12}],[{"id":9,"xOffset":2,"yOffset":4,"width":12,"height":12}],0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]]}');
+
+/***/ },
+
+/***/ "./app/areas/area-12.json"
+/*!********************************!*\
+  !*** ./app/areas/area-12.json ***!
+  \********************************/
+(module) {
+
+module.exports = /*#__PURE__*/JSON.parse('{"id":12,"world":2,"rows":12,"columns":21,"theme":"iceland","water":[{"left":9,"top":9},{"left":9,"top":9.5},{"left":9,"top":10},{"left":9,"top":10.5},{"left":9,"top":11},{"left":10,"top":9},{"left":10,"top":9.5},{"left":10,"top":10},{"left":10,"top":10.5},{"left":10,"top":11},{"left":11,"top":9},{"left":11,"top":9.5},{"left":11,"top":10},{"left":11,"top":10.5},{"left":11,"top":11},{"left":12,"top":9},{"left":12,"top":9.5},{"left":12,"top":10},{"left":12,"top":10.5},{"left":12,"top":11}],"coins":[{"id":"A12C01","left":4,"top":2.95},{"id":"A12C02","left":5,"top":2.3},{"id":"A12C03","left":6,"top":2.95},{"id":"A12C04","left":10,"top":1.95},{"id":"A12C05","left":11,"top":1.3},{"id":"A12C06","left":12,"top":1.95},{"id":"A12C07","left":16.25,"top":3.05},{"id":"A12C08","left":17.25,"top":3.05},{"id":"A12C09","left":18.25,"top":3.05}],"death":[{"x":64,"y":170,"height":32,"width":32},{"x":160,"y":170,"height":32,"width":32}],"portals":[{"x":-8,"y":-40,"height":136,"width":8,"direction":-1,"destinationArea":11,"destinationX":330,"destinationY":120},{"x":336,"y":-40,"height":104,"width":8,"direction":1,"destinationArea":13,"destinationX":16,"destinationY":56}],"enemies":[{"id":"A12E01","type":"slime","left":8.35,"top":4,"sway":4,"dir":1},{"id":"A12E02","type":"slime","left":12.35,"top":3,"sway":4,"dir":1}],"areaMap":[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,2,2],[0,0,0,0,0,0,1,2,2,3,0,0,4,5,5,5,5,5,5,5,5],[2,2,2,3,0,0,4,5,5,6,0,0,4,5,5,5,5,5,5,5,5],[5,5,5,6,0,0,4,5,5,6,0,0,4,5,5,5,5,5,5,5,5],[5,5,5,6,0,0,4,5,5,6,0,0,4,5,5,5,5,5,5,5,5],[5,5,5,6,0,0,4,5,5,6,0,0,4,5,5,5,5,5,5,5,5],[5,5,5,6,0,0,4,5,5,6,0,0,4,5,5,5,5,5,5,5,5],[5,5,5,6,0,0,4,5,5,6,0,0,4,5,5,5,5,5,5,5,5]],"collisonMap":[["","","","","","","","","","","","","","","","","","","","",""],["","","","","","","","","","","","","","","","","","","","",""],["","","","","","","","","","","","","","","","","","","","",""],["","","","","","","","","","","","","","","","","","","","",""],["","","","","","","","","","","","","tl","t","t","t","t","t","t","t","t"],["","","","","","","tl","t","t","tr","","","l","","","","","","","",""],["t","t","t","tr","","","l","","","r","","","l","","","","","","","",""],["","","","r","","","l","","","r","","","l","","","","","","","",""],["","","","r","","","l","","","r","","","l","","","","","","","",""],["","","","r","","","l","","","r","","","l","","","","","","","",""],["","","","r","","","l","","","r","","","l","","","","","","","",""],["","","","r","","","l","","","r","","","l","","","","","","","",""]],"objectsMap":[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,[{"id":9,"xOffset":2,"yOffset":4,"width":12,"height":12}],0,0,[{"id":6,"xOffset":0,"yOffset":0,"width":16,"height":16}],[{"id":4,"xOffset":-2,"yOffset":4,"width":21,"height":12}]],[0,0,0,0,0,0,[{"id":9,"xOffset":2,"yOffset":4,"width":12,"height":12}],[{"id":1,"xOffset":-8,"yOffset":-32,"width":32,"height":48}],0,0,0,0,0,0,0,0,0,0,0,0,0],[[{"id":9,"xOffset":2,"yOffset":4,"width":12,"height":12}],[{"id":5,"xOffset":0,"yOffset":0,"width":16,"height":16}],[{"id":9,"xOffset":2,"yOffset":4,"width":12,"height":12}],0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]]}');
+
+/***/ },
+
+/***/ "./app/areas/area-13.json"
+/*!********************************!*\
+  !*** ./app/areas/area-13.json ***!
+  \********************************/
+(module) {
+
+module.exports = /*#__PURE__*/JSON.parse('{"id":13,"world":3,"rows":12,"columns":21,"theme":"desert","water":[],"coins":[{"id":"A13C01","left":7.25,"top":3.1},{"id":"A13C02","left":8.25,"top":3.1},{"id":"A13C03","left":9.25,"top":3.1},{"id":"A13C04","left":10.25,"top":1.1},{"id":"A13C05","left":11.25,"top":1.1},{"id":"A13C06","left":14.25,"top":3.1},{"id":"A13C07","left":15.25,"top":3.1},{"id":"A13C08","left":16.25,"top":3.1},{"id":"A13C09","left":17.25,"top":3.1},{"id":"A13C10","left":18.25,"top":1.1},{"id":"A13C11","left":19.25,"top":1.1},{"id":"A13C12","left":5.25,"top":6.05},{"id":"A13C13","left":6.25,"top":6.05},{"id":"A13C14","left":8.25,"top":5.05},{"id":"A13C15","left":10.25,"top":5.05},{"id":"A13C16","left":13.25,"top":5.05},{"id":"A13C17","left":14.25,"top":5.05},{"id":"A13C18","left":15.25,"top":5.05},{"id":"A13C19","left":16.25,"top":5.05},{"id":"A13C20","left":17.25,"top":5.05},{"id":"A13C21","left":18.25,"top":5.05}],"death":[{"x":112,"y":170,"height":32,"width":16},{"x":147,"y":89,"width":10,"height":7}],"portals":[{"x":-8,"y":-40,"height":104,"width":8,"direction":-1,"destinationArea":12,"destinationX":330,"destinationY":56},{"x":336,"y":-40,"height":136,"width":8,"direction":1,"destinationArea":14,"destinationX":16,"destinationY":88}],"enemies":[{"id":"A13E01","type":"pig","left":11.35,"top":3,"sway":4,"dir":1},{"id":"A13E02","type":"pig","left":7.85,"top":3,"sway":12,"dir":1},{"id":"A13E03","type":"pig","left":15.35,"top":3,"sway":20,"dir":1}],"areaMap":[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,13,15,0,0,0,0,0,0,13,15,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[2,2,2,2,3,0,0,13,14,15,0,1,3,0,13,14,14,15,0,0,0],[5,5,5,5,6,0,0,0,0,0,0,4,6,0,0,0,0,0,0,0,0],[5,5,5,5,6,0,0,0,1,2,2,8,10,2,2,2,2,2,2,2,2],[5,5,5,5,10,2,3,0,4,5,5,5,5,5,5,5,5,5,5,5,5],[5,5,5,5,5,5,6,0,4,5,5,5,5,5,5,5,5,5,5,5,5],[5,5,5,5,5,5,6,0,4,5,5,5,5,5,5,5,5,5,5,5,5],[5,5,5,5,5,5,6,0,4,5,5,5,5,5,5,5,5,5,5,5,5],[5,5,5,5,5,5,6,0,4,5,5,5,5,5,5,5,5,5,5,5,5]],"collisonMap":[["","","","","","","","","","","","","","","","","","","","",""],["","","","","","","","","","","","","","","","","","","","",""],["","","","","","","","","","","t","t","","","","","","","t","t",""],["","","","","","","","","","","","","","","","","","","","",""],["t","t","t","t","tr","","","t","t","t","","tl","tr","","t","t","t","t","","",""],["","","","","r","","","","","","","l","r","","","","","","","",""],["","","","","r","","","","tl","t","t","","","t","t","t","t","t","t","t","t"],["","","","","","t","tr","","l","","","","","","","","","","","",""],["","","","","","","r","","l","","","","","","","","","","","",""],["","","","","","","r","","l","","","","","","","","","","","",""],["","","","","","","r","","l","","","","","","","","","","","",""],["","","","","","","r","","l","","","","","","","","","","","",""]],"objectsMap":[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,[{"id":5,"xOffset":1,"yOffset":2,"width":14,"height":14}],0,0,[{"id":9,"xOffset":-2,"yOffset":-4,"width":20,"height":20}],0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,[{"id":15,"xOffset":1,"yOffset":2,"width":14,"height":14}],0,0,0,[{"id":9,"xOffset":-2,"yOffset":-4,"width":20,"height":20}],0,[{"id":13,"xOffset":1,"yOffset":9,"width":14,"height":7}],0,0,[{"id":11,"xOffset":0,"yOffset":-2,"width":16,"height":18}],[{"id":6,"xOffset":1,"yOffset":2,"width":14,"height":14}],0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,[{"id":15,"xOffset":0,"yOffset":0,"width":16,"height":16}],0,0,0,0,0,0,0,0,0,0,0,0,0]]}');
+
+/***/ },
+
+/***/ "./app/areas/area-14.json"
+/*!********************************!*\
+  !*** ./app/areas/area-14.json ***!
+  \********************************/
+(module) {
+
+module.exports = /*#__PURE__*/JSON.parse('{"id":14,"world":3,"rows":12,"columns":21,"theme":"desert","water":[],"coins":[{"id":"A14C01","left":7.25,"top":1.1},{"id":"A14C02","left":8.25,"top":1.1},{"id":"A14C03","left":9.25,"top":1.1},{"id":"A14C04","left":11.25,"top":1.1},{"id":"A14C05","left":12.25,"top":1.1},{"id":"A14C06","left":13.25,"top":1.1},{"id":"A14C07","left":14.25,"top":1.1},{"id":"A14C08","left":10,"top":2.1},{"id":"A14C09","left":4.25,"top":3.05},{"id":"A14C10","left":5.25,"top":3.05},{"id":"A14C11","left":6.25,"top":3.05},{"id":"A14C12","left":13.25,"top":5.05},{"id":"A14C13","left":15.25,"top":5.05},{"id":"A14C14","left":17.25,"top":4.05},{"id":"A14C15","left":18.25,"top":4.05},{"id":"A14C16","left":19.25,"top":4.05},{"id":"A14C17","left":14.25,"top":3.7}],"death":[{"x":112,"y":170,"height":32,"width":48},{"x":192,"y":170,"height":32,"width":16},{"x":227,"y":89,"width":10,"height":7}],"portals":[{"x":-8,"y":-40,"height":136,"width":8,"direction":-1,"destinationArea":13,"destinationX":330,"destinationY":88},{"x":336,"y":-40,"height":120,"width":8,"direction":1,"destinationArea":15,"destinationX":16,"destinationY":72}],"enemies":[{"id":"A14E01","type":"slime","left":10.35,"top":4,"sway":4,"dir":-1},{"id":"A14E02","type":"pig","left":7.85,"top":1,"sway":12,"dir":1},{"id":"A14E03","type":"pig","left":12.35,"top":1,"sway":20,"dir":1}],"areaMap":[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,13,15,0],[0,0,0,0,0,0,0,13,14,15,0,13,14,14,15,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,1,2,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,4,5,6,0,0,0,1,3,0,0,0,0,0,1,2,2,2],[2,2,2,2,8,5,6,0,0,0,4,6,0,1,2,2,2,8,5,5,5],[5,5,5,5,5,5,6,0,0,0,4,6,0,4,5,5,5,5,5,5,5],[5,5,5,5,5,5,6,0,0,0,4,6,0,4,5,5,5,5,5,5,5],[5,5,5,5,5,5,6,0,0,0,4,6,0,4,5,5,5,5,5,5,5],[5,5,5,5,5,5,6,0,0,0,4,6,0,4,5,5,5,5,5,5,5],[5,5,5,5,5,5,6,0,0,0,4,6,0,4,5,5,5,5,5,5,5]],"collisonMap":[["","","","","","","","","","","","","","","","","","","","",""],["","","","","","","","","","","","","","","","","","","t","t",""],["","","","","","","","t","t","t","","t","t","t","t","","","","","",""],["","","","","","","","","","","","","","","","","","","","",""],["","","","","tl","t","tr","","","","","","","","","","","","","",""],["","","","","l","","r","","","","tl","tr","","","","","","tl","t","t","t"],["t","t","t","t","","","r","","","","l","r","","tl","t","t","t","","","",""],["","","","","","","r","","","","l","r","","l","","","","","","",""],["","","","","","","r","","","","l","r","","l","","","","","","",""],["","","","","","","r","","","","l","r","","l","","","","","","",""],["","","","","","","r","","","","l","r","","l","","","","","","",""],["","","","","","","r","","","","l","r","","l","","","","","","",""]],"objectsMap":[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,[{"id":4,"xOffset":0,"yOffset":6,"width":17,"height":10}],[{"id":9,"xOffset":-2,"yOffset":-4,"width":20,"height":20}],0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,[{"id":6,"xOffset":1,"yOffset":2,"width":14,"height":14}],[{"id":12,"xOffset":1,"yOffset":9,"width":14,"height":7}]],[[{"id":9,"xOffset":-2,"yOffset":-4,"width":20,"height":20}],[{"id":5,"xOffset":1,"yOffset":2,"width":14,"height":14}],0,0,0,0,0,0,0,0,0,0,0,[{"id":3,"xOffset":-1,"yOffset":6,"width":18,"height":10}],[{"id":15,"xOffset":1,"yOffset":2,"width":14,"height":14}],0,[{"id":12,"xOffset":1,"yOffset":9,"width":14,"height":7}],0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,[{"id":15,"xOffset":0,"yOffset":0,"width":16,"height":16}],[{"id":15,"xOffset":0,"yOffset":0,"width":16,"height":16}],[{"id":15,"xOffset":0,"yOffset":0,"width":16,"height":16}],0,0,[{"id":15,"xOffset":0,"yOffset":0,"width":16,"height":16}],0,0,0,0,0,0,0,0]]}');
+
+/***/ },
+
+/***/ "./app/areas/area-15.json"
+/*!********************************!*\
+  !*** ./app/areas/area-15.json ***!
+  \********************************/
+(module) {
+
+module.exports = /*#__PURE__*/JSON.parse('{"id":15,"world":3,"rows":12,"columns":21,"theme":"desert","water":[],"coins":[{"id":"A15C01","left":16.25,"top":3.1},{"id":"A15C02","left":17.25,"top":3.1},{"id":"A15C03","left":18.25,"top":3.1},{"id":"A15C04","left":18.25,"top":1.1},{"id":"A15C05","left":19.25,"top":1.1},{"id":"A15C06","left":14,"top":2.68},{"id":"A15C07","left":15,"top":2.68},{"id":"A15C08","left":4.25,"top":3.05},{"id":"A15C09","left":5.25,"top":3.05},{"id":"A15C10","left":10.25,"top":4.05},{"id":"A15C11","left":11.25,"top":4.05},{"id":"A15C12","left":15.25,"top":5.05},{"id":"A15C13","left":16.25,"top":5.05},{"id":"A15C14","left":17.25,"top":6.05},{"id":"A15C15","left":18.25,"top":6.05},{"id":"A15C16","left":19.25,"top":6.05},{"id":"A15C17","left":12.25,"top":2.7}],"death":[{"x":224,"y":170,"height":32,"width":16},{"x":99,"y":57,"width":10,"height":7},{"x":195,"y":73,"width":10,"height":7}],"portals":[{"x":-8,"y":-40,"height":120,"width":8,"direction":-1,"destinationArea":14,"destinationX":330,"destinationY":72},{"x":336,"y":-40,"height":152,"width":8,"direction":1,"destinationArea":16,"destinationX":16,"destinationY":104}],"enemies":[{"id":"A15E01","type":"slime","left":8.35,"top":2,"sway":4,"dir":1},{"id":"A15E02","type":"pig","left":16.85,"top":3,"sway":12,"dir":1}],"areaMap":[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,13,14,14,15,0,13,14,15,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,13,15,0],[0,0,0,0,0,0,0,0,1,3,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,1,2,2,2,8,6,0,0,0,0,0,0,13,14,15,0,0],[2,2,2,2,8,5,5,5,5,10,2,2,2,3,0,0,0,0,0,0,0],[5,5,5,5,5,5,5,5,5,5,5,5,5,6,0,1,3,0,0,0,0],[5,5,5,5,5,5,5,5,5,5,5,5,5,6,0,4,10,2,2,2,2],[5,5,5,5,5,5,5,5,5,5,5,5,5,6,0,4,5,5,5,5,5],[5,5,5,5,5,5,5,5,5,5,5,5,5,6,0,4,5,5,5,5,5],[5,5,5,5,5,5,5,5,5,5,5,5,5,6,0,4,5,5,5,5,5],[5,5,5,5,5,5,5,5,5,5,5,5,5,6,0,4,5,5,5,5,5]],"collisonMap":[["","","","","","","","","","","","","","","","","","","","",""],["","","","t","t","t","t","","t","t","t","","","","","","","","","",""],["","","","","","","","","","","","","","","","","","","t","t",""],["","","","","","","","","tl","tr","","","","","","","","","","",""],["","","","","tl","t","t","t","","r","","","","","","","t","t","t","",""],["t","t","t","t","","","","","","","t","t","t","tr","","","","","","",""],["","","","","","","","","","","","","","r","","tl","tr","","","",""],["","","","","","","","","","","","","","r","","l","","t","t","t","t"],["","","","","","","","","","","","","","r","","l","","","","",""],["","","","","","","","","","","","","","r","","l","","","","",""],["","","","","","","","","","","","","","r","","l","","","","",""],["","","","","","","","","","","","","","r","","l","","","","",""]],"objectsMap":[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,[{"id":8,"xOffset":2,"yOffset":4,"width":12,"height":12}],[{"id":7,"xOffset":2,"yOffset":4,"width":12,"height":12}],[{"id":15,"xOffset":1,"yOffset":2,"width":14,"height":14}],0,0,0,0,0,0,0,0,0,0,0,0,0,0],[[{"id":13,"xOffset":1,"yOffset":9,"width":14,"height":7}],[{"id":5,"xOffset":1,"yOffset":2,"width":14,"height":14}],0,0,0,0,0,0,0,0,[{"id":11,"xOffset":0,"yOffset":-2,"width":16,"height":18}],[{"id":12,"xOffset":1,"yOffset":9,"width":14,"height":7}],[{"id":15,"xOffset":1,"yOffset":2,"width":14,"height":14}],[{"id":1,"xOffset":-10,"yOffset":-14,"width":36,"height":30}],0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,[{"id":10,"xOffset":1,"yOffset":7,"width":14,"height":9}],0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,[{"id":14,"xOffset":-1,"yOffset":10,"width":18,"height":6}],[{"id":6,"xOffset":1,"yOffset":2,"width":14,"height":14}],0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,[{"id":15,"xOffset":0,"yOffset":0,"width":16,"height":16}],0,0,0,0,0,0]]}');
+
+/***/ },
+
+/***/ "./app/areas/area-16.json"
+/*!********************************!*\
+  !*** ./app/areas/area-16.json ***!
+  \********************************/
+(module) {
+
+module.exports = /*#__PURE__*/JSON.parse('{"id":16,"world":3,"rows":12,"columns":21,"theme":"desert","water":[],"coins":[{"id":"A16C01","left":5.25,"top":3.1},{"id":"A16C02","left":6.25,"top":3.1},{"id":"A16C03","left":8.25,"top":1.1},{"id":"A16C04","left":9.25,"top":1.1},{"id":"A16C05","left":9.25,"top":3.1},{"id":"A16C06","left":10.25,"top":3.1},{"id":"A16C07","left":11.25,"top":3.1},{"id":"A16C08","left":12.25,"top":3.1},{"id":"A16C09","left":13.25,"top":1.1},{"id":"A16C10","left":14.25,"top":1.1},{"id":"A16C11","left":15.25,"top":3.1},{"id":"A16C12","left":16.25,"top":3.1},{"id":"A16C13","left":12.25,"top":8.05},{"id":"A16C14","left":14.25,"top":8.05},{"id":"A16C15","left":16.25,"top":6.05},{"id":"A16C16","left":17.25,"top":6.05},{"id":"A16C17","left":18.25,"top":6.05},{"id":"A16C18","left":13.25,"top":6.7}],"death":[{"x":144,"y":170,"height":32,"width":16},{"x":211,"y":137,"width":10,"height":7}],"portals":[{"x":-8,"y":-40,"height":152,"width":8,"direction":-1,"destinationArea":15,"destinationX":330,"destinationY":104},{"x":336,"y":-40,"height":152,"width":8,"direction":1,"destinationArea":1,"destinationX":16,"destinationY":24}],"enemies":[{"id":"A16E01","type":"chameleon","left":7.35,"top":5,"sway":4,"dir":1},{"id":"A16E02","type":"pig","left":10.35,"top":6,"sway":4,"dir":-1},{"id":"A16E03","type":"pig","left":10.35,"top":3,"sway":20,"dir":1}],"areaMap":[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,13,15,0,0,0,13,15,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,13,15,0,0,13,14,14,15,0,0,13,15,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,1,2,2,3,0,0,0,0,0,0,0,0,0,0,0,0],[2,2,2,2,2,8,5,5,6,0,1,3,0,0,0,0,1,2,2,2,2],[5,5,5,5,5,5,5,5,6,0,4,6,0,0,0,0,4,5,5,5,5],[5,5,5,5,5,5,5,5,6,0,4,10,2,2,2,2,8,5,5,5,5],[5,5,5,5,5,5,5,5,6,0,4,5,5,5,5,5,5,5,5,5,5],[5,5,5,5,5,5,5,5,6,0,4,5,5,5,5,5,5,5,5,5,5]],"collisonMap":[["","","","","","","","","","","","","","","","","","","","",""],["","","","","","","","","","","","","","","","","","","","",""],["","","","","","","","","t","t","","","","t","t","","","","","",""],["","","","","","","","","","","","","","","","","","","","",""],["","","","","","t","t","","","t","t","t","t","","","t","t","","","",""],["","","","","","","","","","","","","","","","","","","","",""],["","","","","","tl","t","t","tr","","","","","","","","","","","",""],["t","t","t","t","t","","","","r","","tl","tr","","","","","tl","t","t","t","t"],["","","","","","","","","r","","l","r","","","","","l","","","",""],["","","","","","","","","r","","l","","t","t","t","t","","","","",""],["","","","","","","","","r","","l","","","","","","","","","",""],["","","","","","","","","r","","l","","","","","","","","","",""]],"objectsMap":[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,[{"id":3,"xOffset":-1,"yOffset":6,"width":18,"height":10}],[{"id":8,"xOffset":2,"yOffset":4,"width":12,"height":12}],0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,[{"id":5,"xOffset":1,"yOffset":2,"width":14,"height":14}],0,0,[{"id":14,"xOffset":-1,"yOffset":10,"width":18,"height":6}],0,0,0,0,0,0,0,0,0,0,0,0,0,0,[{"id":6,"xOffset":1,"yOffset":2,"width":14,"height":14}],[{"id":10,"xOffset":1,"yOffset":7,"width":14,"height":9}]],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,[{"id":1,"xOffset":-10,"yOffset":-14,"width":36,"height":30}],[{"id":15,"xOffset":1,"yOffset":2,"width":14,"height":14}],[{"id":11,"xOffset":0,"yOffset":-2,"width":16,"height":18}],[{"id":7,"xOffset":2,"yOffset":4,"width":12,"height":12}],0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,[{"id":15,"xOffset":0,"yOffset":0,"width":16,"height":16}],0,0,0,0,0,0,0,0,0,0,0]]}');
+
+/***/ },
+
+/***/ "./app/areas/area-2.json"
 /*!*******************************!*\
   !*** ./app/areas/area-2.json ***!
   \*******************************/
-/***/ ((module) => {
+(module) {
 
 module.exports = /*#__PURE__*/JSON.parse('{"id":2,"world":1,"rows":12,"columns":21,"theme":"grasslands","water":[{"left":3,"top":10},{"left":4,"top":10},{"left":5,"top":10},{"left":6,"top":10},{"left":3,"top":10.5},{"left":4,"top":10.5},{"left":5,"top":10.5},{"left":6,"top":10.5},{"left":3,"top":11},{"left":4,"top":11},{"left":5,"top":11},{"left":6,"top":11},{"left":13,"top":10},{"left":14,"top":10},{"left":15,"top":10},{"left":16,"top":10},{"left":13,"top":10.5},{"left":14,"top":10.5},{"left":15,"top":10.5},{"left":16,"top":10.5},{"left":13,"top":11},{"left":14,"top":11},{"left":15,"top":11},{"left":16,"top":11}],"coins":[{"id":"1c01","left":2.5,"top":0.5},{"id":"1c02","left":4.2,"top":0.7},{"id":"1c03","left":5.6,"top":1.5},{"id":"1c04","left":9.6,"top":1.5},{"id":"1c05","left":10.8,"top":0.5},{"id":"1c06","left":12.1,"top":0.5},{"id":"1c07","left":13.4,"top":1.5},{"id":"1c08","left":10.9,"top":3.8},{"id":"1c09","left":10.9,"top":5},{"id":"1c0801","left":12,"top":3.8},{"id":"1c0901","left":12,"top":5},{"id":"1c10","left":3.2,"top":4.5},{"id":"1c11","left":1.9,"top":5.1},{"id":"1c12","left":1,"top":6.3},{"id":"1c13","left":0.8,"top":7.8},{"id":"1c14","left":6.5,"top":2.8},{"id":"1c15","left":7,"top":7.3},{"id":"1c16","left":5.4,"top":7.5},{"id":"1c17","left":4.5,"top":8.8},{"id":"1c18","left":17,"top":7.3},{"id":"1c19","left":15.4,"top":7.5},{"id":"1c20","left":14.5,"top":8.8},{"id":"1c21","left":20,"top":5.7},{"id":"1c22","left":19,"top":4.4},{"id":"1c23","left":17.5,"top":3.7},{"id":"1c24","left":16.2,"top":3.5}],"death":[{"x":64,"y":170,"height":32,"width":32},{"x":224,"y":170,"height":32,"width":32}],"portals":[{"x":-8,"y":0,"height":32,"width":8,"direction":-1,"destinationArea":1,"destinationX":330,"destinationY":42},{"x":336,"y":0,"height":48,"width":8,"direction":1,"destinationArea":7,"destinationX":6,"destinationY":24}],"enemies":[{"id":"a02e01","type":"pig","left":8.25,"top":8,"sway":38,"dir":-1},{"id":"a02e02","type":"pig","left":18,"top":8,"sway":30,"dir":1},{"id":"a02e03","type":"chameleon","left":3.75,"top":5,"sway":16,"dir":1},{"id":"a02e04","type":"chameleon","left":15.75,"top":4,"sway":18,"dir":1},{"id":"a02e05","type":"chameleon","left":13.75,"top":2,"sway":18,"dir":-1}],"areaMap":[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[2,2,2,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,2],[9,9,9,16,0,0,0,0,0,13,15,0,0,1,2,3,0,0,0,12,9],[0,0,0,0,0,0,13,15,0,0,0,0,0,4,5,6,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,4,5,[5,13],14,15,0,0,0],[0,0,0,13,14,15,0,0,0,0,0,0,0,12,9,16,0,0,0,0,0],[0,0,0,0,0,0,0,1,2,3,0,0,0,0,0,0,0,0,0,0,1],[0,0,0,0,0,0,0,4,5,6,0,0,0,0,0,0,0,0,0,0,4],[2,3,0,0,0,0,1,2,2,2,2,3,0,0,0,0,1,2,2,2,2],[2,2,2,3,0,0,4,5,5,5,5,10,2,3,0,0,4,5,5,5,5],[5,5,5,6,0,0,4,5,5,5,5,5,5,6,0,0,4,5,5,5,5]],"collisonMap":[["","","","","","","","","","","","","","","","","","","","",""],["","","","","","","","","","","","","","","","","","","","","",""],["t","t","t","tr","","","","","","","","","","","","","","","","t","t","t"],["","","","","","","","","","t","t","","","lt","t","t","","","","","",""],["","","","","","","t","t","","","","","","l","","","","","","","",""],["","","","","","","","","","","","","","","","t","t","t","","","",""],["","","","t","t","t","","","","","","","","","","","","","","","",""],["","","","","","","","t","t","t","","","","","","","","","","","t","t"],["","","","","","","","","","","","","","","","","","","","","",""],["t","t","","","","","tl","t","t","t","t","tr","","","","","tl","t","t","t","t","t"],["tb","tb","tb","tr","","","l","","","","","","t","tr","","r","l","","","","",""],["","","","rt","lb","rb","l","","","","","","","r","","r","l","","","","",""]],"objectsMap":[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[[{"id":9,"xOffset":16,"yOffset":6,"width":16,"height":10},{"id":1,"xOffset":0,"yOffset":-16,"width":32,"height":32}],[{"id":8,"xOffset":-16,"yOffset":8,"width":16,"height":8},{"id":4,"xOffset":0,"yOffset":12,"width":12,"height":5}],[{"id":10,"xOffset":0,"yOffset":8,"width":8,"height":8},{"id":11,"xOffset":8,"yOffset":12,"width":6,"height":4}],[{"id":6,"xOffset":-5,"yOffset":2,"width":16,"height":16}],0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,[{"id":5,"xOffset":2,"yOffset":2,"width":16,"height":16}]],[0,0,0,0,0,0,0,0,0,[{"id":8,"xOffset":4,"yOffset":9,"width":12,"height":7}],[{"id":9,"xOffset":0,"yOffset":10,"width":10,"height":6},{"id":10,"xOffset":-3,"yOffset":12,"width":4,"height":4}],0,0,[{"id":2,"xOffset":2,"yOffset":-24,"width":40,"height":40}],[{"id":11,"xOffset":-10,"yOffset":9,"width":10,"height":8},{"id":4,"xOffset":9,"yOffset":7,"width":18,"height":10}],0],[0,0,0,0,0,0,[{"id":1,"xOffset":0,"yOffset":-16,"width":32,"height":32},{"id":9,"xOffset":18,"yOffset":10,"width":10,"height":6},{"id":8,"xOffset":4,"yOffset":9,"width":14,"height":7}],0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,[{"id":8,"xOffset":-6,"yOffset":6,"width":16,"height":10},{"id":9,"xOffset":6,"yOffset":9,"width":12,"height":7}],0,0],[0,0,0,0,[{"id":7,"xOffset":-4,"yOffset":5,"width":12,"height":12}],[{"id":7,"xOffset":-8,"yOffset":5,"width":12,"height":12},{"id":7,"xOffset":-14,"yOffset":-7,"width":12,"height":12}],0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,[{"id":3,"xOffset":-6,"yOffset":4,"width":22,"height":12}],0,0,0,0,0,0,0,0,0,0,0,[{"id":10,"xOffset":6,"yOffset":6,"width":12,"height":10}],0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,[{"id":4,"xOffset":8,"yOffset":10,"width":12,"height":6}],0,0,[{"id":2,"xOffset":5,"yOffset":-24,"width":40,"height":40}],[{"id":1,"xOffset":-20,"yOffset":-14,"width":30,"height":30},{"id":9,"xOffset":-6,"yOffset":8,"width":16,"height":8}],0,0,0,0,0,0,[{"id":2,"xOffset":-9,"yOffset":-20,"width":36,"height":36},{"id":1,"xOffset":0,"yOffset":-32,"width":48,"height":48},{"id":9,"xOffset":-6,"yOffset":8,"width":16,"height":8}],0,[{"id":7,"xOffset":4,"yOffset":4,"width":12,"height":12}],0],[0,0,[{"id":1,"xOffset":14,"yOffset":-6,"width":22,"height":22},{"id":1,"xOffset":-8,"yOffset":-12,"width":28,"height":28},{"id":2,"xOffset":0,"yOffset":-15,"width":32,"height":32}],0,0,0,0,0,0,0,0,0,[{"id":7,"xOffset":2,"yOffset":4,"width":12,"height":12},{"id":1,"xOffset":2,"yOffset":-16,"width":32,"height":32}],[{"id":9,"xOffset":-9,"yOffset":10,"width":12,"height":7},{"id":8,"xOffset":4,"yOffset":9,"width":10,"height":7}],0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]]}');
 
-/***/ }),
+/***/ },
 
-/***/ "./app/areas/area-3.json":
+/***/ "./app/areas/area-3.json"
 /*!*******************************!*\
   !*** ./app/areas/area-3.json ***!
   \*******************************/
-/***/ ((module) => {
+(module) {
 
-module.exports = /*#__PURE__*/JSON.parse('{"id":3,"world":2,"rows":12,"columns":21,"theme":"iceland","water":[{"left":6,"top":10},{"left":6,"top":10.5},{"left":6,"top":11},{"left":7,"top":10},{"left":7,"top":10.5},{"left":7,"top":11},{"left":8,"top":10},{"left":8,"top":10.5},{"left":8,"top":11},{"left":9,"top":10},{"left":9,"top":10.5},{"left":9,"top":11},{"left":10,"top":10},{"left":10,"top":10.5},{"left":10,"top":11},{"left":16,"top":10},{"left":16,"top":10.5},{"left":16,"top":11},{"left":17,"top":10},{"left":17,"top":10.5},{"left":17,"top":11},{"left":18,"top":10},{"left":18,"top":10.5},{"left":18,"top":11},{"left":19,"top":10},{"left":19,"top":10.5},{"left":19,"top":11},{"left":20,"top":10},{"left":20,"top":10.5},{"left":20,"top":11}],"coins":[{"id":"2c01","left":3.5,"top":3.9},{"id":"2c02","left":2.2,"top":4.7},{"id":"2c03","left":1.5,"top":6.1},{"id":"2c04","left":1.2,"top":7.5},{"id":"2c05","left":6.2,"top":8.8},{"id":"2c06","left":7.3,"top":7.8},{"id":"2c07","left":8.7,"top":7.8},{"id":"2c08","left":9.8,"top":8.8},{"id":"2c09","left":5.7,"top":3.9},{"id":"2c10","left":7.1,"top":4.3},{"id":"2c11","left":8,"top":5.5},{"id":"2c12","left":7.7,"top":1.7},{"id":"2c13","left":9.55,"top":1.5},{"id":"2c14","left":11.4,"top":1.7},{"id":"2c15","left":16.3,"top":8.7},{"id":"2c16","left":17.2,"top":7.1},{"id":"2c17","left":19,"top":6.7},{"id":"2c18","left":20,"top":4.7},{"id":"2c19","left":18.9,"top":3.1},{"id":"2c20","left":17.3,"top":2.7},{"id":"2c21","left":14.8,"top":2.7},{"id":"2c22","left":13.2,"top":3.4},{"id":"2c23","left":12.5,"top":4.8},{"id":"2c24","left":5.5,"top":0},{"id":"2c25","left":3.7,"top":0.15},{"id":"2c26","left":2.5,"top":1}],"death":[{"x":112,"y":170,"height":32,"width":48},{"x":272,"y":170,"height":32,"width":64}],"portals":[{"x":-8,"y":0,"height":32,"width":8,"direction":-1,"destinationArea":7,"destinationX":330,"destinationY":96},{"x":336,"y":0,"height":48,"width":8,"direction":1,"destinationArea":8,"destinationX":16,"destinationY":56}],"enemies":[{"id":"a03e01","type":"pig","left":13,"top":9,"sway":40,"dir":-1},{"id":"a03e02","type":"pig","left":9.25,"top":2,"sway":24,"dir":1},{"id":"a03e03","type":"chameleon","left":7.75,"top":6,"sway":16,"dir":1},{"id":"a03e04","type":"chameleon","left":14.75,"top":1,"sway":18,"dir":-1},{"id":"a03e05","type":"chameleon","left":19.75,"top":7,"sway":12,"dir":-1}],"areaMap":[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,13,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[2,3,0,0,0,0,0,0,0,0,0,0,0,0,1,2,3,0,0,0,0],[9,16,0,0,0,0,0,0,13,14,14,15,0,0,4,5,6,0,0,1,2],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,[5,13],[5,14],15,0,12,9],[0,0,0,0,13,15,0,0,0,0,0,0,0,0,12,9,16,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],[0,0,0,0,0,0,0,13,14,15,0,0,0,0,0,0,0,0,0,0,4],[0,0,0,0,0,0,0,0,0,0,0,0,1,2,3,0,0,0,0,13,14],[2,2,2,2,3,0,0,0,0,0,0,0,4,5,6,0,0,0,0,0,0],[5,5,5,5,10,2,3,0,0,0,1,2,2,2,2,2,3,0,0,0,0],[5,5,5,5,5,5,6,0,0,0,4,5,5,5,5,5,6,0,0,0,0]],"collisonMap":[["","","","","","","","","","","","","","","","","","","","",""],["","","","","","t","t","","","","","","","","","","","","","",""],["t","tr","","","","","","","","","","","","","tl","t","t","","","",""],["","r","","","","","","","t","t","t","t","","","","","","","","t","t"],["","r","","","","","","","","","","","","","","t","t","t","","",""],["","","","","t","t","","","","","","","","","","","","","","",""],["","","","","","","","","","","","","","","","","","","","","t"],["","","","","","","","t","t","t","","","","","","","","","","",""],["","","","","","","","","","","","","tl","t","tr","","","","","t","t"],["t","t","t","t","tr","","","","","","","","","","","","","","","",""],["","","","","","lt","tr","","","","tl","t","t","t","t","t","t","","","",""],["","","","","","","r","lb","b","b","lb","","","","","","","","","",""]],"objectsMap":[[0,0,0,0,0,0,[{"id":9,"xOffset":0,"yOffset":7,"width":9,"height":9},{"id":8,"xOffset":-10,"yOffset":6,"width":11,"height":10}],0,0,0,0,0,0,0,0,0],[0,[{"id":6,"xOffset":-6,"yOffset":2,"width":14,"height":14}],0,0,0,0,0,0,0,0,0,0,0,0,0,[{"id":4,"xOffset":-8,"yOffset":7,"width":20,"height":10}],0,0],[0,0,0,0,0,0,0,0,0,[{"id":1,"xOffset":-12,"yOffset":-16,"width":32,"height":32}],[{"id":1,"xOffset":-2,"yOffset":-8,"width":24,"height":24}],[{"id":2,"xOffset":-36,"yOffset":-24,"width":40,"height":40}],0,0,0,0,0,0,0,[{"id":5,"xOffset":6,"yOffset":2,"width":14,"height":14}],0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,[{"id":1,"xOffset":10,"yOffset":-10,"width":26,"height":26}],[{"id":8,"xOffset":-4,"yOffset":6,"width":12,"height":10}],0,0,0],[0,0,0,0,[{"id":9,"xOffset":5,"yOffset":5,"width":11,"height":11}],[{"id":9,"xOffset":0,"yOffset":5,"width":11,"height":11},{"id":9,"xOffset":-5,"yOffset":-5,"width":11,"height":11}],0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,[{"id":2,"xOffset":-8,"yOffset":-16,"width":32,"height":32}],[{"id":7,"xOffset":-2,"yOffset":4,"width":12,"height":12}],0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,[{"id":3,"xOffset":-4,"yOffset":-11,"width":24,"height":27}],0,0,0,0,0,[{"id":7,"xOffset":4,"yOffset":4,"width":12,"height":12}],[{"id":10,"xOffset":4,"yOffset":7,"width":12,"height":10}]],[[{"id":1,"xOffset":-6,"yOffset":-16,"width":32,"height":32},{"id":2,"xOffset":0,"yOffset":-40,"width":56,"height":56}],0,[{"id":4,"xOffset":0,"yOffset":8,"width":16,"height":8}],[{"id":7,"xOffset":4,"yOffset":4,"width":12,"height":12}],[{"id":7,"xOffset":0,"yOffset":4,"width":12,"height":12},{"id":7,"xOffset":-6,"yOffset":-8,"width":12,"height":12}],0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,[{"id":10,"xOffset":10,"yOffset":8,"width":11,"height":8}],0,0,0,0,0,[{"id":7,"xOffset":5,"yOffset":4,"width":12,"height":12}],[{"id":4,"xOffset":11,"yOffset":10,"width":11,"height":6}],[{"id":2,"xOffset":8,"yOffset":-4,"width":20,"height":20}],[{"id":1,"xOffset":0,"yOffset":-16,"width":32,"height":32}],[{"id":8,"xOffset":0,"yOffset":4,"width":14,"height":12},{"id":9,"xOffset":-7,"yOffset":5,"width":11,"height":11}]],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]]}');
+module.exports = /*#__PURE__*/JSON.parse('{"id":3,"world":2,"rows":12,"columns":21,"theme":"iceland","water":[{"left":6,"top":10},{"left":6,"top":10.5},{"left":6,"top":11},{"left":7,"top":10},{"left":7,"top":10.5},{"left":7,"top":11},{"left":8,"top":10},{"left":8,"top":10.5},{"left":8,"top":11},{"left":9,"top":10},{"left":9,"top":10.5},{"left":9,"top":11},{"left":10,"top":10},{"left":10,"top":10.5},{"left":10,"top":11},{"left":16,"top":10},{"left":16,"top":10.5},{"left":16,"top":11},{"left":17,"top":10},{"left":17,"top":10.5},{"left":17,"top":11},{"left":18,"top":10},{"left":18,"top":10.5},{"left":18,"top":11},{"left":19,"top":10},{"left":19,"top":10.5},{"left":19,"top":11},{"left":20,"top":10},{"left":20,"top":10.5},{"left":20,"top":11}],"coins":[{"id":"3c01","left":3.5,"top":3.9},{"id":"3c02","left":2.2,"top":4.7},{"id":"3c03","left":1.5,"top":6.1},{"id":"3c04","left":1.2,"top":7.5},{"id":"3c05","left":6.2,"top":8.8},{"id":"3c06","left":7.3,"top":7.8},{"id":"3c07","left":8.7,"top":7.8},{"id":"3c08","left":9.8,"top":8.8},{"id":"3c09","left":5.7,"top":3.9},{"id":"3c10","left":7.1,"top":4.3},{"id":"3c11","left":8,"top":5.5},{"id":"3c12","left":7.7,"top":1.7},{"id":"3c13","left":9.55,"top":1.5},{"id":"3c14","left":11.4,"top":1.7},{"id":"3c15","left":16.3,"top":8.7},{"id":"3c16","left":17.2,"top":7.1},{"id":"3c17","left":19,"top":6.7},{"id":"3c18","left":20,"top":4.7},{"id":"3c19","left":18.9,"top":3.1},{"id":"3c20","left":17.3,"top":2.7},{"id":"3c21","left":14.8,"top":2.7},{"id":"3c22","left":13.2,"top":3.4},{"id":"3c23","left":12.5,"top":4.8},{"id":"3c24","left":5.5,"top":0},{"id":"3c25","left":3.7,"top":0.15},{"id":"3c26","left":2.5,"top":1}],"death":[{"x":112,"y":170,"height":32,"width":48},{"x":272,"y":170,"height":32,"width":64}],"portals":[{"x":-8,"y":0,"height":32,"width":8,"direction":-1,"destinationArea":10,"destinationX":330,"destinationY":104},{"x":336,"y":0,"height":48,"width":8,"direction":1,"destinationArea":8,"destinationX":16,"destinationY":56}],"enemies":[{"id":"a03e01","type":"pig","left":13,"top":9,"sway":40,"dir":-1},{"id":"a03e02","type":"pig","left":9.25,"top":2,"sway":24,"dir":1},{"id":"a03e03","type":"chameleon","left":7.75,"top":6,"sway":16,"dir":1},{"id":"a03e04","type":"chameleon","left":14.75,"top":1,"sway":18,"dir":-1},{"id":"a03e05","type":"chameleon","left":19.75,"top":7,"sway":12,"dir":-1}],"areaMap":[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,13,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[2,3,0,0,0,0,0,0,0,0,0,0,0,0,1,2,3,0,0,0,0],[9,16,0,0,0,0,0,0,13,14,14,15,0,0,4,5,6,0,0,1,2],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,[5,13],[5,14],15,0,12,9],[0,0,0,0,13,15,0,0,0,0,0,0,0,0,12,9,16,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],[0,0,0,0,0,0,0,13,14,15,0,0,0,0,0,0,0,0,0,0,4],[0,0,0,0,0,0,0,0,0,0,0,0,1,2,3,0,0,0,0,13,14],[2,2,2,2,3,0,0,0,0,0,0,0,4,5,6,0,0,0,0,0,0],[5,5,5,5,10,2,3,0,0,0,1,2,2,2,2,2,3,0,0,0,0],[5,5,5,5,5,5,6,0,0,0,4,5,5,5,5,5,6,0,0,0,0]],"collisonMap":[["","","","","","","","","","","","","","","","","","","","",""],["","","","","","t","t","","","","","","","","","","","","","",""],["t","tr","","","","","","","","","","","","","tl","t","t","","","",""],["","r","","","","","","","t","t","t","t","","","","","","","","t","t"],["","r","","","","","","","","","","","","","","t","t","t","","",""],["","","","","t","t","","","","","","","","","","","","","","",""],["","","","","","","","","","","","","","","","","","","","","t"],["","","","","","","","t","t","t","","","","","","","","","","",""],["","","","","","","","","","","","","tl","t","tr","","","","","t","t"],["t","t","t","t","tr","","","","","","","","","","","","","","","",""],["","","","","","lt","tr","","","","tl","t","t","t","t","t","t","","","",""],["","","","","","","r","lb","b","b","lb","","","","","","","","","",""]],"objectsMap":[[0,0,0,0,0,0,[{"id":9,"xOffset":0,"yOffset":7,"width":9,"height":9},{"id":8,"xOffset":-10,"yOffset":6,"width":11,"height":10}],0,0,0,0,0,0,0,0,0],[0,[{"id":6,"xOffset":-6,"yOffset":2,"width":14,"height":14}],0,0,0,0,0,0,0,0,0,0,0,0,0,[{"id":4,"xOffset":-8,"yOffset":7,"width":20,"height":10}],0,0],[0,0,0,0,0,0,0,0,0,[{"id":1,"xOffset":-12,"yOffset":-16,"width":32,"height":32}],[{"id":1,"xOffset":-2,"yOffset":-8,"width":24,"height":24}],[{"id":2,"xOffset":-36,"yOffset":-24,"width":40,"height":40}],0,0,0,0,0,0,0,[{"id":5,"xOffset":6,"yOffset":2,"width":14,"height":14}],0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,[{"id":1,"xOffset":10,"yOffset":-10,"width":26,"height":26}],[{"id":8,"xOffset":-4,"yOffset":6,"width":12,"height":10}],0,0,0],[0,0,0,0,[{"id":9,"xOffset":5,"yOffset":5,"width":11,"height":11}],[{"id":9,"xOffset":0,"yOffset":5,"width":11,"height":11},{"id":9,"xOffset":-5,"yOffset":-5,"width":11,"height":11}],0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,[{"id":2,"xOffset":-8,"yOffset":-16,"width":32,"height":32}],[{"id":7,"xOffset":-2,"yOffset":4,"width":12,"height":12}],0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,[{"id":3,"xOffset":-4,"yOffset":-11,"width":24,"height":27}],0,0,0,0,0,[{"id":7,"xOffset":4,"yOffset":4,"width":12,"height":12}],[{"id":10,"xOffset":4,"yOffset":7,"width":12,"height":10}]],[[{"id":1,"xOffset":-6,"yOffset":-16,"width":32,"height":32},{"id":2,"xOffset":0,"yOffset":-40,"width":56,"height":56}],0,[{"id":4,"xOffset":0,"yOffset":8,"width":16,"height":8}],[{"id":7,"xOffset":4,"yOffset":4,"width":12,"height":12}],[{"id":7,"xOffset":0,"yOffset":4,"width":12,"height":12},{"id":7,"xOffset":-6,"yOffset":-8,"width":12,"height":12}],0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,[{"id":10,"xOffset":10,"yOffset":8,"width":11,"height":8}],0,0,0,0,0,[{"id":7,"xOffset":5,"yOffset":4,"width":12,"height":12}],[{"id":4,"xOffset":11,"yOffset":10,"width":11,"height":6}],[{"id":2,"xOffset":8,"yOffset":-4,"width":20,"height":20}],[{"id":1,"xOffset":0,"yOffset":-16,"width":32,"height":32}],[{"id":8,"xOffset":0,"yOffset":4,"width":14,"height":12},{"id":9,"xOffset":-7,"yOffset":5,"width":11,"height":11}]],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]]}');
 
-/***/ }),
+/***/ },
 
-/***/ "./app/areas/area-4.json":
+/***/ "./app/areas/area-4.json"
 /*!*******************************!*\
   !*** ./app/areas/area-4.json ***!
   \*******************************/
-/***/ ((module) => {
+(module) {
 
 module.exports = /*#__PURE__*/JSON.parse('{"id":4,"world":3,"theme":"desert","death":[{"x":64,"y":170,"height":32,"width":32},{"x":192,"y":170,"height":32,"width":32}],"coins":[{"id":"4c1","left":1.5,"top":2},{"id":"4c2","left":11,"top":2},{"id":"4c3","left":15,"top":2},{"id":"4c4","left":5,"top":1},{"id":"4c5","left":8,"top":4},{"id":"4c6","left":10,"top":6},{"id":"4c7","left":12,"top":6},{"id":"4c8","left":14,"top":8},{"id":"4c9","left":7,"top":9},{"id":"4c10","left":1,"top":8}],"portals":[{"x":-8,"y":0,"height":48,"width":8,"direction":-1,"destinationArea":3,"destinationX":250,"destinationY":42},{"x":256,"y":0,"height":48,"width":8,"direction":1,"destinationArea":5,"destinationX":16,"destinationY":42}],"areaMap":[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,13,14,15,0,0,0,0,0,0,0,0],[2,2,3,0,0,0,0,0,0,0,13,15,0,0,1,2],[5,5,10,2,3,0,0,0,0,0,0,0,0,0,4,5],[9,9,9,9,16,0,0,13,15,0,0,0,0,0,12,9],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,13,14,14,15,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[2,2,2,3,0,0,0,0,1,2,2,3,0,0,1,2],[5,5,5,6,0,0,1,2,8,5,5,6,0,0,4,5],[5,5,5,6,0,0,4,5,5,5,5,6,0,0,4,5]],"collisonMap":[["","","","","","","","","","","","","","","",""],["","","","","","","","","","","","","","","",""],["","","","","","t","t","t","","","","","","","",""],["t","t","tr","","","","","","","","t","t","","","tl","t"],["","","r","tl","tr","","","","","","","","","","l",""],["","","","","","","","t","t","","","","","","",""],["","","","","r","","","","","","","","","","",""],["","","","","","","","","","","t","t","t","t","",""],["","","","","","","","","","","","","","","",""],["t","t","t","tr","","","","","tl","t","t","tr","","","tl","t"],["","","","r","","","tl","tr","l","","","r","","","l",""],["","","","rb","bl","br","l","","","","","r","bl","br","lb",""]],"objectsMap":[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,[{"id":15,"xOffset":0,"yOffset":0,"width":16,"height":16}],[{"id":15,"xOffset":0,"yOffset":0,"width":16,"height":16}],0,0,0,0,0,0,[{"id":15,"xOffset":0,"yOffset":0,"width":16,"height":16}],[{"id":15,"xOffset":0,"yOffset":0,"width":16,"height":16}],0,0]]}');
 
-/***/ }),
+/***/ },
 
-/***/ "./app/areas/area-5.json":
+/***/ "./app/areas/area-5.json"
 /*!*******************************!*\
   !*** ./app/areas/area-5.json ***!
   \*******************************/
-/***/ ((module) => {
+(module) {
 
 module.exports = /*#__PURE__*/JSON.parse('{"id":5,"world":4,"rows":12,"columns":16,"theme":"dungeon","death":[{"x":48,"y":170,"height":32,"width":32},{"x":176,"y":170,"height":32,"width":32},{"x":240,"y":170,"height":32,"width":16}],"portals":[{"x":-8,"y":0,"height":48,"width":8,"direction":-1,"destinationArea":4,"destinationX":250,"destinationY":42},{"x":256,"y":0,"height":48,"width":9,"direction":1,"destinationArea":6,"destinationX":6,"destinationY":42}],"areaMap":[[9,9,9,9,16,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,13,14,14,15,0,0,0,0,0],[2,2,2,3,0,0,0,0,0,0,0,0,0,0,1,2],[9,9,9,16,0,0,0,0,0,0,0,0,0,0,12,9],[0,0,0,0,0,0,13,14,15,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,13,15,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[2,2,3,0,0,0,0,0,1,2,3,0,0,0,0,0],[5,5,6,0,0,0,0,0,4,5,6,0,0,0,0,0],[5,5,6,0,0,1,2,2,8,5,6,0,0,1,3,0],[5,5,6,0,0,4,5,5,5,5,6,0,0,4,6,0]],"collisonMap":[["","","","","","","","","","","","","","","",""],["","","","","","","","","","","","","","","",""],["","","","","","","","t","t","t","t","","","","",""],["t","t","t","t","","","","","","","","","","","t","t"],["","","","","","","","","","","","","","","",""],["","","","","","","t","t","t","","","","","","",""],["","","","","","","","","","","","t","t","","",""],["","","","","","","","","","","","","","","",""],["t","t","tr","","","","","","t","t","tr","","","","",""],["","","r","","","","","","l","","r","","","","",""],["","","r","","","lt","t","tr","","r","r","","","tl","tr",""],["","","r","l","r","l","","","","","r","bl","br","l","r",""]],"objectsMap":[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]]}');
 
-/***/ }),
+/***/ },
 
-/***/ "./app/areas/area-6.json":
+/***/ "./app/areas/area-6.json"
 /*!*******************************!*\
   !*** ./app/areas/area-6.json ***!
   \*******************************/
-/***/ ((module) => {
+(module) {
 
 module.exports = /*#__PURE__*/JSON.parse('{"id":6,"world":5,"theme":"lab","death":[{"x":64,"y":170,"height":32,"width":32},{"x":176,"y":160,"height":20,"width":32}],"portals":[{"x":-8,"y":0,"height":48,"width":8,"direction":-1,"destinationArea":5,"destinationX":250,"destinationY":42},{"x":256,"y":0,"height":48,"width":9,"direction":1,"destinationArea":1,"destinationX":6,"destinationY":24}],"areaMap":[[18,19,18,19,18,19,18,19,18,19,18,19,18,19,18,19],[20,21,20,21,20,21,20,21,20,21,20,21,20,21,20,21],[21,20,21,20,21,12,13,14,21,20,21,20,21,20,21,20],[2,2,3,21,20,21,20,21,20,21,20,21,20,21,1,2],[9,9,11,20,21,20,21,20,21,20,15,20,21,20,9,10],[20,21,20,21,20,21,12,13,14,21,20,21,20,21,20,21],[21,20,21,20,21,20,21,20,21,20,21,12,14,20,21,20],[20,21,20,21,20,21,20,21,20,21,20,21,20,21,20,1],[21,20,21,20,21,20,21,20,21,20,21,20,21,20,21,20],[20,21,20,21,20,21,20,21,20,1,2,21,20,3,20,21],[2,2,2,3,16,16,1,2,2,7,5,20,21,8,2,2],[5,5,5,6,17,17,4,5,5,5,5,5,5,5,5,5]],"collisonMap":[["","","","","","","","","","","","","","","",""],["","","","","","","","","","","","","","","",""],["","","","","","t","t","t","","","","","","","",""],["t","t","tr","","","","","","","","","","","","tl","t"],["","","","","","","","","","","t","","","","",""],["","","","","","","t","t","t","","","","","","",""],["","","","","","","","","","","","t","t","","",""],["","","","","","","","","","","","","","","","t"],["","","","","","","","","","","","","","","",""],["","","","","","","","","","tl","tr","","","tr","",""],["t","t","t","tr","","","tl","t","tr","","r","","","l","tl","t"],["","","","r","lb","rb","l","","","","","t","t","","",""]],"objectsMap":[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]]}');
 
-/***/ }),
+/***/ },
 
-/***/ "./app/areas/area-7.json":
+/***/ "./app/areas/area-7.json"
 /*!*******************************!*\
   !*** ./app/areas/area-7.json ***!
   \*******************************/
-/***/ ((module) => {
+(module) {
 
-module.exports = /*#__PURE__*/JSON.parse('{"id":7,"world":1,"theme":"grasslands","rows":12,"columns":21,"water":[{"left":0,"top":11},{"left":1,"top":11},{"left":2,"top":11},{"left":3,"top":11},{"left":4,"top":11},{"left":7,"top":11},{"left":8,"top":11},{"left":9,"top":11},{"left":10,"top":11},{"left":14,"top":11},{"left":15,"top":11},{"left":16,"top":11},{"left":17,"top":11},{"left":18,"top":11},{"left":19,"top":11},{"left":20,"top":11}],"coins":[{"id":"7c00","left":14,"top":0.5},{"id":"7c01","left":17,"top":0.5},{"id":"7c02","left":18.5,"top":1.5},{"id":"7c03","left":19.1,"top":2.8},{"id":"7c04","left":19.5,"top":4.25},{"id":"7c05","left":19.5,"top":5.5},{"id":"7c06","left":12.5,"top":1.5},{"id":"7c07","left":11.9,"top":2.8},{"id":"7c08","left":8.5,"top":2.8},{"id":"7c09","left":7.4,"top":3.7},{"id":"7c10","left":6.5,"top":4.7},{"id":"7c11","left":6.1,"top":6},{"id":"7c12","left":6,"top":7.5},{"id":"7c13","left":13.8,"top":5.5},{"id":"7c14","left":12.4,"top":6.1},{"id":"7c15","left":11.5,"top":7.5},{"id":"7c16","left":2,"top":0.5},{"id":"7c17","left":3.4,"top":0.9},{"id":"7c18","left":4.5,"top":1.8},{"id":"7c19","left":2.6,"top":4.5},{"id":"7c20","left":1.7,"top":5.7},{"id":"7c21","left":0.3,"top":6.1}],"death":[{"x":0,"y":176,"height":16,"width":336}],"portals":[{"x":-8,"y":0,"height":32,"width":8,"direction":-1,"destinationArea":2,"destinationX":330,"destinationY":24},{"x":336,"y":64,"height":48,"width":8,"direction":1,"destinationArea":3,"destinationX":6,"destinationY":24}],"enemies":[{"id":"a07e01","type":"pig","left":5.3,"top":8,"sway":22,"dir":-1},{"id":"a07e02","type":"pig","left":12.4,"top":8,"sway":24,"dir":1},{"id":"a07e02","type":"pig","left":16.9,"top":6,"sway":44,"dir":-1},{"id":"a07e03","type":"chameleon","left":4.75,"top":2,"sway":16,"dir":1},{"id":"a07e04","type":"chameleon","left":9.75,"top":4,"sway":16,"dir":1},{"id":"a07e05","type":"chameleon","left":15.15,"top":1,"sway":24,"dir":-1}],"areaMap":[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,13,15,0,0,0,0,0,0,0,0,0,0],[2,3,0,0,0,0,0,0,0,0,0,0,0,0,13,14,14,15,0,0,0],[5,6,0,0,13,14,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[9,16,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,13,14,15,0,0,0,1,3,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,6,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2],[3,0,0,0,0,0,0,0,0,0,0,0,0,0,4,5,5,5,5,5,5],[6,0,0,0,1,2,2,3,0,0,0,1,2,2,[9,3],9,9,9,9,9,9],[16,0,13,14,[5,14],[5,15],5,6,0,0,0,4,5,5,6,0,0,0,0],[0,0,0,0,4,5,5,6,0,0,0,4,5,5,6,0,0,0,0,0,0]],"collisonMap":[["","","","","","","","","","","","","","","","","","","","",""],["","","","","","","","","","t","t","","","","","","","","","",""],["t","t","","","","","","","","","","","","","t","t","t","t","","",""],["","","","","t","t","t","","","","","","","","","","","","","",""],["","","","","","","","","","","","","","","","","","","","",""],["","","","","","","","","","t","t","t","","","","t","t","","","",""],["","","","","","","","","","","","","","","","","","","","",""],["","","","","","","","","","","","","","","t","t","t","t","t","t","t"],["t","","","","","","","","","","","","","","","","","","","",""],["","","","","t","t","t","t","","","","t","t","t","t","","","","","",""],["","","t","t","t","t","","","","","","","","","","","","","","",""],["","","","","","","","","","","","","","","","","","","","",""]],"objectsMap":[[0,0,0,0,0,0,0,0,0,[{"id":9,"xOffset":10,"yOffset":8,"width":18,"height":8},{"id":8,"xOffset":6,"yOffset":11,"width":12,"height":6}],0,0,0,0,0,0,0,0,0,0,0],[0,[{"id":6,"xOffset":-4,"yOffset":1,"width":16,"height":16}],0,0,0,0,0,0,0,0,0,0,0,0,0,[{"id":7,"xOffset":4,"yOffset":4,"width":12,"height":12},{"id":7,"xOffset":10,"yOffset":-8,"width":12,"height":12}],[{"id":7,"xOffset":0,"yOffset":4,"width":12,"height":12}],0,0,0,0,0],[0,0,0,0,[{"id":2,"xOffset":14,"yOffset":-16,"width":32,"height":32},{"id":1,"xOffset":-4,"yOffset":-23,"width":40,"height":40}],0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,[{"id":2,"xOffset":8,"yOffset":-15,"width":32,"height":32},{"id":11,"xOffset":8,"yOffset":8,"width":10,"height":8}],0,[{"id":10,"xOffset":-2,"yOffset":7,"width":12,"height":10}],0,0,0,0,[{"id":3,"xOffset":-8,"yOffset":8,"width":18,"height":8}],0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,[{"id":5,"xOffset":2,"yOffset":1,"width":16,"height":16}],[{"id":2,"xOffset":20,"yOffset":-16,"width":32,"height":32},{"id":1,"xOffset":-16,"yOffset":-24,"width":40,"height":40},{"id":1,"xOffset":-8,"yOffset":-39,"width":56,"height":56}],0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,[{"id":1,"xOffset":12,"yOffset":-16,"width":32,"height":32},{"id":2,"xOffset":-8,"yOffset":-32,"width":48,"height":48}],[{"id":9,"xOffset":0,"yOffset":10,"width":12,"height":7}],[{"id":4,"xOffset":3,"yOffset":4,"width":20,"height":12},{"id":4,"xOffset":18,"yOffset":11,"width":12,"height":6}],0,0,0,0,[{"id":1,"xOffset":0,"yOffset":-19,"width":36,"height":36}],0,[{"id":7,"xOffset":4,"yOffset":4,"width":12,"height":12}],0,0],[0,0,[{"id":1,"xOffset":0,"yOffset":-16,"width":32,"height":32},{"id":8,"xOffset":6,"yOffset":10,"width":10,"height":7}],[{"id":11,"xOffset":4,"yOffset":8,"width":10,"height":8}],0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]]}');
+module.exports = /*#__PURE__*/JSON.parse('{"id":7,"world":1,"theme":"grasslands","rows":12,"columns":21,"water":[{"left":0,"top":11},{"left":1,"top":11},{"left":2,"top":11},{"left":3,"top":11},{"left":4,"top":11},{"left":7,"top":11},{"left":8,"top":11},{"left":9,"top":11},{"left":10,"top":11},{"left":14,"top":11},{"left":15,"top":11},{"left":16,"top":11},{"left":17,"top":11},{"left":18,"top":11},{"left":19,"top":11},{"left":20,"top":11}],"coins":[{"id":"7c00","left":14,"top":0.5},{"id":"7c01","left":17,"top":0.5},{"id":"7c02","left":18.5,"top":1.5},{"id":"7c03","left":19.1,"top":2.8},{"id":"7c04","left":19.5,"top":4.25},{"id":"7c05","left":19.5,"top":5.5},{"id":"7c06","left":12.5,"top":1.5},{"id":"7c07","left":11.9,"top":2.8},{"id":"7c08","left":8.5,"top":2.8},{"id":"7c09","left":7.4,"top":3.7},{"id":"7c10","left":6.5,"top":4.7},{"id":"7c11","left":6.1,"top":6},{"id":"7c12","left":6,"top":7.5},{"id":"7c13","left":13.8,"top":5.5},{"id":"7c14","left":12.4,"top":6.1},{"id":"7c15","left":11.5,"top":7.5},{"id":"7c16","left":2,"top":0.5},{"id":"7c17","left":3.4,"top":0.9},{"id":"7c18","left":4.5,"top":1.8},{"id":"7c19","left":2.6,"top":4.5},{"id":"7c20","left":1.7,"top":5.7},{"id":"7c21","left":0.3,"top":6.1}],"death":[{"x":0,"y":176,"height":16,"width":336}],"portals":[{"x":-8,"y":0,"height":32,"width":8,"direction":-1,"destinationArea":2,"destinationX":330,"destinationY":24},{"x":336,"y":64,"height":48,"width":8,"direction":1,"destinationArea":9,"destinationX":16,"destinationY":104}],"enemies":[{"id":"a07e01","type":"pig","left":5.3,"top":8,"sway":22,"dir":-1},{"id":"a07e02","type":"pig","left":12.4,"top":8,"sway":24,"dir":1},{"id":"a07e06","type":"pig","left":16.9,"top":6,"sway":44,"dir":-1},{"id":"a07e03","type":"chameleon","left":4.75,"top":2,"sway":16,"dir":1},{"id":"a07e04","type":"chameleon","left":9.75,"top":4,"sway":16,"dir":1},{"id":"a07e05","type":"chameleon","left":15.15,"top":1,"sway":24,"dir":-1}],"areaMap":[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,13,15,0,0,0,0,0,0,0,0,0,0],[2,3,0,0,0,0,0,0,0,0,0,0,0,0,13,14,14,15,0,0,0],[5,6,0,0,13,14,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[9,16,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,13,14,15,0,0,0,1,3,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,6,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2],[3,0,0,0,0,0,0,0,0,0,0,0,0,0,4,5,5,5,5,5,5],[6,0,0,0,1,2,2,3,0,0,0,1,2,2,[9,3],9,9,9,9,9,9],[16,0,13,14,[5,14],[5,15],5,6,0,0,0,4,5,5,6,0,0,0,0],[0,0,0,0,4,5,5,6,0,0,0,4,5,5,6,0,0,0,0,0,0]],"collisonMap":[["","","","","","","","","","","","","","","","","","","","",""],["","","","","","","","","","t","t","","","","","","","","","",""],["t","t","","","","","","","","","","","","","t","t","t","t","","",""],["","","","","t","t","t","","","","","","","","","","","","","",""],["","","","","","","","","","","","","","","","","","","","",""],["","","","","","","","","","t","t","t","","","","t","t","","","",""],["","","","","","","","","","","","","","","","","","","","",""],["","","","","","","","","","","","","","","t","t","t","t","t","t","t"],["t","","","","","","","","","","","","","","","","","","","",""],["","","","","t","t","t","t","","","","t","t","t","t","","","","","",""],["","","t","t","t","t","","","","","","","","","","","","","","",""],["","","","","","","","","","","","","","","","","","","","",""]],"objectsMap":[[0,0,0,0,0,0,0,0,0,[{"id":9,"xOffset":10,"yOffset":8,"width":18,"height":8},{"id":8,"xOffset":6,"yOffset":11,"width":12,"height":6}],0,0,0,0,0,0,0,0,0,0,0],[0,[{"id":6,"xOffset":-4,"yOffset":1,"width":16,"height":16}],0,0,0,0,0,0,0,0,0,0,0,0,0,[{"id":7,"xOffset":4,"yOffset":4,"width":12,"height":12},{"id":7,"xOffset":10,"yOffset":-8,"width":12,"height":12}],[{"id":7,"xOffset":0,"yOffset":4,"width":12,"height":12}],0,0,0,0,0],[0,0,0,0,[{"id":2,"xOffset":14,"yOffset":-16,"width":32,"height":32},{"id":1,"xOffset":-4,"yOffset":-23,"width":40,"height":40}],0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,[{"id":2,"xOffset":8,"yOffset":-15,"width":32,"height":32},{"id":11,"xOffset":8,"yOffset":8,"width":10,"height":8}],0,[{"id":10,"xOffset":-2,"yOffset":7,"width":12,"height":10}],0,0,0,0,[{"id":3,"xOffset":-8,"yOffset":8,"width":18,"height":8}],0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,[{"id":5,"xOffset":2,"yOffset":1,"width":16,"height":16}],[{"id":2,"xOffset":20,"yOffset":-16,"width":32,"height":32},{"id":1,"xOffset":-16,"yOffset":-24,"width":40,"height":40},{"id":1,"xOffset":-8,"yOffset":-39,"width":56,"height":56}],0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,[{"id":1,"xOffset":12,"yOffset":-16,"width":32,"height":32},{"id":2,"xOffset":-8,"yOffset":-32,"width":48,"height":48}],[{"id":9,"xOffset":0,"yOffset":10,"width":12,"height":7}],[{"id":4,"xOffset":3,"yOffset":4,"width":20,"height":12},{"id":4,"xOffset":18,"yOffset":11,"width":12,"height":6}],0,0,0,0,[{"id":1,"xOffset":0,"yOffset":-19,"width":36,"height":36}],0,[{"id":7,"xOffset":4,"yOffset":4,"width":12,"height":12}],0,0],[0,0,[{"id":1,"xOffset":0,"yOffset":-16,"width":32,"height":32},{"id":8,"xOffset":6,"yOffset":10,"width":10,"height":7}],[{"id":11,"xOffset":4,"yOffset":8,"width":10,"height":8}],0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]]}');
 
-/***/ }),
+/***/ },
 
-/***/ "./app/areas/area-8.json":
+/***/ "./app/areas/area-8.json"
 /*!*******************************!*\
   !*** ./app/areas/area-8.json ***!
   \*******************************/
-/***/ ((module) => {
+(module) {
 
-module.exports = /*#__PURE__*/JSON.parse('{"id":8,"world":2,"rows":12,"columns":21,"theme":"iceland","water":[{"left":8,"top":10.5},{"left":8,"top":11},{"left":9,"top":10.5},{"left":9,"top":11},{"left":10,"top":10.5},{"left":10,"top":11},{"left":11,"top":10.5},{"left":11,"top":11},{"left":12,"top":10.5},{"left":12,"top":11}],"coins":[{"id":"8c01","left":3.5,"top":2.6},{"id":"8c02","left":4.2,"top":1.3},{"id":"8c03","left":5.8,"top":0.6},{"id":"8c04","left":7.5,"top":0.5},{"id":"8c05","left":17.5,"top":2.6},{"id":"8c06","left":16.8,"top":1.3},{"id":"8c07","left":15.2,"top":0.6},{"id":"8c08","left":13.5,"top":0.5},{"id":"8c09","left":6.5,"top":3.6},{"id":"8c10","left":12.5,"top":8.6},{"id":"8c11","left":7.5,"top":8.6},{"id":"8c12","left":8.3,"top":6.8},{"id":"8c13","left":10.4,"top":5.4},{"id":"8c14","left":12.5,"top":4.8},{"id":"8c15","left":14.5,"top":4.6},{"id":"8c16","left":8.8,"top":4},{"id":"8c17","left":11.7,"top":6.9}],"death":[{"x":144,"y":170,"height":32,"width":48}],"portals":[{"x":-8,"y":0,"height":64,"width":8,"direction":-1,"destinationArea":3,"destinationX":330,"destinationY":42},{"x":336,"y":0,"height":64,"width":8,"direction":1,"destinationArea":1,"destinationX":16,"destinationY":24}],"enemies":[{"id":"a08e01","type":"pig","left":10.25,"top":1,"sway":52,"dir":-1},{"id":"a08e02","type":"pig","left":10.25,"top":1,"sway":52,"dir":1},{"id":"a08e03","type":"pig","left":17.75,"top":7,"sway":28,"dir":1},{"id":"a08e04","type":"pig","left":1.75,"top":7,"sway":28,"dir":-1},{"id":"a08e05","type":"chameleon","left":6.25,"top":9,"sway":22,"dir":1},{"id":"a08e06","type":"chameleon","left":18.25,"top":3,"sway":22,"dir":-1}],"areaMap":[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,13,14,14,14,14,14,14,15,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[2,2,2,2,3,0,0,0,0,0,0,0,0,0,0,0,0,1,2,2,2],[5,5,5,5,10,2,2,3,0,0,0,0,0,0,0,0,0,4,5,5,5],[5,5,5,5,5,5,5,6,0,0,0,0,0,0,1,2,2,8,5,5,5],[5,5,5,5,5,5,5,6,0,0,0,0,0,0,4,5,5,5,5,5,5],[2,2,2,2,[5,3],5,5,6,0,0,0,0,0,0,4,5,[5,1],2,2,2,2],[5,5,5,5,[5,6],5,5,6,0,0,0,0,0,0,4,5,[5,4],5,5,5,5],[5,5,5,5,10,2,2,2,3,0,0,0,1,2,2,2,8,5,5,5,5],[5,5,5,5,5,5,5,5,6,0,0,0,4,5,5,5,5,5,5,5,5]],"collisonMap":[["","","","","","","","","","","","","","","","","","","","",""],["","","","","","","","","","","","","","","","","","","","",""],["","","","","","","","t","t","t","t","t","t","t","t","","","","","",""],["","","","","","","","","","","","","","","","","","","","",""],["t","t","t","t","tr","","","","","","","","","","","","","tl","t","t","t"],["","","","","r","t","t","t","","","","","","","","","","l","","",""],["","","","","","","","","","","","","","","t","t","t","l","","",""],["","","","","","","","","","","","","","","","","","","","",""],["t","t","t","t","t","","","","","","","","","","","","tl","t","t","t","t"],["","","","","r","","","","","","","","","","","","l","","","",""],["","","","","r","t","t","t","tr","","","","tl","t","t","t","","","","",""],["","","","","","","","","r","","","","l","","","","","","","",""]],"objectsMap":[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,[{"id":10,"xOffset":0,"yOffset":-4,"width":60,"height":20}],0,0,0,0,0,0,0,0,0,0,0],[0,[{"id":2,"xOffset":-12,"yOffset":-16,"width":48,"height":48}],0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,[{"id":6,"xOffset":0,"yOffset":0,"width":16,"height":16}],0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,[{"id":5,"xOffset":0,"yOffset":0,"width":16,"height":16}],0],[0,0,0,0,0,[{"id":8,"xOffset":0,"yOffset":0,"width":18,"height":16}],0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,[{"id":1,"xOffset":-4,"yOffset":-16,"width":32,"height":48}],0,[{"id":7,"xOffset":9,"yOffset":8,"width":12,"height":12}],0,0,0,0,0,0,0,0,0,0,0,[{"id":3,"xOffset":0,"yOffset":-32,"width":24,"height":32}],0,0,0,[{"id":1,"xOffset":4,"yOffset":-16,"width":32,"height":48}],0],[0,0,0,[{"id":7,"xOffset":2,"yOffset":4,"width":12,"height":12}],[{"id":7,"xOffset":0,"yOffset":4,"width":12,"height":12}],0,0,0,0,0,0,0,0,0,0,0,0,0,[{"id":8,"xOffset":4,"yOffset":0,"width":18,"height":16}],0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,[{"id":10,"xOffset":8,"yOffset":0,"width":48,"height":16}],0,0,0,0,0,0,[{"id":4,"xOffset":8,"yOffset":4,"width":21,"height":12}],0,[{"id":9,"xOffset":8,"yOffset":4,"width":12,"height":12},{"id":9,"xOffset":8,"yOffset":-8,"width":12,"height":12}],0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]]}');
+module.exports = /*#__PURE__*/JSON.parse('{"id":8,"world":2,"rows":12,"columns":21,"theme":"iceland","water":[{"left":8,"top":10.5},{"left":8,"top":11},{"left":9,"top":10.5},{"left":9,"top":11},{"left":10,"top":10.5},{"left":10,"top":11},{"left":11,"top":10.5},{"left":11,"top":11},{"left":12,"top":10.5},{"left":12,"top":11}],"coins":[{"id":"8c01","left":3.5,"top":2.6},{"id":"8c02","left":4.2,"top":1.3},{"id":"8c03","left":5.8,"top":0.6},{"id":"8c04","left":7.5,"top":0.5},{"id":"8c05","left":17.5,"top":2.6},{"id":"8c06","left":16.8,"top":1.3},{"id":"8c07","left":15.2,"top":0.6},{"id":"8c08","left":13.5,"top":0.5},{"id":"8c09","left":6.5,"top":3.6},{"id":"8c10","left":12.5,"top":8.6},{"id":"8c11","left":7.5,"top":8.6},{"id":"8c12","left":8.3,"top":6.8},{"id":"8c13","left":10.4,"top":5.4},{"id":"8c14","left":12.5,"top":4.8},{"id":"8c15","left":14.5,"top":4.6},{"id":"8c16","left":8.8,"top":4},{"id":"8c17","left":11.7,"top":6.9}],"death":[{"x":144,"y":170,"height":32,"width":48}],"portals":[{"x":-8,"y":0,"height":64,"width":8,"direction":-1,"destinationArea":3,"destinationX":330,"destinationY":42},{"x":336,"y":0,"height":64,"width":8,"direction":1,"destinationArea":11,"destinationX":16,"destinationY":56}],"enemies":[{"id":"a08e01","type":"pig","left":10.25,"top":1,"sway":52,"dir":-1},{"id":"a08e02","type":"pig","left":10.25,"top":1,"sway":52,"dir":1},{"id":"a08e03","type":"pig","left":17.75,"top":7,"sway":28,"dir":1},{"id":"a08e04","type":"pig","left":1.75,"top":7,"sway":28,"dir":-1},{"id":"a08e05","type":"chameleon","left":6.25,"top":9,"sway":22,"dir":1},{"id":"a08e06","type":"chameleon","left":14.5,"top":5,"sway":6,"dir":-1}],"areaMap":[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,13,14,14,14,14,14,14,15,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[2,2,2,2,3,0,0,0,0,0,0,0,0,0,0,0,0,1,2,2,2],[5,5,5,5,10,2,2,3,0,0,0,0,0,0,0,0,0,4,5,5,5],[5,5,5,5,5,5,5,6,0,0,0,0,0,0,1,2,2,8,5,5,5],[5,5,5,5,5,5,5,6,0,0,0,0,0,0,4,5,5,5,5,5,5],[2,2,2,2,[5,3],5,5,6,0,0,0,0,0,0,4,5,[5,1],2,2,2,2],[5,5,5,5,[5,6],5,5,6,0,0,0,0,0,0,4,5,[5,4],5,5,5,5],[5,5,5,5,10,2,2,2,3,0,0,0,1,2,2,2,8,5,5,5,5],[5,5,5,5,5,5,5,5,6,0,0,0,4,5,5,5,5,5,5,5,5]],"collisonMap":[["","","","","","","","","","","","","","","","","","","","",""],["","","","","","","","","","","","","","","","","","","","",""],["","","","","","","","t","t","t","t","t","t","t","t","","","","","",""],["","","","","","","","","","","","","","","","","","","","",""],["t","t","t","t","tr","","","","","","","","","","","","","tl","t","t","t"],["","","","","r","t","t","t","","","","","","","","","","l","","",""],["","","","","","","","","","","","","","","t","t","t","l","","",""],["","","","","","","","","","","","","","","","","","","","",""],["t","t","t","t","t","","","","","","","","","","","","tl","t","t","t","t"],["","","","","r","","","","","","","","","","","","l","","","",""],["","","","","r","t","t","t","tr","","","","tl","t","t","t","","","","",""],["","","","","","","","","r","","","","l","","","","","","","",""]],"objectsMap":[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,[{"id":10,"xOffset":0,"yOffset":-4,"width":60,"height":20}],0,0,0,0,0,0,0,0,0,0,0],[0,[{"id":2,"xOffset":-12,"yOffset":-16,"width":48,"height":48}],0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,[{"id":6,"xOffset":0,"yOffset":0,"width":16,"height":16}],0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,[{"id":5,"xOffset":0,"yOffset":0,"width":16,"height":16}],0],[0,0,0,0,0,[{"id":8,"xOffset":0,"yOffset":0,"width":18,"height":16}],0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,[{"id":1,"xOffset":-4,"yOffset":-16,"width":32,"height":48}],0,[{"id":7,"xOffset":9,"yOffset":8,"width":12,"height":12}],0,0,0,0,0,0,0,0,0,0,0,[{"id":3,"xOffset":0,"yOffset":-32,"width":24,"height":32}],0,0,0,[{"id":1,"xOffset":4,"yOffset":-16,"width":32,"height":48}],0],[0,0,0,[{"id":7,"xOffset":2,"yOffset":4,"width":12,"height":12}],[{"id":7,"xOffset":0,"yOffset":4,"width":12,"height":12}],0,0,0,0,0,0,0,0,0,0,0,0,0,[{"id":8,"xOffset":4,"yOffset":0,"width":18,"height":16}],0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,[{"id":10,"xOffset":8,"yOffset":0,"width":48,"height":16}],0,0,0,0,0,0,[{"id":4,"xOffset":8,"yOffset":4,"width":21,"height":12}],0,[{"id":9,"xOffset":8,"yOffset":4,"width":12,"height":12},{"id":9,"xOffset":8,"yOffset":-8,"width":12,"height":12}],0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]]}');
 
-/***/ })
+/***/ },
+
+/***/ "./app/areas/area-9.json"
+/*!*******************************!*\
+  !*** ./app/areas/area-9.json ***!
+  \*******************************/
+(module) {
+
+module.exports = /*#__PURE__*/JSON.parse('{"id":9,"world":1,"rows":12,"columns":21,"theme":"grasslands","water":[{"left":4,"top":9},{"left":4,"top":9.5},{"left":4,"top":10},{"left":4,"top":10.5},{"left":4,"top":11},{"left":5,"top":9},{"left":5,"top":9.5},{"left":5,"top":10},{"left":5,"top":10.5},{"left":5,"top":11},{"left":6,"top":9},{"left":6,"top":9.5},{"left":6,"top":10},{"left":6,"top":10.5},{"left":6,"top":11}],"coins":[{"id":"A09C01","left":5.25,"top":4.1},{"id":"A09C02","left":6.25,"top":4.1},{"id":"A09C03","left":9.25,"top":5.1},{"id":"A09C04","left":10.25,"top":5.1},{"id":"A09C05","left":18.25,"top":4.1},{"id":"A09C06","left":19.25,"top":4.1},{"id":"A09C07","left":6.25,"top":7.05},{"id":"A09C08","left":7.25,"top":7.05},{"id":"A09C09","left":8.25,"top":7.05},{"id":"A09C10","left":14.25,"top":8.05},{"id":"A09C11","left":15.25,"top":8.05},{"id":"A09C12","left":16.25,"top":8.05},{"id":"A09C13","left":17.25,"top":6.05},{"id":"A09C14","left":18.25,"top":6.05},{"id":"A09C15","left":19.25,"top":6.05}],"death":[{"x":80,"y":170,"height":32,"width":16},{"x":144,"y":170,"height":32,"width":16}],"portals":[{"x":-8,"y":-40,"height":152,"width":8,"direction":-1,"destinationArea":7,"destinationX":330,"destinationY":96},{"x":336,"y":-40,"height":152,"width":8,"direction":1,"destinationArea":10,"destinationX":16,"destinationY":88}],"enemies":[{"id":"A09E01","type":"chameleon","left":10.35,"top":8,"sway":4,"dir":-1},{"id":"A09E02","type":"chameleon","left":12.35,"top":9,"sway":4,"dir":-1}],"areaMap":[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,13,15,0,0,0,0,0,0,0,0,0,0,0,13,15,0],[0,0,0,0,0,0,0,0,0,13,15,0,0,0,0,0,0,0,0,0,0],[2,2,2,2,3,0,0,0,0,0,0,0,0,0,0,0,0,1,2,2,2],[5,5,5,5,6,0,1,2,3,0,0,0,0,0,0,0,0,4,5,5,5],[5,5,5,5,6,0,4,5,6,0,1,3,0,0,1,2,2,8,5,5,5],[5,5,5,5,6,0,4,5,6,0,4,10,2,2,8,5,5,5,5,5,5],[5,5,5,5,6,0,4,5,6,0,4,5,5,5,5,5,5,5,5,5,5]],"collisonMap":[["","","","","","","","","","","","","","","","","","","","",""],["","","","","","","","","","","","","","","","","","","","",""],["","","","","","","","","","","","","","","","","","","","",""],["","","","","","","","","","","","","","","","","","","","",""],["","","","","","","","","","","","","","","","","","","","",""],["","","","","","t","t","","","","","","","","","","","","t","t",""],["","","","","","","","","","t","t","","","","","","","","","",""],["t","t","t","t","tr","","","","","","","","","","","","","tl","t","t","t"],["","","","","r","","tl","t","tr","","","","","","","","","l","","",""],["","","","","r","","l","","r","","tl","tr","","","tl","t","t","","","",""],["","","","","r","","l","","r","","l","","t","t","","","","","","",""],["","","","","r","","l","","r","","l","","","","","","","","","",""]],"objectsMap":[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[[{"id":8,"xOffset":1,"yOffset":8,"width":14,"height":8}],[{"id":5,"xOffset":2,"yOffset":2,"width":14,"height":14}],0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,[{"id":3,"xOffset":-4,"yOffset":6,"width":24,"height":10}],[{"id":3,"xOffset":-4,"yOffset":6,"width":24,"height":10}],[{"id":6,"xOffset":0,"yOffset":2,"width":14,"height":14}],0],[0,0,0,0,0,0,0,[{"id":1,"xOffset":-8,"yOffset":-16,"width":32,"height":32}],0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]]}');
+
+/***/ }
 
 /******/ 	});
 /************************************************************************/
 /******/ 	// The module cache
-/******/ 	var __webpack_module_cache__ = {};
+/******/ 	const __webpack_module_cache__ = {};
 /******/ 	
 /******/ 	// The require function
 /******/ 	function __webpack_require__(moduleId) {
 /******/ 		// Check if module is in cache
-/******/ 		var cachedModule = __webpack_module_cache__[moduleId];
+/******/ 		const cachedModule = __webpack_module_cache__[moduleId];
 /******/ 		if (cachedModule !== undefined) {
 /******/ 			return cachedModule.exports;
 /******/ 		}
 /******/ 		// Create a new module (and put it into the cache)
-/******/ 		var module = __webpack_module_cache__[moduleId] = {
+/******/ 		const module = __webpack_module_cache__[moduleId] = {
 /******/ 			// no module.id needed
 /******/ 			// no module.loaded needed
 /******/ 			exports: {}
 /******/ 		};
 /******/ 	
 /******/ 		// Execute the module function
+/******/ 		if (!(moduleId in __webpack_modules__)) {
+/******/ 			delete __webpack_module_cache__[moduleId];
+/******/ 			const e = new Error("Cannot find module '" + moduleId + "'");
+/******/ 			e.code = 'MODULE_NOT_FOUND';
+/******/ 			throw e;
+/******/ 		}
 /******/ 		__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
 /******/ 	
 /******/ 		// Return the exports of the module
@@ -1989,36 +2135,28 @@ module.exports = /*#__PURE__*/JSON.parse('{"id":8,"world":2,"rows":12,"columns":
 /******/ 	
 /************************************************************************/
 /******/ 	/* webpack/runtime/define property getters */
-/******/ 	(() => {
-/******/ 		// define getter functions for harmony exports
-/******/ 		__webpack_require__.d = (exports, definition) => {
-/******/ 			for(var key in definition) {
-/******/ 				if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
-/******/ 					Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
-/******/ 				}
+/******/ 	// define getter/value functions for harmony exports
+/******/ 	__webpack_require__.d = (exports, definition) => {
+/******/ 		for(var key in definition) {
+/******/ 			if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+/******/ 				Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
 /******/ 			}
-/******/ 		};
-/******/ 	})();
+/******/ 		}
+/******/ 	};
 /******/ 	
 /******/ 	/* webpack/runtime/hasOwnProperty shorthand */
-/******/ 	(() => {
-/******/ 		__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
-/******/ 	})();
+/******/ 	__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
 /******/ 	
 /******/ 	/* webpack/runtime/make namespace object */
-/******/ 	(() => {
-/******/ 		// define __esModule on exports
-/******/ 		__webpack_require__.r = (exports) => {
-/******/ 			if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
-/******/ 				Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
-/******/ 			}
-/******/ 			Object.defineProperty(exports, '__esModule', { value: true });
-/******/ 		};
-/******/ 	})();
+/******/ 	// define __esModule on exports
+/******/ 	__webpack_require__.r = (exports) => {
+/******/ 		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+/******/ 		Object.defineProperty(exports, '__esModule', { value: true });
+/******/ 	};
 /******/ 	
 /************************************************************************/
-var __webpack_exports__ = {};
-// This entry need to be wrapped in an IIFE because it need to be isolated against other modules in the chunk.
+let __webpack_exports__ = {};
+// This entry needs to be wrapped in an IIFE because it needs to be isolated against other modules in the chunk.
 (() => {
 /*!**********************!*\
   !*** ./app/index.js ***!
@@ -2047,6 +2185,7 @@ const isTouchesEnabled = "ontouchstart" in document.documentElement;
 const helpBtn = document.getElementById("helpBtn");
 const infoBtn = document.getElementById("infoBtn");
 const startBtn = document.getElementById("startBtn");
+const retryBtn = document.getElementById("retryBtn");
 const pauseBtn = document.getElementById("pauseBtn");
 const soundBtn = document.getElementById("soundBtn");
 const musicBtn = document.getElementById("musicBtn");
@@ -2089,6 +2228,9 @@ const toggleHelpScreen = (value) => {
 const toggleInfoScreen = (value) => {
   infoScreen.style.visibility = !value ? "hidden" : "visible";
 };
+const toggleRetryBtn = (value) => {
+  retryBtn.style.display = value ? "flex" : "none";
+};
 const toggleStartScreen = (value) => {
   startScreen.style.visibility = !value ? "hidden" : "visible";
 };
@@ -2106,7 +2248,7 @@ window.addEventListener("load", function() {
   let paused = false;
   let areaNumber = 1;
   let worldChanged = false;
-  const totalAreaNumber = 5;
+  let retryLevel = null;
   toggleSoundBtn((0,_util__WEBPACK_IMPORTED_MODULE_5__.getData)("mute_sounds"));
   toggleMusicBtn((0,_util__WEBPACK_IMPORTED_MODULE_5__.getData)("mute_music"));
   clearInterval(loadInterval);
@@ -2115,7 +2257,8 @@ window.addEventListener("load", function() {
   const controller = new _controller__WEBPACK_IMPORTED_MODULE_3__["default"]();
   const game = new _game__WEBPACK_IMPORTED_MODULE_0__["default"]((score) => {
     startTitle.textContent = "Game Over";
-    scoreTitle.textContent = "Score: " + score;
+    scoreTitle.textContent = `Score: ${score} \xB7 Area ${areaNumber}`;
+    retryLevel = _util__WEBPACK_IMPORTED_MODULE_5__.LEVELS.find(({ id }) => id === areaId) || null;
     const savedScore = (0,_util__WEBPACK_IMPORTED_MODULE_5__.getData)("high_score") || 0;
     const highScore = savedScore < score ? score : savedScore;
     (0,_util__WEBPACK_IMPORTED_MODULE_5__.setData)("high_score", savedScore < score ? score : savedScore);
@@ -2123,6 +2266,7 @@ window.addEventListener("load", function() {
       document.getElementById("highScore").innerHTML = `High Score: ${highScore}`;
     }
     setTimeout(() => {
+      toggleRetryBtn(!!retryLevel);
       toggleStartScreen(true);
     }, 1500);
   });
@@ -2206,26 +2350,16 @@ window.addEventListener("load", function() {
     if (portal) {
       worldChanged = true;
       engine.hold();
-      const { direction, destinationArea } = portal;
-      if (destinationArea !== areaId) {
-        if (direction < 0) {
-          areaNumber--;
-        } else {
-          areaNumber++;
-        }
-        if (areaNumber >= totalAreaNumber) {
-          areaNumber = 1;
-        }
-        if (areaNumber <= 0) {
-          areaNumber = totalAreaNumber;
-        }
-      }
+      const { destinationArea } = portal;
+      areaNumber = (0,_util__WEBPACK_IMPORTED_MODULE_5__.getAreaNumber)(destinationArea);
       areaId = destinationArea;
       setupWorld();
       setupScreen();
       engine.resume();
     }
-    game.update();
+    if (!paused) {
+      game.update();
+    }
   };
   const render = () => {
     screen.drawBackground();
@@ -2309,8 +2443,7 @@ window.addEventListener("load", function() {
       xOffset,
       -24
     );
-    const image = new Image();
-    image.src = "./assets/sprites/coin/image 1.webp";
+    const image = coins.frameSets.coin[0];
     const coinTextOffest = totalCoins >= 10 && totalCoins <= 99 ? 3 : totalCoins > 99 ? 3.4 : 2.7;
     screen.drawObject(image, (columns - 1.3) * 16, 8, 10, 10);
     screen.drawText("x", (columns - 2) * 16, 15);
@@ -2319,17 +2452,32 @@ window.addEventListener("load", function() {
     screen.drawText("Area", 12, 15.3);
     screen.drawText("x", 38, 15);
     const score = totalEnemies * 100 + totalCoins * 20;
-    const scoreTextOffest = score >= score >= 10 && score <= 99 ? 3 : score > 99 ? 3.4 : 2.7;
+    const scoreTextOffest = score >= 10 && score <= 99 ? 3 : score > 99 ? 3.4 : 2.7;
     screen.drawText(score, (columns - scoreTextOffest) * 9, 15.3);
     screen.render();
   };
   resize();
   var engine = new _engine__WEBPACK_IMPORTED_MODULE_2__["default"](1e3 / 30, update, render);
+  const isVisible = (el) => getComputedStyle(el).visibility === "visible";
+  const isPlaying = () => engine.started && !game.over && !paused;
+  const isMenuOpen = () => isVisible(helpScreen) || isVisible(infoScreen) || isVisible(portalScreen);
   const keyDownUp = ({ type, keyCode }) => {
+    if (type === "keydown") {
+      if (keyCode === 27 || keyCode === 80) {
+        if (isPlaying()) pauseBtn.onclick();
+        else if (paused && !isMenuOpen()) startBtn.click();
+        return;
+      }
+      if (keyCode === 13 && isVisible(startScreen) && !isMenuOpen()) {
+        (retryLevel ? retryBtn : startBtn).click();
+        return;
+      }
+    }
     controller.keyDownUp(type, keyCode);
   };
   window.addEventListener("keydown", keyDownUp);
   window.addEventListener("keyup", keyDownUp);
+  window.addEventListener("blur", () => controller.releaseAll());
   window.addEventListener("resize", resize);
   const leftMouse = new _controller_mouse_input__WEBPACK_IMPORTED_MODULE_4__["default"]("leftBtn", (e) => {
     clearMouse();
@@ -2357,6 +2505,8 @@ window.addEventListener("load", function() {
     clearMouse();
     startTitle.textContent = "";
     scoreTitle.textContent = "";
+    retryLevel = null;
+    toggleRetryBtn(false);
     toggleStartScreen(false);
     const start = () => {
       game.world.reset();
@@ -2392,6 +2542,11 @@ window.addEventListener("load", function() {
   (0,_util__WEBPACK_IMPORTED_MODULE_5__.populatePortals)(onPortalClick);
   startBtn.onclick = () => {
     loadWorld();
+  };
+  retryBtn.onclick = () => {
+    if (!retryLevel) return;
+    const { id, areaNum, left, top } = retryLevel;
+    loadWorld(id, areaNum, left, top);
   };
   pauseBtn.onclick = () => {
     clearMouse();
@@ -2437,6 +2592,8 @@ window.addEventListener("load", function() {
       if (!paused) {
         game.world.playThemeMusic();
       }
+    } else if (isPlaying()) {
+      pauseBtn.onclick();
     } else {
       game.world.pauseThemeMusic();
     }
