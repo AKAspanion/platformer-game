@@ -50,15 +50,16 @@ module.exports = {
   },
   devtool: "source-map",
   devServer: {
-    contentBase: path.resolve(__dirname, "./app"),
+    static: path.resolve(__dirname, "./app"),
     historyApiFallback: true,
-    inline: true,
     host: "localhost",
     port: 2108,
     open: true,
-    overlay: {
-      warnings: true,
-      errors: true,
+    client: {
+      overlay: {
+        warnings: true,
+        errors: true,
+      },
     },
   },
 };

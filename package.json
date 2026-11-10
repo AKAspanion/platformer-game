@@ -28,17 +28,17 @@
     "url": "git+https://github.com/AKAspanion/platformer-game.git"
   },
   "devDependencies": {
-    "clean-webpack-plugin": "^3.0.0",
-    "copy-webpack-plugin": "^7.0.0",
-    "esbuild-loader": "^3.0.1",
-    "eslint": "^7.19.0",
-    "eslint-webpack-plugin": "^2.4.3",
-    "gh-pages": "^3.1.0",
-    "prettier": "^2.7.1",
-    "terser-webpack-plugin": "^5.1.1",
-    "webpack": "^5.20.1",
-    "webpack-cli": "^4.5.0",
-    "webpack-dashboard": "^3.3.1",
-    "webpack-dev-server": "^3.11.2"
+    "clean-webpack-plugin": "^4.0.0",
+    "copy-webpack-plugin": "^14.0.0",
+    "esbuild-loader": "^4.5.0",
+    "eslint": "^10.14.0",
+    "eslint-webpack-plugin": "^6.0.0",
+    "gh-pages": "^6.3.0",
+    "prettier": "^3.9.10",
+    "terser-webpack-plugin": "^5.6.1",
+    "webpack": "^5.112.2",
+    "webpack-cli": "^7.3.1",
+    "webpack-dashboard": "^3.3.8",
+    "webpack-dev-server": "^6.1.0"
   }
 }
