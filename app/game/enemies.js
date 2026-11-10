@@ -53,7 +53,9 @@ export default class Enemies {
         const imageLeft = new Image();
         const imageRight = new Image();
         imageLeft.onload = onImgLoad;
+        imageLeft.onerror = onImgLoad;
         imageRight.onload = onImgLoad;
+        imageRight.onerror = onImgLoad;
         imageLeft.src = `./assets/sprites/enemies/${id}/left/image_part_0${index}.png`;
         imageRight.src = `./assets/sprites/enemies/${id}/right/image_part_0${index}.png`;
 
@@ -69,10 +71,12 @@ export default class Enemies {
       }
     });
 
+    // ids are stored as "id1,id2,"; match whole ids, not substrings
+    const killed = new Set(killedEnemies.split(","));
     for (let index = 0; index < enemies.length; index++) {
       const { id, type, left, top, sway, dir } = enemies[index];
 
-      if (!killedEnemies.includes(id)) {
+      if (!killed.has(id)) {
         this.items.push(
           new Enemy(
             id,

@@ -15,7 +15,7 @@ export default class Water {
     keys.forEach(({ count }) => {
       for (let index = 1; index <= count; index++) {
         const image = new Image();
-        image.onload = () => {
+        image.onload = image.onerror = () => {
           this.loadCount += 1;
 
           if (count === this.loadCount) {

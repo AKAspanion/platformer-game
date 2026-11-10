@@ -7,6 +7,8 @@ import MouseInput from "./controller/mouse-input";
 import {
   uid,
   getData,
+  getAreaNumber,
+  LEVELS,
   setData,
   populateHelp,
   populateLinks,
@@ -27,6 +29,7 @@ const isTouchesEnabled = "ontouchstart" in document.documentElement;
 const helpBtn = document.getElementById("helpBtn");
 const infoBtn = document.getElementById("infoBtn");
 const startBtn = document.getElementById("startBtn");
+const retryBtn = document.getElementById("retryBtn");
 const pauseBtn = document.getElementById("pauseBtn");
 const soundBtn = document.getElementById("soundBtn");
 const musicBtn = document.getElementById("musicBtn");
@@ -77,6 +80,10 @@ const toggleInfoScreen = (value) => {
   infoScreen.style.visibility = !value ? "hidden" : "visible";
 };
 
+const toggleRetryBtn = (value) => {
+  retryBtn.style.display = value ? "flex" : "none";
+};
+
 const toggleStartScreen = (value) => {
   startScreen.style.visibility = !value ? "hidden" : "visible";
 };
@@ -98,7 +105,7 @@ window.addEventListener("load", function () {
   let paused = false;
   let areaNumber = 1;
   let worldChanged = false;
-  const totalAreaNumber = 5;
+  let retryLevel = null; // level to restart from after Game Over
 
   toggleSoundBtn(getData("mute_sounds"));
   toggleMusicBtn(getData("mute_music"));
@@ -111,7 +118,8 @@ window.addEventListener("load", function () {
   // GAME
   const game = new Game((score) => {
     startTitle.textContent = "Game Over";
-    scoreTitle.textContent = "Score: " + score;
+    scoreTitle.textContent = `Score: ${score} · Area ${areaNumber}`;
+    retryLevel = LEVELS.find(({ id }) => id === areaId) || null;
 
     const savedScore = getData("high_score") || 0;
     const highScore = savedScore < score ? score : savedScore;
@@ -122,6 +130,7 @@ window.addEventListener("load", function () {
     }
 
     setTimeout(() => {
+      toggleRetryBtn(!!retryLevel);
       toggleStartScreen(true);
     }, 1500);
   });
@@ -229,21 +238,8 @@ window.addEventListener("load", function () {
       worldChanged = true;
       engine.hold();
 
-      const { direction, destinationArea } = portal;
-      if (destinationArea !== areaId) {
-        if (direction < 0) {
-          areaNumber--;
-        } else {
-          areaNumber++;
-        }
-
-        if (areaNumber >= totalAreaNumber) {
-          areaNumber = 1;
-        }
-        if (areaNumber <= 0) {
-          areaNumber = totalAreaNumber;
-        }
-      }
+      const { destinationArea } = portal;
+      areaNumber = getAreaNumber(destinationArea);
 
       areaId = destinationArea;
 
@@ -253,7 +249,11 @@ window.addEventListener("load", function () {
       engine.resume();
     }
 
-    game.update();
+    // Pause freezes the world too, not just input: otherwise a player paused
+    // mid-jump keeps falling (and can die) behind the pause menu.
+    if (!paused) {
+      game.update();
+    }
   };
 
   // render assets
@@ -362,8 +362,7 @@ window.addEventListener("load", function () {
     );
 
     // draw coin count
-    const image = new Image();
-    image.src = "./assets/sprites/coin/image 1.webp";
+    const image = coins.frameSets.coin[0];
     const coinTextOffest = totalCoins >= 10 && totalCoins <= 99 ? 3 : totalCoins > 99 ? 3.4 : 2.7;
 
     screen.drawObject(image, (columns - 1.3) * 16, 8, 10, 10);
@@ -375,7 +374,7 @@ window.addEventListener("load", function () {
     screen.drawText("x", 38, 15);
 
     const score = totalEnemies * 100 + totalCoins * 20;
-    const scoreTextOffest = score >= score >= 10 && score <= 99 ? 3 : score > 99 ? 3.4 : 2.7;
+    const scoreTextOffest = score >= 10 && score <= 99 ? 3 : score > 99 ? 3.4 : 2.7;
     screen.drawText(score, (columns - scoreTextOffest) * 9, 15.3);
 
     screen.render();
@@ -386,12 +385,32 @@ window.addEventListener("load", function () {
   var engine = new GameEngine(1000 / 30, update, render);
 
   // EVENTS HANDLER
+  const isVisible = (el) => getComputedStyle(el).visibility === "visible";
+  const isPlaying = () => engine.started && !game.over && !paused;
+  const isMenuOpen = () =>
+    isVisible(helpScreen) || isVisible(infoScreen) || isVisible(portalScreen);
+
   const keyDownUp = ({ type, keyCode }) => {
+    if (type === "keydown") {
+      // Esc / P: pause, or resume from the pause screen
+      if (keyCode === 27 || keyCode === 80) {
+        if (isPlaying()) pauseBtn.onclick();
+        else if (paused && !isMenuOpen()) startBtn.click();
+        return;
+      }
+      // Enter on the start / pause / game-over screen: play, resume, or retry
+      if (keyCode === 13 && isVisible(startScreen) && !isMenuOpen()) {
+        (retryLevel ? retryBtn : startBtn).click();
+        return;
+      }
+    }
     controller.keyDownUp(type, keyCode);
   };
 
   window.addEventListener("keydown", keyDownUp);
   window.addEventListener("keyup", keyDownUp);
+  // a key released while the window is unfocused never sends keyup
+  window.addEventListener("blur", () => controller.releaseAll());
   window.addEventListener("resize", resize);
 
   const leftMouse = new MouseInput("leftBtn", (e) => {
@@ -423,6 +442,8 @@ window.addEventListener("load", function () {
     clearMouse();
     startTitle.textContent = "";
     scoreTitle.textContent = "";
+    retryLevel = null;
+    toggleRetryBtn(false);
     toggleStartScreen(false);
 
     const start = () => {
@@ -472,6 +493,13 @@ window.addEventListener("load", function () {
 
   startBtn.onclick = () => {
     loadWorld();
+  };
+
+  // Restart the area the player died in (score resets, as on any restart).
+  retryBtn.onclick = () => {
+    if (!retryLevel) return;
+    const { id, areaNum, left, top } = retryLevel;
+    loadWorld(id, areaNum, left, top);
   };
 
   pauseBtn.onclick = () => {
@@ -532,6 +560,8 @@ window.addEventListener("load", function () {
       if (!paused) {
         game.world.playThemeMusic();
       }
+    } else if (isPlaying()) {
+      pauseBtn.onclick();
     } else {
       game.world.pauseThemeMusic();
     }

@@ -14,7 +14,7 @@ export default class items {
     keys.forEach(({ count }) => {
       for (let index = 1; index <= count; index++) {
         const image = new Image();
-        image.onload = (e) => {
+        image.onload = image.onerror = () => {
           this.loadCount += 1;
 
           if (count === this.loadCount) {
@@ -34,10 +34,12 @@ export default class items {
       }
     });
 
+    // ids are stored as "id1,id2,"; match whole ids, not substrings
+    const collected = new Set(collectedCoins.split(","));
     for (let index = 0; index < objects.length; index++) {
       const { id, left, top, offsetX, offsetY } = objects[index];
 
-      if (!collectedCoins.includes(id)) {
+      if (!collected.has(id)) {
         this.items.push(
           new Coin(id, left * tileSize, top * tileSize, offsetX, offsetY, this.frameSets["coin"]),
         );

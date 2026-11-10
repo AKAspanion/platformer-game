@@ -24,6 +24,26 @@ npm run serve
 
 Game will launch at `http://localhost:2108/`
 
+## Controls
+
+- ← / → or A / D: move
+- ↑ or Space: jump
+- Enter or Shift: fire (Enter also starts, resumes, or retries the area from the menu)
+- Esc or P: pause / resume (the game also pauses when the tab is hidden)
+
+## Generated levels
+
+Areas 9–16 (Grassland 4–5, Iceland 3–4, Desert 1–4) are produced by a seeded level
+generator. Desert levels use spike pits and spike traps instead of water.
+Edit the `LEVELS` config in `scripts/generate-levels.js` and run
+
+```bash
+yarn levels
+```
+
+to regenerate them. Each level is checked for reachability with the player's jump
+physics before it is written.
+
 ## Author
 
 Ankit Kumar Pandit

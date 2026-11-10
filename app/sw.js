@@ -1,4 +1,4 @@
-const CACHE_NAME = "dino-v16";
+const CACHE_NAME = "dino-v19";
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
@@ -38,8 +38,6 @@ self.addEventListener("fetch", (event) => {
           return response;
         }
       })
-      .catch(() => {
-        caches.match(event.request).then((response) => response);
-      }),
+      .catch(() => caches.match(event.request)),
   );
 });
