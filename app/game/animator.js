@@ -13,6 +13,8 @@ export default class Animator {
 
   changeFrameSet(frameSet, delay = 4, frameIndex = 0) {
     if (this.frameSet === frameSet) {
+      // same animation, maybe a new speed (the run speeds up with the dino)
+      this.delay = delay >= 1 ? delay : 1;
       return;
     }
 

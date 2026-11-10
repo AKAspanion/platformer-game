@@ -169,15 +169,16 @@ test("dying enemies are harmless", () => {
   assert.equal(over, 0);
 });
 
-test("touching a live enemy kills the player once", () => {
+test("touching a live enemy costs one heart, not the game", () => {
   const world = makeWorld(arena({ enemies: [enemy("pig", 5)] }));
   freeze(world);
   placePlayer(world, byId(world, "pig").x + 4);
 
   let over = 0;
   tick(world, 10, () => over++);
-  assert.equal(world.isPlayerDead, true);
-  assert.equal(over, 1);
+  assert.equal(world.isPlayerDead, false);
+  assert.equal(world.player.hearts, 2);
+  assert.equal(over, 0);
 });
 
 test("brushing the transparent edge of an enemy sprite is not a hit", () => {
@@ -204,14 +205,14 @@ test("killed enemies stay dead when the area is entered again", () => {
   );
 });
 
-test("a hit freezes the world briefly (hit-stop) and shakes the screen", () => {
+test("a hit freezes the world briefly (hit-stop), without screen shake", () => {
   const world = makeWorld(arena({ enemies: [enemy("pig", 4)] }));
   freeze(world);
   fire(world);
   tickUntil(world, () => byId(world, "pig").dying);
 
   assert.ok(world.effects.freeze > 0, "hit-stop expected");
-  assert.ok(world.effects.shakeTime > 0, "shake expected");
+  assert.equal("shake" in world.effects, false, "no screen shake");
   assert.equal(world.effects.texts[0].text, "+100");
 
   world.player.velocityX = 3;
@@ -226,11 +227,9 @@ test("effects expire", () => {
   const world = makeWorld(arena());
   world.effects.fireImpact(50, 50, 1);
   world.effects.popup("+100", 50, 50);
-  world.effects.shake(3, 5);
   tick(world, 60);
   assert.equal(world.effects.particles.length, 0);
   assert.equal(world.effects.texts.length, 0);
-  assert.deepEqual(world.effects.offset, { x: 0, y: 0 });
 });
 
 test("coins are collected once and counted", () => {
@@ -244,14 +243,15 @@ test("coins are collected once and counted", () => {
   assert.equal(world.coins.items.length, 0, "collected coin should not come back");
 });
 
-test("death areas kill the player", () => {
+test("spike traps hurt like an enemy", () => {
   const world = makeWorld(
     arena({ death: [{ x: 2 * TILE, y: GROUND * TILE - 8, width: 16, height: 8 }] }),
   );
   let over = 0;
   tick(world, 2, () => over++);
-  assert.equal(world.isPlayerDead, true);
-  assert.equal(over, 1);
+  assert.equal(world.isPlayerDead, false);
+  assert.equal(world.player.hearts, 2);
+  assert.equal(over, 0);
 });
 
 test("jump physics: about 2.7 tiles high", () => {

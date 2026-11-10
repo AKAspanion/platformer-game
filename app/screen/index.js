@@ -75,12 +75,13 @@ export default class Screen {
   }
 
   drawBackground() {
+    // world size, not the device-pixel canvas size: the context is already scaled
     this.buffer.drawImage(
       this.tileSet.tileBackground,
       0,
       0,
-      this.buffer.canvas.width,
-      this.buffer.canvas.height,
+      this.width || this.buffer.canvas.width,
+      this.height || this.buffer.canvas.height,
     );
   }
 
@@ -135,6 +136,8 @@ export default class Screen {
   }
 
   resize(ww, wh, gW, gH) {
+    this.width = gW;
+    this.height = gH;
     const [width] = this.getContainSize(ww, wh, gW, gH);
 
     const scale = window.devicePixelRatio;

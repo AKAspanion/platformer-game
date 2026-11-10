@@ -11,7 +11,8 @@
     "serve": "webpack-dashboard -m -c green -t react -- webpack serve",
     "format": "prettier --write .",
     "levels": "node scripts/generate-levels.js && prettier --write app/areas && python3 scripts/generate-thumbnails.py",
-    "sprites": "python3 scripts/generate-enemy-death.py",
+    "sprites": "python3 scripts/generate-sprites.py && python3 scripts/generate-enemy-death.py && python3 scripts/generate-icons.py",
+    "audio": "python3 scripts/generate-audio.py",
     "test": "node scripts/test.js"
   },
   "author": "Ankit Kumar Pandit",

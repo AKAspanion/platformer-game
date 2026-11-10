@@ -8,7 +8,7 @@ export default class Game {
     this.onGameOver = () => {
       this.over = true;
 
-      gameOverCallback(this.world.totalEnemies * 100 + this.world.totalCoins * 20);
+      gameOverCallback(this.world.score);
     };
   }
 

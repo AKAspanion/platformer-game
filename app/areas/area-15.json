@@ -103,76 +103,56 @@
     },
     {
       "id": "A15C20",
-      "left": 8.25,
-      "top": 2.1
-    },
-    {
-      "id": "A15C21",
       "left": 9.25,
       "top": 2.1
     },
     {
-      "id": "A15C22",
+      "id": "A15C21",
       "left": 4.25,
+      "top": 1.1
+    },
+    {
+      "id": "A15C22",
+      "left": 5.25,
       "top": 1.1
     },
     {
       "id": "A15C23",
-      "left": 5.25,
-      "top": 1.1
-    },
-    {
-      "id": "A15C24",
       "left": 1.25,
       "top": 2.1
     },
     {
-      "id": "A15C25",
+      "id": "A15C24",
       "left": 2.25,
       "top": 2.1
     },
     {
-      "id": "A15C26",
+      "id": "A15C25",
       "left": 11,
       "top": 6.1
     },
     {
-      "id": "A15C27",
+      "id": "A15C26",
       "left": 4.25,
       "top": 8.05
     },
     {
-      "id": "A15C28",
+      "id": "A15C27",
       "left": 5.25,
       "top": 8.05
     },
     {
-      "id": "A15C29",
-      "left": 11.25,
-      "top": 7.05
-    },
-    {
-      "id": "A15C30",
-      "left": 12.25,
-      "top": 7.05
-    },
-    {
-      "id": "A15C31",
-      "left": 13.25,
-      "top": 7.05
-    },
-    {
-      "id": "A15C32",
+      "id": "A15C28",
       "left": 15.25,
       "top": 8.05
     },
     {
-      "id": "A15C33",
+      "id": "A15C29",
       "left": 16.25,
       "top": 8.05
     },
     {
-      "id": "A15C34",
+      "id": "A15C30",
       "left": 17.25,
       "top": 8.05
     }
@@ -222,7 +202,7 @@
   "enemies": [
     {
       "id": "A15E01",
-      "type": "pig",
+      "type": "slime",
       "left": 8.85,
       "top": 5,
       "sway": 12,
@@ -230,7 +210,7 @@
     },
     {
       "id": "A15E02",
-      "type": "pig",
+      "type": "chameleon",
       "left": 13.35,
       "top": 5,
       "sway": 20,
@@ -259,6 +239,22 @@
       "top": 2,
       "sway": 20,
       "dir": 1
+    },
+    {
+      "id": "A15E06",
+      "type": "spitter",
+      "left": 12,
+      "top": 7,
+      "sway": 0,
+      "dir": -1
+    }
+  ],
+  "powerups": [
+    {
+      "id": "A15P01",
+      "type": "triple",
+      "left": 8,
+      "top": 2
     }
   ],
   "areaMap": [
@@ -353,25 +349,17 @@
       0,
       0,
       0,
+      [
+        {
+          "id": 2,
+          "xOffset": -7,
+          "yOffset": -2,
+          "width": 30,
+          "height": 18
+        }
+      ],
       0,
-      [
-        {
-          "id": 14,
-          "xOffset": -1,
-          "yOffset": 10,
-          "width": 18,
-          "height": 6
-        }
-      ],
-      [
-        {
-          "id": 13,
-          "xOffset": 1,
-          "yOffset": 9,
-          "width": 14,
-          "height": 7
-        }
-      ],
+      0,
       0,
       0,
       0,
@@ -385,7 +373,15 @@
       0,
       0,
       0,
-      0,
+      [
+        {
+          "id": 13,
+          "xOffset": 1,
+          "yOffset": 9,
+          "width": 14,
+          "height": 7
+        }
+      ],
       0,
       [
         {
@@ -396,31 +392,31 @@
           "height": 14
         }
       ],
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
       [
         {
-          "id": 12,
+          "id": 10,
           "xOffset": 1,
-          "yOffset": 9,
+          "yOffset": 7,
           "width": 14,
-          "height": 7
+          "height": 9
         }
       ],
       0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
       [
         {
-          "id": 2,
-          "xOffset": -7,
+          "id": 11,
+          "xOffset": 0,
           "yOffset": -2,
-          "width": 30,
+          "width": 16,
           "height": 18
         }
       ],
@@ -438,11 +434,11 @@
     [
       [
         {
-          "id": 12,
-          "xOffset": 1,
-          "yOffset": 9,
-          "width": 14,
-          "height": 7
+          "id": 8,
+          "xOffset": 2,
+          "yOffset": 4,
+          "width": 12,
+          "height": 12
         }
       ],
       [
@@ -454,22 +450,14 @@
           "height": 14
         }
       ],
+      0,
       [
         {
-          "id": 2,
-          "xOffset": -7,
-          "yOffset": -2,
-          "width": 30,
-          "height": 18
-        }
-      ],
-      [
-        {
-          "id": 12,
-          "xOffset": 1,
-          "yOffset": 9,
-          "width": 14,
-          "height": 7
+          "id": 14,
+          "xOffset": -1,
+          "yOffset": 10,
+          "width": 18,
+          "height": 6
         }
       ],
       0,

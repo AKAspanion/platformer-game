@@ -55,7 +55,8 @@ export default class Fireballs {
     }
   }
 
-  add(id, x, y, direction) {
+  /** `vy` angles the shot (triple-fire power-up). */
+  add(id, x, y, direction, vy = 0) {
     this.items.push(
       new Fireball(
         id,
@@ -63,6 +64,7 @@ export default class Fireballs {
         y,
         direction,
         this.frameSets[`fireball${direction < 0 ? "Left" : "Right"}`],
+        vy,
       ),
     );
   }
@@ -78,11 +80,12 @@ export default class Fireballs {
 }
 
 class Fireball extends Object {
-  constructor(id, x, y, direction, frameSet) {
+  constructor(id, x, y, direction, frameSet, vy = 0) {
     super(x, y, 32, 16);
 
     this.id = id;
     this.direction = direction;
+    this.vy = vy;
 
     this.velocity = 5;
 
@@ -98,7 +101,7 @@ class Fireball extends Object {
       x: this.direction < 0 ? this.x + 5 : this.x + 10,
       y: this.y + 3,
       width: 17,
-      height: 10,
+      height: 12,
     };
   }
 
@@ -108,6 +111,7 @@ class Fireball extends Object {
   }
 
   update() {
+    this.y += this.vy;
     if (this.direction < 0) {
       this.x -= this.velocity;
     } else {
