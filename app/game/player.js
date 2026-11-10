@@ -9,6 +9,7 @@ export default class Player extends Object {
     this.running = false;
     this.jumping = true;
     this.firing = true;
+    this.fireTimer = 0;
     this.velocityX = 0;
     this.velocityY = 0;
     this.direction = 1;
@@ -68,6 +69,7 @@ export default class Player extends Object {
     this.xOld = 40;
     this.yOld = 100;
     this.firing = false;
+    this.fireTimer = 0;
     this.running = false;
     this.jumping = false;
     this.velocityX = 0;
@@ -82,13 +84,13 @@ export default class Player extends Object {
     }
   }
 
+  // Cooldown in ticks (30 per second) rather than a timer, so it pauses with
+  // the game and works the same in tests.
   fire() {
-    if (!this.firing) {
-      this.firing = true;
-      setTimeout(() => {
-        this.firing = false;
-      }, 300);
-    }
+    if (this.firing) return false;
+    this.firing = true;
+    this.fireTimer = 9;
+    return true;
   }
 
   moveLeft() {
@@ -141,6 +143,11 @@ export default class Player extends Object {
   }
 
   update(gravity, friction) {
+    if (this.fireTimer > 0) {
+      this.fireTimer -= 1;
+      if (this.fireTimer === 0) this.firing = false;
+    }
+
     this.xOld = this.x;
     this.yOld = this.y;
     this.velocityY += gravity;

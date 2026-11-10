@@ -219,17 +219,13 @@ window.addEventListener("load", function () {
       if (controller.up.active) {
         if (!player.jumping) {
           game.world.playJumpSound();
+          game.world.playerJumped();
         }
         player.jump();
         controller.up.active = false;
       }
       if (controller.fire.active && !player.firing) {
-        const { fireballs } = game.world;
-        const offsetX = player.direction < 0 ? -32 : 8;
-
-        player.fire();
-        game.world.playFireSound();
-        fireballs.add(uid(), player.x + offsetX, player.y - 16, player.direction);
+        game.world.shootFireball(uid());
         controller.fire.active = false;
       }
     }
@@ -259,6 +255,11 @@ window.addEventListener("load", function () {
   // render assets
   const render = () => {
     screen.drawBackground();
+
+    // screen shake moves the world, not the background or the HUD
+    const shake = game.world.effects.offset;
+    screen.buffer.save();
+    screen.buffer.translate(shake.x, shake.y);
 
     const {
       map,
@@ -334,16 +335,9 @@ window.addEventListener("load", function () {
     if (enemies) {
       for (let index = 0; index < enemies.items.length; index++) {
         const enemy = enemies.items[index];
+        const rect = enemy.drawRect();
 
-        screen.drawObject(
-          enemy.animator.frameValue,
-          enemy.x,
-          enemy.y,
-          enemy.width,
-          enemy.height,
-          0,
-          1,
-        );
+        screen.drawObject(enemy.animator.frameValue, rect.x, rect.y, rect.width, rect.height);
       }
     }
 
@@ -360,6 +354,9 @@ window.addEventListener("load", function () {
       xOffset,
       -24,
     );
+
+    game.world.effects.draw(screen.buffer);
+    screen.buffer.restore();
 
     // draw coin count
     const image = coins.frameSets.coin[0];
@@ -383,6 +380,11 @@ window.addEventListener("load", function () {
   resize();
 
   var engine = new GameEngine(1000 / 30, update, render);
+
+  // ?debug exposes the game for manual testing from the console
+  if (new URLSearchParams(window.location.search).has("debug")) {
+    window.debugGame = { game, engine, controller, loadWorld: (...args) => loadWorld(...args) };
+  }
 
   // EVENTS HANDLER
   const isVisible = (el) => getComputedStyle(el).visibility === "visible";

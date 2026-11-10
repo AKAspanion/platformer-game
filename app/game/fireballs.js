@@ -68,7 +68,8 @@ export default class Fireballs {
   }
 
   remove(fireball) {
-    this.items.splice(this.items.indexOf(fireball), 1);
+    const index = this.items.indexOf(fireball);
+    if (index >= 0) this.items.splice(index, 1);
   }
 
   reset() {
@@ -86,6 +87,24 @@ class Fireball extends Object {
     this.velocity = 5;
 
     this.animator = new Animator(frameSet);
+  }
+
+  /**
+   * The visible flame inside the 32x16 sprite box (the tail is mostly empty).
+   * Used for hits, so a fireball only touches what it visibly touches.
+   */
+  hitbox() {
+    return {
+      x: this.direction < 0 ? this.x + 5 : this.x + 10,
+      y: this.y + 3,
+      width: 17,
+      height: 10,
+    };
+  }
+
+  /** Leading point of the flame, used for wall hits. */
+  tip() {
+    return { x: this.direction < 0 ? this.x + 5 : this.x + 27, y: this.y + 8 };
   }
 
   update() {

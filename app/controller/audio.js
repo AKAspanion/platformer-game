@@ -10,7 +10,9 @@ export default class AudioController {
 
     const audio = new Audio(`./assets/audio/${key}.${ext}`);
     audio.volume = volume;
-    audio.play();
+    // play() rejects when the browser blocks autoplay; a missed sound is fine
+    const playing = audio.play();
+    if (playing && playing.catch) playing.catch(() => {});
   }
 
   play(key, ext = "wav") {

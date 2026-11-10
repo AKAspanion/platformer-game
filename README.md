@@ -44,6 +44,31 @@ yarn levels
 to regenerate them. Each level is checked for reachability with the player's jump
 physics before it is written.
 
+Levels with `sky: true` (Grassland 4–5, Iceland 4, Desert 1–4) also get an upper tier
+of floating platforms with coins and patrolling enemies.
+
+## Enemy death animations
+
+The 8-frame enemy death animations in `app/assets/sprites/enemies/*/dead/` are generated
+from each enemy's first walk frame (needs Python 3 with Pillow):
+
+```bash
+yarn sprites
+```
+
+## Tests
+
+Headless tests for combat (one fireball = one kill, walls, death animation, hit-stop),
+level integrity (spawns, portals, enemy footing, coin placement, generated levels up to
+date) and a random-input fuzz run on every level:
+
+```bash
+yarn test
+```
+
+Open the game with `?debug` (e.g. `http://localhost:2108/?debug`) to get `window.debugGame`
+in the console for poking at the running game.
+
 ## Author
 
 Ankit Kumar Pandit
