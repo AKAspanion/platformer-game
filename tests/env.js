@@ -26,7 +26,13 @@ class FakeAudio {
   }
 
   play() {
+    // tests can check what was heard
+    globalThis.__played.push(this.src.replace(/^.*\/audio\//, ""));
     return Promise.resolve();
+  }
+
+  cloneNode() {
+    return new FakeAudio(this.src);
   }
 
   pause() {}
@@ -35,6 +41,7 @@ class FakeAudio {
 }
 
 const store = new Map();
+globalThis.__played = [];
 
 globalThis.Image = FakeImage;
 globalThis.Audio = FakeAudio;

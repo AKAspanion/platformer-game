@@ -1,9 +1,9 @@
 """
-Renders level-select thumbnails (app/images/area_N.png) from the area JSON,
-drawing the same layers as the game's render(): background, water, tiles,
-decor, coins, enemies, the player at the level start, and the HUD.
+Renders level-select thumbnails (app/images/levels/area-<id>.webp) from the area JSON,
+drawing the same layers as the game's render(): background, back wall,
+water, tiles, decor, coins, power-ups, enemies and the player at the start.
 
-    python3 scripts/generate-thumbnails.py          # generated levels (ids 9-16)
+    python3 scripts/generate-thumbnails.py          # every level in the level select
     python3 scripts/generate-thumbnails.py 1 7      # specific area ids
 
 `yarn levels` runs it after regenerating. Needs Pillow.
@@ -14,15 +14,24 @@ import os
 import re
 import sys
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 
 ROOT = os.path.join(os.path.dirname(__file__), "..", "app")
 SPRITES = os.path.join(ROOT, "assets", "sprites")
 SCALE = 4  # render at 4x world pixels, then fit to the thumbnail size
-OUT_SIZE = (1304, 740)  # size of the existing thumbnails
+OUT_SIZE = (512, 292)  # level-select tiles are ~150-250px wide
 TILE = 16
 
-ENEMY_SIZE = {"pig": (21, 20), "slime": (23, 20), "chameleon": (22, 20)}
+# draw sizes from app/game/enemies.js
+ENEMY_SIZE = {
+    "pig": (21, 20),
+    "slime": (23, 20),
+    "chameleon": (22, 20),
+    "beetle": (20, 14),
+    "bat": (18, 12),
+    "spitter": (16, 18),
+}
+POWERUP_SIZE = {"heart": (11, 10), "shield": (12, 13), "triple": (13, 12), "wings": (13, 11)}
 
 _cache = {}
 
@@ -34,20 +43,23 @@ def sprite(path):
 
 
 def levels():
-    """LEVELS from app/util/index.js: id -> (name, areaNum, left, top, thumbnail)."""
+    """LEVELS from app/util/index.js: id -> (name, campaign number, left, top)."""
     text = open(os.path.join(ROOT, "util", "index.js")).read()
-    pattern = r'\{ name: "([^"]+)", id: (\d+), left: (\d+), top: (\d+), ss: "images/(area_\d+)\.png" \}'
+    pattern = r'\{ name: "([^"]+)", id: (\d+), world: "[^"]+", left: (\d+), top: (\d+)'
     out = {}
-    for index, (name, id_, left, top, ss) in enumerate(re.findall(pattern, text), start=1):
-        out[int(id_)] = (name, index, int(left), int(top), ss)
+    for index, (name, id_, left, top) in enumerate(re.findall(pattern, text), start=1):
+        out[int(id_)] = (name, index, int(left), int(top))
     return out
 
 
-def font(size):
-    for path in ("/System/Library/Fonts/Supplemental/Arial.ttf", "/Library/Fonts/Arial.ttf"):
-        if os.path.exists(path):
-            return ImageFont.truetype(path, size)
-    return ImageFont.load_default(size)
+# boss draw size (from app/game/boss.js) and crown headroom ratio
+BOSS = {
+    "kingPig": (44, 40, 60),
+    "frostSlime": (50, 34, 60),
+    "sandLizard": (44, 40, 76),
+    "batLord": (44, 30, 48),
+    "mechBeetle": (46, 32, 56),
+}
 
 
 def render(area, area_num, left, top):
@@ -63,6 +75,11 @@ def render(area, area_num, left, top):
 
     bg = sprite(f"world-{world}/bg.png").resize(canvas.size, Image.BILINEAR)
     canvas.alpha_composite(bg)
+
+    for r, row in enumerate(area.get("backdrop") or []):
+        for c, v in enumerate(row):
+            if v:
+                draw(sprite(f"world-{world}/tiles/{v}.png"), c * TILE, r * TILE, TILE, TILE)
 
     for w in area.get("water", []):
         draw(sprite("water/image 1.webp"), w["left"] * TILE, w["top"] * TILE, TILE, TILE)
@@ -96,7 +113,24 @@ def render(area, area_num, left, top):
     for e in area["enemies"]:
         w, h = ENEMY_SIZE.get(e["type"], (20, 20))
         side = "left" if e.get("dir", 1) < 0 else "right"
-        draw(sprite(f"enemies/{e['type']}/{side}/image_part_01.png"), e["left"] * TILE, e["top"] * TILE - 3, w, h)
+        y = e["top"] * TILE + 2 if e["type"] == "bat" else (e["top"] + 1) * TILE - h
+        draw(sprite(f"enemies/{e['type']}/{side}/image_part_01.png"), e["left"] * TILE, y + 1, w, h)
+
+    for p in area.get("powerups", []):
+        w, h = POWERUP_SIZE[p["type"]]
+        x, y = p["left"] * TILE + (16 - w) / 2, p["top"] * TILE + (16 - h) / 2
+        glow = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
+        cx, cy, rad = (x + w / 2) * SCALE, (y + h / 2) * SCALE, 9 * SCALE
+        ImageDraw.Draw(glow).ellipse((cx - rad, cy - rad, cx + rad, cy + rad), fill=(255, 240, 160, 70))
+        canvas.alpha_composite(glow)
+        draw(sprite(f"items/{p['type']}.png"), x, y, w, h)
+
+    boss = area.get("boss")
+    if boss:
+        w, h, base_h = BOSS[boss["kind"]]
+        crown = h * 24 / base_h
+        y = 34 if boss["kind"] == "batLord" else (boss["top"] + 1) * TILE - h
+        draw(sprite(f"enemies/boss/{boss['kind']}/left/image_part_01.png"), boss["left"] * TILE, y - crown + 1, w, h + crown)
 
     # player: drop from the start position onto the first surface below it
     col = int((left + 6) // TILE)
@@ -107,32 +141,20 @@ def render(area, area_num, left, top):
     py = ground * TILE - 12
     draw(sprite("player/right/Idle (1).webp"), left - 12, py - 23, 60, 40)
 
-    # HUD (same positions as app/index.js)
-    hud = ImageDraw.Draw(canvas)
-    f = font(10 * SCALE)
-
-    def text(value, x, y):
-        hud.text((x * SCALE, y * SCALE), str(value), font=f, fill="black", anchor="ls")
-
-    draw(sprite("coin/image 1.webp"), (cols - 1.3) * 16, 8, 10, 10)
-    text("x", (cols - 2) * 16, 15)
-    text(0, (cols - 2.7) * 16, 16.1)
-    text("Area", 12, 15.3)
-    text("x", 38, 15)
-    text(area_num, 48, 15.3)
-    text(0, (cols - 2.7) * 9, 15.3)
-
+    # no HUD: the level select prints the level name over the picture
     return canvas.convert("RGB").resize(OUT_SIZE, Image.LANCZOS)
 
 
 def main():
-    ids = [int(a) for a in sys.argv[1:]] or list(range(9, 17))
+    ids = [int(a) for a in sys.argv[1:]] or sorted(levels())
     meta = levels()
     for id_ in ids:
-        name, area_num, left, top, ss = meta[id_]
+        name, area_num, left, top = meta[id_]
         area = json.load(open(os.path.join(ROOT, "areas", f"area-{id_}.json")))
-        render(area, area_num, left, top).save(os.path.join(ROOT, "images", f"{ss}.png"), optimize=True)
-        print(f"{name}: images/{ss}.png")
+        out = os.path.join(ROOT, "images", "levels", f"area-{id_}.webp")
+        os.makedirs(os.path.dirname(out), exist_ok=True)
+        render(area, area_num, left, top).save(out, quality=82, method=6)
+        print(f"{name}: images/levels/area-{id_}.webp")
 
 
 if __name__ == "__main__":

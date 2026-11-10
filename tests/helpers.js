@@ -10,7 +10,7 @@ export const GROUND = 10; // ground top row of the test arena
  * A flat test arena: ground from row GROUND down, optional wall columns
  * (`walls: [{ col, top }]` = solid from row `top` to the ground) and enemies.
  */
-export function arena({ enemies = [], walls = [], coins = [], death = [] } = {}) {
+export function arena({ enemies = [], walls = [], coins = [], death = [], powerups = [] } = {}) {
   const areaMap = [];
   const collisonMap = [];
   for (let r = 0; r < ROWS; r++) {
@@ -40,6 +40,7 @@ export function arena({ enemies = [], walls = [], coins = [], death = [] } = {})
     death,
     portals: [],
     enemies,
+    powerups,
     areaMap,
     collisonMap,
     objectsMap: areaMap.map((row) => row.map(() => 0)),

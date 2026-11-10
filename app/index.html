@@ -1,8 +1,11 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no"
+    />
     <meta name="theme-color" content="#EF534F" />
     <link rel="preconnect" href="https://fonts.gstatic.com" />
     <link
@@ -69,31 +72,169 @@
       <div id="rightBtn" class="flex-item controller-btn arrow-btn arrow-right"></div>
     </div>
     <div class="persistent-controller">
-      <div id="pauseBtn"></div>
-      <div id="refreshBtn"></div>
+      <div id="pauseBtn" aria-label="Pause"></div>
     </div>
     <div class="controller controller-actions">
-      <div id="fireBtn" class="flex-item controller-btn">⚪️</div>
+      <div id="fireBtn" class="flex-item controller-btn"><span class="fire-dot"></span></div>
       <div id="jumpBtn" class="flex-item controller-btn"></div>
     </div>
-    <div id="startScreen" class="flex-item modal-screen">
-      <div class="heading-title">Dino's Adventure</div>
-      <div>
-        <div id="startTitle" class="game-over-title"></div>
-        <div id="scoreTitle" class="score-title"></div>
+
+    <div id="homeScreen" class="screen home-screen">
+      <div class="home-hero">
+        <div class="home-logo">Dino's <span>Adventure</span></div>
+        <div class="home-sub">Run, jump and spit fire</div>
       </div>
-      <div>
-        <div id="startBtn" class="flex-item">Play</div>
-        <div id="retryBtn" class="flex-item">Retry</div>
-        <div class="flex-item settings">
-          <div id="musicBtn"></div>
-          <div id="soundBtn"></div>
-          <div id="portalBtn"></div>
-          <div id="helpBtn"></div>
-          <div id="infoBtn"></div>
+      <div class="home-main">
+        <div class="play-wrap">
+          <button id="playBtn" class="btn btn-primary">Play</button>
+          <div id="playInfo" class="play-info"></div>
+        </div>
+        <div class="mode-grid">
+          <button class="mode-card" data-mode="levels">
+            <span class="mode-icon icon-levels"></span><span class="mode-name">Levels</span
+            ><span class="mode-info">30 levels, 5 bosses</span>
+          </button>
+          <button class="mode-card premium" data-mode="daily">
+            <span class="mode-icon icon-daily"></span><span class="mode-name">Daily</span
+            ><span class="mode-info" id="dailyInfo">5 new levels a day</span
+            ><span class="mode-badge">★</span>
+          </button>
+          <button class="mode-card premium" data-mode="endless">
+            <span class="mode-icon icon-endless"></span><span class="mode-name">Endless</span
+            ><span class="mode-info" id="endlessInfo">How far can you go?</span
+            ><span class="mode-badge">★</span>
+          </button>
+          <button class="mode-card premium" data-mode="create">
+            <span class="mode-icon icon-create"></span><span class="mode-name">Create</span
+            ><span class="mode-info">Describe a world</span><span class="mode-badge">★</span>
+          </button>
         </div>
       </div>
-      <div id="highScore" class="flex-item"></div>
+      <div class="home-footer">
+        <div id="highScore"></div>
+        <div class="icon-row">
+          <div id="settingsBtn" role="button" aria-label="Settings"></div>
+          <div id="helpBtn" role="button" aria-label="Help"></div>
+          <div id="infoBtn" role="button" aria-label="Info"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="pauseScreen" class="screen overlay-screen">
+      <div class="panel">
+        <div id="pauseTitle" class="panel-title">Paused</div>
+        <div id="pauseScore" class="panel-score"></div>
+        <div id="pauseBest" class="panel-best"></div>
+        <div class="panel-actions">
+          <button id="resumeBtn" class="btn btn-primary">Resume</button>
+          <button id="retryBtn" class="btn btn-secondary">Retry</button>
+          <button id="homeBtn" class="btn btn-ghost">Home</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="settingsScreen" class="flex-item modal-screen">
+      <div class="flex-item modal-container">
+        <div class="flex-item modal-header">
+          <div class="modal-title">Settings</div>
+          <div id="settingsCloseBtn" class="close-btn" role="button" aria-label="Close"></div>
+        </div>
+        <div class="modal-content-wrapper settings-list">
+          <label class="setting-row"
+            ><span>Music</span><input type="checkbox" id="setMusic" class="switch"
+          /></label>
+          <label class="setting-row"
+            ><span>Sound effects</span><input type="checkbox" id="setSound" class="switch"
+          /></label>
+          <label class="setting-row" id="vibrationRow"
+            ><span>Vibration</span><input type="checkbox" id="setVibration" class="switch"
+          /></label>
+          <div class="setting-row">
+            <span>Touch buttons</span>
+            <div class="segmented" id="setControls">
+              <button data-value="auto">Auto</button><button data-value="s">S</button
+              ><button data-value="m">M</button><button data-value="l">L</button>
+            </div>
+          </div>
+          <div class="setting-row">
+            <span>Premium</span>
+            <div class="setting-value">
+              <span id="premiumStatus"></span>
+              <button id="premiumBtn" class="btn btn-small">Unlock</button>
+            </div>
+          </div>
+          <label class="setting-row setting-dev" id="unlockDevRow"
+            ><span>Unlock all levels (developer)</span
+            ><input type="checkbox" id="setUnlockDev" class="switch"
+          /></label>
+          <label class="setting-row setting-dev" id="premiumDevRow"
+            ><span>Premium (developer switch)</span
+            ><input type="checkbox" id="setPremiumDev" class="switch"
+          /></label>
+          <div class="setting-row setting-stack">
+            <span>World creator server</span>
+            <input
+              type="url"
+              id="setWorldApi"
+              class="text-input"
+              placeholder="https://your-server/api/world (empty = offline)"
+            />
+          </div>
+          <div class="setting-row">
+            <span>Progress</span>
+            <button id="resetBtn" class="btn btn-small btn-danger">Reset progress</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="premiumScreen" class="flex-item modal-screen">
+      <div class="flex-item modal-container modal-narrow">
+        <div class="flex-item modal-header">
+          <div class="modal-title">★ Premium</div>
+          <div id="premiumCloseBtn" class="close-btn" role="button" aria-label="Close"></div>
+        </div>
+        <div class="modal-content-wrapper premium-body">
+          <ul class="premium-list">
+            <li><b>Daily challenge</b> 5 fresh levels every day</li>
+            <li><b>Endless mode</b> levels that never run out, getting harder</li>
+            <li><b>Create worlds</b> describe a world, AI builds it</li>
+          </ul>
+          <button id="premiumUnlockBtn" class="btn btn-primary">Unlock Premium</button>
+          <div id="premiumNote" class="premium-note"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="createScreen" class="flex-item modal-screen">
+      <div class="flex-item modal-container">
+        <div class="flex-item modal-header">
+          <div class="modal-title">Create a world</div>
+          <div id="createCloseBtn" class="close-btn" role="button" aria-label="Close"></div>
+        </div>
+        <div class="modal-content-wrapper create-body">
+          <textarea
+            id="createPrompt"
+            class="text-input create-prompt"
+            maxlength="400"
+            rows="3"
+            placeholder="e.g. A frozen fortress full of bats and beetles, really hard, 4 levels"
+          ></textarea>
+          <div class="chip-row" id="createExamples"></div>
+          <button id="createBtn" class="btn btn-primary">Build my world</button>
+          <div id="createStatus" class="create-status"></div>
+          <div id="createPreview"></div>
+          <div class="create-subtitle">My worlds</div>
+          <div id="worldList" class="world-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <div id="rotateScreen" class="screen rotate-screen">
+      <div class="rotate-phone"></div>
+      <div>Turn your phone sideways to play</div>
     </div>
     <div id="loadingScreen" class="flex-item modal-screen">
       <div id="progressContainer">
@@ -106,7 +247,7 @@
       <div class="flex-item modal-container">
         <div class="flex-item modal-header">
           <div class="modal-title">Help</div>
-          <div id="helpCloseBtn"></div>
+          <div id="helpCloseBtn" class="close-btn" role="button" aria-label="Close"></div>
         </div>
         <div id="helpWrapper"></div>
       </div>
@@ -115,7 +256,7 @@
       <div class="flex-item modal-container">
         <div class="flex-item modal-header">
           <div class="modal-title">Info</div>
-          <div id="infoCloseBtn"></div>
+          <div id="infoCloseBtn" class="close-btn" role="button" aria-label="Close"></div>
         </div>
         <div class="modal-content-wrapper">
           <div class="flex-item modal-content">
@@ -159,19 +300,13 @@
     <div id="portalScreen" class="flex-item modal-screen">
       <div class="flex-item modal-container">
         <div class="flex-item modal-header">
-          <div class="modal-title">World</div>
-          <div id="portalCloseBtn"></div>
+          <div class="modal-title">Levels</div>
+          <div id="portalCloseBtn" class="close-btn" role="button" aria-label="Close"></div>
         </div>
         <div id="portalsWrapper"></div>
       </div>
     </div>
     <script src="./bundle.js"></script>
-    <script>
-      const highScore = localStorage.getItem("high_score") || "";
-      if (highScore) {
-        document.getElementById("highScore").innerHTML = `High Score: ${highScore}`;
-      }
-    </script>
     <noscript>This app needs javascript.</noscript>
   </body>
 </html>

@@ -22,7 +22,7 @@ import random
 from PIL import Image, ImageDraw
 
 ROOT = os.path.join(os.path.dirname(__file__), "..", "app", "assets", "sprites", "enemies")
-TYPES = ["pig", "slime", "chameleon"]
+TYPES = ["pig", "slime", "chameleon", "beetle", "bat", "spitter"]
 FRAMES = 8
 
 SMOKE = (236, 236, 240, 255)

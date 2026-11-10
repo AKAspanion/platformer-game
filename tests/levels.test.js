@@ -6,7 +6,7 @@ import { LEVELS } from "../app/util";
 import World from "../app/game/world";
 import { enemyTypes } from "../app/game/enemies";
 import { tick, mulberry32, TILE } from "./helpers";
-import generator from "../scripts/generate-levels";
+import * as generator from "../app/pcg/generator";
 
 const playable = LEVELS.map(({ id }) => id);
 const name = (id) => (LEVELS.find((l) => l.id === id) || { name: `area ${id}` }).name;
@@ -35,6 +35,8 @@ test("every level links to existing, playable areas", () => {
     assert.ok(area, `${name(id)} missing`);
     assert.equal(area.portals.length, 2, `${name(id)} should have two portals`);
     for (const portal of area.portals) {
+      // null = edge of the campaign (Grassland 1's left), -1 = campaign finished
+      if (portal.destinationArea == null || portal.destinationArea === -1) continue;
       assert.ok(
         playable.includes(portal.destinationArea),
         `${name(id)} portal goes to unplayable area ${portal.destinationArea}`,
@@ -60,6 +62,7 @@ test("walking through a portal lands safely and you can keep running", () => {
   for (const id of playable) {
     for (const portal of areas[id].portals) {
       const dest = portal.destinationArea;
+      if (dest == null || dest === -1) continue;
       const label = `${name(id)} -> ${name(dest)}`;
 
       const world = freshWorld();
@@ -86,7 +89,8 @@ test("enemies patrol on solid footing and never walk into walls", () => {
   for (const id of playable) {
     const area = areas[id];
     for (const e of area.enemies) {
-      const { width } = enemyTypes[e.type];
+      const { width, kind } = enemyTypes[e.type];
+      if (kind === "flyer") continue; // bats fly
       const baseX = e.left * TILE;
       const feetRow = Math.round(e.top) + 1;
       for (const x of [baseX - e.sway, baseX + e.sway]) {
@@ -140,7 +144,10 @@ test("generated levels are up to date and pass the reachability check", () => {
 
 test("generated levels keep ground low and fill the space above with platforms", () => {
   const generated = generator.LEVELS.map((l) => l.id);
-  assert.deepEqual(generated, [9, 10, 11, 12, 13, 14, 15, 16]);
+  assert.deepEqual(
+    generated,
+    Array.from({ length: 25 }, (_, i) => i + 9),
+  );
   for (const id of generated) {
     const area = areas[id];
 
@@ -162,15 +169,18 @@ test("generated levels keep ground low and fill the space above with platforms",
     let upper = 0;
     area.collisonMap.forEach((row, r) =>
       row.forEach((cell, c) => {
+        // a platform tile has nothing under it (acid in a factory pit doesn't count)
         const floating = cell === "t" && !area.areaMap[r + 1][c];
         if (floating && r <= 5) upper++;
       }),
     );
-    assert.ok(upper >= 10, `${name(id)}: only ${upper} upper platform tiles`);
-    assert.ok(
-      area.coins.some((coin) => coin.top < 3),
-      `${name(id)}: no coins up top`,
-    );
+    // boss arenas are deliberately open: three ledges and the boss
+    if (!area.boss) assert.ok(upper >= 10, `${name(id)}: only ${upper} upper platform tiles`);
+    if (!area.boss)
+      assert.ok(
+        area.coins.some((coin) => coin.top < 3),
+        `${name(id)}: no coins up top`,
+      );
   }
 });
 
@@ -206,7 +216,8 @@ test("fuzz: random play on every level never breaks the simulation", () => {
         const { player } = world;
         const label = `${name(id)} run ${run} tick ${t}`;
         assert.ok(Number.isFinite(player.x) && Number.isFinite(player.y), `${label}: NaN position`);
-        assert.ok(world.fireballs.items.length <= 8, `${label}: fireballs pile up`);
+        // triple fire puts 3 out per shot
+        assert.ok(world.fireballs.items.length <= 24, `${label}: fireballs pile up`);
         assert.ok(world.effects.particles.length <= 300, `${label}: particles pile up`);
         world.enemies.items.forEach((e) =>
           assert.ok(Number.isFinite(e.x), `${label}: enemy ${e.id} NaN`),
@@ -232,4 +243,42 @@ test("fuzz: random play on every level never breaks the simulation", () => {
       }
     }
   }
+});
+
+test("every level type and power-up is in the story levels", () => {
+  const types = new Set();
+  const items = new Set();
+  for (const id of playable) {
+    areas[id].enemies.forEach((e) => types.add(e.type));
+    (areas[id].powerups || []).forEach((p) => items.add(p.type));
+  }
+  assert.deepEqual([...types].sort(), Object.keys(enemyTypes).sort());
+  assert.deepEqual([...items].sort(), ["heart", "shield", "triple", "wings"]);
+});
+
+test("campaign: 5 worlds of 6 levels, level 6 is the boss, one chain to the finish", () => {
+  const worldsSeen = [...new Set(LEVELS.map((l) => l.world))];
+  assert.deepEqual(worldsSeen, ["Grasslands", "Iceland", "Desert", "Graveyard", "Factory"]);
+  worldsSeen.forEach((world) => {
+    const levels = LEVELS.filter((l) => l.world === world);
+    assert.equal(levels.length, 6, `${world} has 6 levels`);
+    levels.forEach((level, i) => {
+      assert.equal(!!areas[level.id].boss, i === 5, `${level.name}: boss only on level 6`);
+      assert.equal(!!level.boss, i === 5);
+    });
+  });
+  const kinds = LEVELS.filter((l) => l.boss).map((l) => areas[l.id].boss.kind);
+  assert.equal(new Set(kinds).size, 5, "a different boss per world");
+
+  // walking right through every exit visits the levels in campaign order
+  const forward = (id) => areas[id].portals.find((p) => p.direction > 0).destinationArea;
+  const back = (id) => areas[id].portals.find((p) => p.direction < 0).destinationArea;
+  LEVELS.forEach((level, i) => {
+    const next = LEVELS[i + 1];
+    assert.equal(forward(level.id), next ? next.id : -1, `${level.name} exit`);
+    if (i > 0) assert.equal(back(level.id), LEVELS[i - 1].id, `${level.name} way back`);
+  });
+  assert.equal(back(LEVELS[0].id), null, "nothing left of Grassland 1");
+  assert.equal(areas[LEVELS.find((l) => l.name === "Graveyard 1").id].theme, "dungeon");
+  assert.ok(areas[LEVELS.find((l) => l.name === "Factory 1").id].backdrop, "factory back wall");
 });

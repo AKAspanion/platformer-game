@@ -1,4 +1,5 @@
 const path = require("path");
+const webpack = require("webpack");
 const CopyPlugin = require("copy-webpack-plugin");
 const ESLintPlugin = require("eslint-webpack-plugin");
 // const TerserPlugin = require("terser-webpack-plugin");
@@ -31,6 +32,12 @@ module.exports = {
   plugins: [
     // new CleanWebpackPlugin(),
     new DashboardPlugin(),
+    // PREMIUM=1 unlocks premium by default (test builds); WORLD_API_URL points
+    // the world creator at a server (see server/README.md).
+    new webpack.DefinePlugin({
+      PREMIUM_DEFAULT: JSON.stringify(process.env.PREMIUM === "1"),
+      WORLD_API_URL: JSON.stringify(process.env.WORLD_API_URL || ""),
+    }),
     new ESLintPlugin({}),
     new CopyPlugin({
       patterns: [

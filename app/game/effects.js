@@ -1,6 +1,6 @@
 /**
- * Short-lived visual feedback: pixel particles, floating score text, screen
- * shake and hit-stop. Everything is in world pixels and ticks (30 per second).
+ * Short-lived visual feedback: pixel particles, floating score text and
+ * hit-stop. (No screen shake.) Everything is in world pixels and ticks (30 per second).
  */
 export default class Effects {
   constructor(random = Math.random) {
@@ -11,8 +11,6 @@ export default class Effects {
   reset() {
     this.particles = [];
     this.texts = [];
-    this.shakeTime = 0;
-    this.shakePower = 0;
     this.freeze = 0;
   }
 
@@ -97,30 +95,11 @@ export default class Effects {
     this.texts.push({ text, x, y, color, life: 24, maxLife: 24 });
   }
 
-  shake(power = 2, time = 6) {
-    if (power >= this.shakePower || this.shakeTime <= 0) {
-      this.shakePower = power;
-      this.shakeTime = time;
-    }
-  }
-
   hitStop(ticks = 2) {
     this.freeze = Math.max(this.freeze, ticks);
   }
 
-  /** Camera offset for this frame. */
-  get offset() {
-    if (this.shakeTime <= 0) return { x: 0, y: 0 };
-    const p = this.shakePower * Math.min(1, this.shakeTime / 4);
-    return {
-      x: Math.round((this.random() * 2 - 1) * p),
-      y: Math.round((this.random() * 2 - 1) * p),
-    };
-  }
-
   update() {
-    if (this.shakeTime > 0) this.shakeTime -= 1;
-
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];
       p.x += p.vx;

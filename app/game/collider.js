@@ -62,6 +62,7 @@ export default class Collider {
       object.setBottom(topTile - 0.01);
       object.velocityY = 0;
       object.jumping = false;
+      object.landed = true;
       return true;
     }
     return false;

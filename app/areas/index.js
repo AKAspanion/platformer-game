@@ -14,7 +14,25 @@ import area13 from "./area-13.json";
 import area14 from "./area-14.json";
 import area15 from "./area-15.json";
 import area16 from "./area-16.json";
+import area17 from "./area-17.json";
+import area18 from "./area-18.json";
+import area19 from "./area-19.json";
+import area20 from "./area-20.json";
+import area21 from "./area-21.json";
+import area22 from "./area-22.json";
+import area23 from "./area-23.json";
+import area24 from "./area-24.json";
+import area25 from "./area-25.json";
+import area26 from "./area-26.json";
+import area27 from "./area-27.json";
+import area28 from "./area-28.json";
+import area29 from "./area-29.json";
+import area30 from "./area-30.json";
+import area31 from "./area-31.json";
+import area32 from "./area-32.json";
+import area33 from "./area-33.json";
 
+// Mutable: game modes add generated areas at runtime (see app/modes).
 export default {
   [area1.id]: area1,
   [area2.id]: area2,
@@ -32,4 +50,21 @@ export default {
   [area14.id]: area14,
   [area15.id]: area15,
   [area16.id]: area16,
+  [area17.id]: area17,
+  [area18.id]: area18,
+  [area19.id]: area19,
+  [area20.id]: area20,
+  [area21.id]: area21,
+  [area22.id]: area22,
+  [area23.id]: area23,
+  [area24.id]: area24,
+  [area25.id]: area25,
+  [area26.id]: area26,
+  [area27.id]: area27,
+  [area28.id]: area28,
+  [area29.id]: area29,
+  [area30.id]: area30,
+  [area31.id]: area31,
+  [area32.id]: area32,
+  [area33.id]: area33,
 };

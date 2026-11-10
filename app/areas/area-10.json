@@ -98,56 +98,51 @@
     },
     {
       "id": "A10C19",
-      "left": 15.25,
+      "left": 16.25,
       "top": 5.1
     },
     {
       "id": "A10C20",
-      "left": 16.25,
-      "top": 5.1
-    },
-    {
-      "id": "A10C21",
       "left": 8,
       "top": 7.1
     },
     {
-      "id": "A10C22",
+      "id": "A10C21",
       "left": 8.25,
       "top": 9.05
     },
     {
-      "id": "A10C23",
+      "id": "A10C22",
       "left": 9.25,
       "top": 9.05
     },
     {
-      "id": "A10C24",
+      "id": "A10C23",
       "left": 10.25,
       "top": 9.05
     },
     {
-      "id": "A10C25",
+      "id": "A10C24",
       "left": 15.25,
       "top": 9.05
     },
     {
-      "id": "A10C26",
+      "id": "A10C25",
       "left": 16.25,
       "top": 9.05
     },
     {
-      "id": "A10C27",
+      "id": "A10C26",
       "left": 17.25,
       "top": 9.05
     },
     {
-      "id": "A10C28",
+      "id": "A10C27",
       "left": 18.25,
       "top": 9.05
     },
     {
-      "id": "A10C29",
+      "id": "A10C28",
       "left": 19.25,
       "top": 9.05
     }
@@ -177,9 +172,9 @@
       "height": 200,
       "width": 8,
       "direction": 1,
-      "destinationArea": 3,
-      "destinationX": 6,
-      "destinationY": 24
+      "destinationArea": 25,
+      "destinationX": 16,
+      "destinationY": 136
     }
   ],
   "enemies": [
@@ -193,7 +188,7 @@
     },
     {
       "id": "A10E02",
-      "type": "pig",
+      "type": "chameleon",
       "left": 5.85,
       "top": 6,
       "sway": 12,
@@ -201,7 +196,7 @@
     },
     {
       "id": "A10E03",
-      "type": "pig",
+      "type": "chameleon",
       "left": 6.85,
       "top": 3,
       "sway": 12,
@@ -217,11 +212,27 @@
     },
     {
       "id": "A10E05",
-      "type": "pig",
+      "type": "beetle",
       "left": 2.85,
       "top": 3,
       "sway": 12,
       "dir": 1
+    },
+    {
+      "id": "A10E06",
+      "type": "bat",
+      "left": 5.95,
+      "top": 5,
+      "sway": 24,
+      "dir": 1
+    }
+  ],
+  "powerups": [
+    {
+      "id": "A10P01",
+      "type": "wings",
+      "left": 15,
+      "top": 5
     }
   ],
   "areaMap": [
@@ -264,11 +275,11 @@
     [
       [
         {
-          "id": 7,
-          "xOffset": 2,
-          "yOffset": 4,
-          "width": 12,
-          "height": 12
+          "id": 2,
+          "xOffset": -12,
+          "yOffset": -24,
+          "width": 40,
+          "height": 40
         }
       ],
       [
@@ -309,7 +320,6 @@
       0,
       0,
       0,
-      0,
       [
         {
           "id": 2,
@@ -321,19 +331,6 @@
       ],
       [
         {
-          "id": 7,
-          "xOffset": 2,
-          "yOffset": 4,
-          "width": 12,
-          "height": 12
-        }
-      ],
-      0,
-      0,
-      0,
-      0,
-      [
-        {
           "id": 8,
           "xOffset": 1,
           "yOffset": 8,
@@ -343,6 +340,18 @@
       ],
       0,
       0,
+      0,
+      0,
+      0,
+      [
+        {
+          "id": 1,
+          "xOffset": -8,
+          "yOffset": -16,
+          "width": 32,
+          "height": 32
+        }
+      ],
       [
         {
           "id": 11,
@@ -354,6 +363,24 @@
       ],
       [
         {
+          "id": 2,
+          "xOffset": -12,
+          "yOffset": -24,
+          "width": 40,
+          "height": 40
+        }
+      ],
+      [
+        {
+          "id": 8,
+          "xOffset": 1,
+          "yOffset": 8,
+          "width": 14,
+          "height": 8
+        }
+      ],
+      [
+        {
           "id": 6,
           "xOffset": 0,
           "yOffset": 2,
@@ -361,7 +388,15 @@
           "height": 14
         }
       ],
-      0
+      [
+        {
+          "id": 10,
+          "xOffset": 3,
+          "yOffset": 8,
+          "width": 11,
+          "height": 8
+        }
+      ]
     ],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
