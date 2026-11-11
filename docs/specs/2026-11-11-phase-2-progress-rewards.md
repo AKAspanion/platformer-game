@@ -47,7 +47,9 @@ campaign still have goals to chase.
 - "Buying needs a balance at least the item's price. Otherwise the Buy button reads "Need N more" and does nothing."
 - "Skins and fireball colours are palette shifts of the existing sprites, made when the game loads. Hats are pixel sprites drawn on the dino's head, made by `scripts/generate-sprites.py`."
 - "The look shows wherever the dino plays: campaign, daily, endless, worlds, the secret world and boss rush."
-- The home screen shows the balance as "🪙 1,240" beside a Shop button.
+- The home screen shows the balance as the game's gold coin sprite (`app/assets/sprites/coin/image 1.webp`) followed by "1,240", beside a Shop button.
+- "Every coin amount on screen (home, shop balance, prices) uses that gold coin sprite, never an emoji."
+- "The shop preview shows the whole dino, its hat sitting on its head exactly where the game draws it, and the whole fireball, all inside the frame."
 
 ## 3. Secret world
 

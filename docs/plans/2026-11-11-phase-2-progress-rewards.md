@@ -465,7 +465,7 @@ Screens and states:
 
 | Screen | State | Shows |
 |---|---|---|
-| Home | always | "🪙 1,240" with Shop and Achievements buttons |
+| Home | always | gold coin sprite + "1,240" with Shop and Achievements buttons |
 | Shop | item owned and worn | "Worn" |
 | Shop | item owned | Wear button |
 | Shop | affordable | "Buy · 300" |
@@ -487,7 +487,7 @@ Screens and states:
 - §1: Settings shows the save state under the account row: "Progress saved to your account" once a save has been sent, "Progress saved on this device" with no account.
 - §2: "Every coin collected in any mode adds 1 coin to the wallet, at once. Dying or quitting never takes coins back."
 - §2: "One item is worn per slot. Wearing an item takes effect in the next level, and on the shop's preview at once."
-- §2: The home screen shows the balance as "🪙 1,240" beside a Shop button.
+- §2: The home screen shows the balance as the game's gold coin sprite (`app/assets/sprites/coin/image 1.webp`) followed by "1,240", beside a Shop button.
 - §3: Until it opens, the level select shows a locked card: "Starfall Peaks · ★ 75 to open (you have N)".
 - §4: "The best time for a finished boss rush is kept as a record, and shown as "Best 4:12"."
 - §4: Until it opens, it shows as a locked card: "Boss Rush · beat all 5 bosses to open (N/5)".
@@ -595,7 +595,7 @@ Merge rule: when `a.resetAt !== b.resetAt`, the result is the side with the late
 - Given an account with stars and a device that resets, when `cloud.reset()` runs, then `backend.set` is called at once (no 5 s wait) with the empty progress and its `resetAt`, and `status()` becomes "saved".
 - Given `backend.set` rejects during `reset()`, when it settles, then nothing throws, local progress stays reset, `status()` is "pending", and the next `changed()` or `start()` sends the reset (the account's older save is dropped, not merged back).
 - Given a second device that last synced before the reset, when it calls `start(uid)`, then its local progress is replaced by the account's reset save and nothing from it comes back.
-- Given the button pressed twice within 3 s, when the second tap lands, then the device is reset, the dino wears the free look, the home balance shows "🪙 0", the label reads "Progress erased", and created worlds (`my_worlds`) are cleared as before.
+- Given the button pressed twice within 3 s, when the second tap lands, then the device is reset, the dino wears the free look, the home balance shows 0, the label reads "Progress erased", and created worlds (`my_worlds`) are cleared as before.
 
 - [ ] **Step 1: Write the failing tests** for the save and cloud cases in `tests/progress-save.test.js` and `tests/progress-cloud.test.js`
 
