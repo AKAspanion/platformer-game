@@ -54,6 +54,7 @@
     "firebase-tools": "^15.35.0",
     "gh-pages": "^6.3.0",
     "globals": "^17.14.0",
+    "marked": "13.0.3",
     "prettier": "^3.9.10",
     "webpack": "^5.112.2",
     "webpack-cli": "^7.3.1",

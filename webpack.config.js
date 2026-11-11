@@ -5,6 +5,7 @@ const ESLintPlugin = require("eslint-webpack-plugin");
 const DashboardPlugin = require("webpack-dashboard/plugin");
 const { EsbuildPlugin } = require("esbuild-loader");
 const { firebaseEnv, missingFirebaseEnv, buildEnv } = require("./scripts/load-env");
+const { LEGAL_PAGES, renderLegalPage } = require("./scripts/legal-pages");
 
 // Deploys set REQUIRE_FIREBASE_ENV=1: a live build without its Firebase config
 // would ship a game whose sign-in, worlds and leaderboards all fail.
@@ -71,6 +72,12 @@ module.exports = (env, argv = {}) => ({
         { from: path.resolve(__dirname, "app/pages/404.html"), to: "404.html" },
         { from: path.resolve(__dirname, "app/pages/auth-action.html"), to: "auth-action.html" },
         { from: path.resolve(__dirname, "app/pages/pages.css"), to: "pages.css" },
+        // /privacy and /terms, built from PRIVACY.md and TERMS.md
+        ...LEGAL_PAGES.map((page) => ({
+          from: path.resolve(__dirname, page.source),
+          to: page.file,
+          transform: (content) => renderLegalPage(content.toString(), page),
+        })),
         // Android app links for the Play Store app (TWA)
         {
           from: path.resolve(__dirname, "app/assetlinks.json"),
@@ -85,9 +92,16 @@ module.exports = (env, argv = {}) => ({
   devtool: "source-map",
   devServer: {
     static: path.resolve(__dirname, "./app"),
-    // like Hosting (firebase.json): /auth/action is the account email page, the rest the game
+    // like Hosting (firebase.json): /auth/action is the account email page, /privacy and
+    // /terms the legal pages, the rest the game
     historyApiFallback: {
-      rewrites: [{ from: /^\/auth\/action\/?$/, to: "/auth-action.html" }],
+      rewrites: [
+        { from: /^\/auth\/action\/?$/, to: "/auth-action.html" },
+        ...LEGAL_PAGES.map((page) => ({
+          from: new RegExp(`^${page.route}/?$`),
+          to: `/${page.file}`,
+        })),
+      ],
     },
     host: "localhost",
     port: 2108,

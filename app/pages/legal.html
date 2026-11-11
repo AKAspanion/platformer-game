@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <!-- The template for /privacy and /terms. The build (scripts/legal-pages.js)
+       fills in the title and the content from PRIVACY.md and TERMS.md. -->
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#1d1a24" />
+    <title>{{title}} · Dino's Adventure</title>
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/images/icons-192.png" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Grandstander&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/pages.css" />
+  </head>
+  <body class="legal-page">
+    <a class="logo" href="/">Dino's <span>Adventure</span></a>
+    <main class="panel legal">
+      <h1 class="title">{{title}}</h1>
+      <nav class="legal-nav" aria-label="Legal">
+        <a href="/privacy">Privacy Policy</a>
+        <a href="/terms">Terms of Service</a>
+      </nav>
+      <article class="legal-body">{{content}}</article>
+      <div class="actions">
+        <a class="btn btn-primary" href="/">Play Dino's Adventure</a>
+      </div>
+    </main>
+  </body>
+</html>
