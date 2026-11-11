@@ -134,8 +134,8 @@ service cloud.firestore {
       allow create, update: if request.auth != null && request.auth.uid == uid
         && request.resource.data.keys().hasOnly(['skin', 'hat', 'companion', 'seenDay'])
         && request.resource.data.keys().hasAll(['skin', 'hat', 'companion'])
-        && request.resource.data.skin in ['classic', 'mint', 'sunset', 'midnight', 'ghost', 'gold', 'ocean', 'lava', 'candy']
-        && request.resource.data.hat in ['none', 'cap', 'party', 'viking', 'wizard', 'crown', 'cowboy', 'tophat', 'pirate']
+        && request.resource.data.skin in ['classic', 'mint', 'sunset', 'ocean', 'lava', 'midnight', 'candy', 'ghost', 'gold']
+        && request.resource.data.hat in ['none', 'cap', 'party', 'cowboy', 'viking', 'tophat', 'wizard', 'pirate', 'crown']
         && request.resource.data.companion in ['none', 'hatchling', 'ptero', 'trike', 'stego', 'raptor', 'ankylo', 'golden', 'crystal']
         && (!('seenDay' in request.resource.data) || isSeenDay(request.resource.data.seenDay));
       allow delete: if false;

@@ -126,7 +126,7 @@ Added after the build at the developer's request.
 
 ## 3. Track C: rewards
 
-The shop has 9 of each: skins, hats and fireballs, counting Classic / No hat.
+The shop has 9 of each: skins, hats and fireballs, counting Classic / No hat, sorted by price, cheapest first.
 
 ### 3.1 Achievements
 

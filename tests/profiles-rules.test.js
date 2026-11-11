@@ -29,14 +29,13 @@ test("PROFILE_IDS come from the shop catalogue", () => {
     "classic",
     "mint",
     "sunset",
-    "midnight",
-    "ghost",
-    "gold",
     "ocean",
     "lava",
+    "midnight",
     "candy",
+    "ghost",
+    "gold",
   ]);
-  assert.deepEqual(PROFILE_IDS.hat.slice(-3), ["cowboy", "tophat", "pirate"]);
   assert.deepEqual(PROFILE_IDS.hat, ids("hat"));
   assert.deepEqual(PROFILE_IDS.companion, ids("companion"));
   assert.equal(PROFILE_IDS.companion[0], "none");

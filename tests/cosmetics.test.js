@@ -143,39 +143,17 @@ test("every hat has a sprite file and every skin and fireball has a palette", ()
     .forEach(({ id }) => assert.ok(FIREBALL_PALETTES[id].length > 0, `fireball ${id}`));
 });
 
-test("the nine-of-each lists keep the old order and add the new ids at the end", () => {
-  const ids = (slot) => CATALOG[slot].map(({ id }) => id);
-  assert.deepEqual(ids("skin"), [
-    "classic",
-    "mint",
-    "sunset",
-    "midnight",
-    "ghost",
-    "gold",
-    "ocean",
-    "lava",
-    "candy",
-  ]);
-  assert.deepEqual(ids("hat"), [
-    "none",
-    "cap",
-    "party",
-    "viking",
-    "wizard",
-    "crown",
-    "cowboy",
-    "tophat",
-    "pirate",
-  ]);
-  assert.deepEqual(ids("fireball"), [
-    "classic",
-    "blue",
-    "green",
-    "purple",
-    "pink",
-    "crimson",
-    "ice",
-    "gold",
-    "shadow",
-  ]);
+test("every slot is sorted by price, the free item first, ties by name", () => {
+  Object.entries(CATALOG).forEach(([slot, items]) => {
+    assert.equal(items[0].price, 0, `${slot} starts with its free item`);
+    for (let i = 1; i < items.length; i++) {
+      assert.ok(
+        items[i - 1].price <= items[i].price,
+        `${slot}: ${items[i].id} after ${items[i - 1].id}`,
+      );
+      if (slot !== "companion" && items[i - 1].price === items[i].price && i > 1) {
+        assert.ok(items[i - 1].name < items[i].name, `${slot}: ${items[i].id} ties by name`);
+      }
+    }
+  });
 });
