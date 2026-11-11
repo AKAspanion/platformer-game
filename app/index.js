@@ -75,7 +75,7 @@ import {
   CHEST_KEYS,
   CHEST_COINS,
 } from "./rewards/quests";
-import { createFollower, companionFrames } from "./game/companion";
+import { createFollower, companionFrames, COMPANION_SIZE } from "./game/companion";
 import { createEarnings } from "./progress/earn";
 import { readLocal, writeLocal, resetLocal } from "./progress/save";
 import { createCloudSave } from "./progress/cloud";
@@ -1040,8 +1040,6 @@ window.addEventListener("load", function () {
     ctx.drawImage(image, egg.x, egg.y, egg.width, egg.height);
   };
 
-  const COMPANION_WIDTH = 24;
-  const COMPANION_HEIGHT = 21;
   /** The worn companion: where the dino stood 10 ticks ago, behind it, facing the way it ran. Only drawn. */
   const drawCompanion = (ctx, player) => {
     if (wornCompanion === "none") return;
@@ -1051,14 +1049,14 @@ window.addEventListener("load", function () {
     const frame = frames[at.moving ? Math.floor(game.world.areaTicks / 6) % 2 : 0];
     if (!frame || !frame.complete || !frame.naturalWidth) return;
     ctx.save();
-    ctx.translate(at.x + player.width / 2 - at.direction * 10, at.y + player.height);
+    ctx.translate(at.x + player.width / 2 - at.direction * 14, at.y + player.height);
     if (at.direction < 0) ctx.scale(-1, 1);
     ctx.drawImage(
       frame,
-      -COMPANION_WIDTH / 2,
-      -COMPANION_HEIGHT,
-      COMPANION_WIDTH,
-      COMPANION_HEIGHT,
+      -COMPANION_SIZE.width / 2,
+      -COMPANION_SIZE.height,
+      COMPANION_SIZE.width,
+      COMPANION_SIZE.height,
     );
     ctx.restore();
   };
@@ -2321,9 +2319,17 @@ window.addEventListener("load", function () {
     // the dino's visible body spans x -17..15 and y -33..1 (game units), the tallest
     // hat reaches y -41 and the flame ends near x 31: all inside 240x140 with a margin;
     // with a companion beside it, the pair moves right to make room
-    ctx.translate(pals.length ? 130 : 100, 125);
+    ctx.translate(pals.length ? 144 : 100, 125);
     ctx.scale(2.8, 2.8);
-    if (palFrame && spriteReady(palFrame)) ctx.drawImage(palFrame, -44, -21, 24, 21);
+    if (palFrame && spriteReady(palFrame)) {
+      ctx.drawImage(
+        palFrame,
+        -48,
+        -COMPANION_SIZE.height,
+        COMPANION_SIZE.width,
+        COMPANION_SIZE.height,
+      );
+    }
     if (dino) ctx.drawImage(dino, -18, -35, 60, 40);
     const hat = hatImage(shopPick.hat);
     if (hat && hat.naturalWidth) drawHat(ctx, hat, 1, dino);
