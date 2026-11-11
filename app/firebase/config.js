@@ -25,7 +25,7 @@ export const firebaseConfig = {
   appId: "1:866926651940:web:143a267cfaddc751e786b1",
   // Google Analytics's ID (Firebase console > Project settings > Your apps). Empty until
   // Analytics is enabled on the project: nothing is sent while it is empty.
-  measurementId: "",
+  measurementId: "G-8CE4091V3T",
 };
 
 /** Where the world creator's functions run (next to the Firestore database). */
