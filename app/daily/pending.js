@@ -16,6 +16,13 @@ function defaultStorage() {
   }
 }
 
+/** The callable error's code without its "functions/" prefix, "" when it has none. */
+export const errorCode = (error) => String((error && error.code) || "").replace(/^functions\//, "");
+
+/** Refusals that can never succeed on a later try: the run is not worth keeping. */
+export const isFinalRefusal = (error) =>
+  ["invalid-argument", "failed-precondition"].includes(errorCode(error));
+
 const isRun = (run) =>
   run &&
   typeof run === "object" &&
@@ -73,8 +80,13 @@ export function createPending(storage = defaultStorage()) {
           await send(run);
           settled.push(key);
           result.sent += 1;
-        } catch {
-          result.kept += 1; // offline or refused: the next home screen tries again
+        } catch (error) {
+          if (isFinalRefusal(error)) {
+            settled.push(key); // the server will never take this run
+            result.dropped += 1;
+          } else {
+            result.kept += 1; // offline or busy: the next home screen tries again
+          }
         }
       }
       // read again: a run saved while sending stays, and so does a better one for a sent seed

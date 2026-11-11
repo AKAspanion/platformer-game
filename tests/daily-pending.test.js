@@ -105,3 +105,27 @@ test("works without storage, in memory", async () => {
   await pending.flush(async (r) => sent.push(r), NOW);
   assert.equal(sent.length, 1);
 });
+
+const refused = (code) => Object.assign(new Error("refused"), { code });
+
+test("a run the server refuses as invalid or closed is dropped, not kept", async () => {
+  for (const code of ["functions/invalid-argument", "failed-precondition"]) {
+    const storage = memoryStorage();
+    const pending = createPending(storage);
+    pending.save(run());
+    const result = await pending.flush(async () => Promise.reject(refused(code)), NOW);
+    assert.deepEqual(result, { sent: 0, kept: 0, dropped: 1 }, code);
+    assert.deepEqual(stored(storage), {}, code);
+  }
+});
+
+test("a run that fails with unavailable or resource-exhausted is kept", async () => {
+  for (const code of ["functions/unavailable", "functions/resource-exhausted"]) {
+    const storage = memoryStorage();
+    const pending = createPending(storage);
+    pending.save(run());
+    const result = await pending.flush(async () => Promise.reject(refused(code)), NOW);
+    assert.deepEqual(result, { sent: 0, kept: 1, dropped: 0 }, code);
+    assert.deepEqual(stored(storage), { 20261111: run() }, code);
+  }
+});

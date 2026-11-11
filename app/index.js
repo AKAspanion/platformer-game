@@ -31,7 +31,7 @@ import { requestSpec, worlds } from "./creator";
 import { auth } from "./auth";
 import { leaderboard, TOP_LIMIT } from "./daily/leaderboard";
 import { createStreak } from "./daily/streak";
-import { createPending } from "./daily/pending";
+import { createPending, errorCode, isFinalRefusal } from "./daily/pending";
 import { shareText, shareRun } from "./daily/share";
 import { DAILY_LEVELS } from "./daily/rules.js";
 import { friendlyError } from "./firebase";
@@ -323,6 +323,11 @@ window.addEventListener("load", function () {
   };
 
   const OFFLINE = "You're offline. Your score will be sent later.";
+  const REFUSED = {
+    "invalid-argument": "That run can't be ranked.",
+    "failed-precondition": "That daily challenge has closed.",
+    "resource-exhausted": "Too many scores, try again in a minute.",
+  };
 
   /** Sends the finished daily run: shows the rank, or keeps the run for the next home screen. */
   const submitDaily = async (score) => {
@@ -342,9 +347,11 @@ window.addEventListener("load", function () {
       if (token === panelToken)
         setPanelDaily({ rank: `#${sent.rank} of ${sent.total}`, leaderboard: true });
     } catch (error) {
-      pending.save(run);
+      const code = errorCode(error);
+      // refused runs can't be ranked later; a busy server (resource-exhausted) can take it later
+      if (!isFinalRefusal(error)) pending.save(run);
       track("daily_complete", { score, seconds: run.seconds });
-      if (token === panelToken) setPanelDaily({ rank: OFFLINE });
+      if (token === panelToken) setPanelDaily({ rank: REFUSED[code] || OFFLINE });
     }
   };
 
@@ -2076,7 +2083,7 @@ window.addEventListener("load", function () {
     row.className = `lb-row${me ? " me" : ""}${pinned ? " pinned" : ""}`;
     // names come from other players: text only, never HTML
     [
-      ["lb-rank", entry.rank == null ? "–" : `#${entry.rank}`],
+      ["lb-rank", typeof entry.rank === "number" ? `#${entry.rank}` : entry.rank],
       ["lb-name", entry.name],
       ["lb-score", String(entry.score)],
       ["lb-time", clock(entry.seconds)],
@@ -2108,8 +2115,10 @@ window.addEventListener("load", function () {
       board.status.textContent = "";
       rows.forEach((entry) => board.list.appendChild(boardRow(entry, { me: entry.uid === uid })));
       if (mine) {
-        const known = daily.result && daily.result.seed === seed ? daily.result.rank : null;
-        board.list.appendChild(boardRow({ ...mine, rank: known }, { me: true, pinned: true }));
+        // outside the top 50: the exact place isn't known here, and a stale one would be wrong
+        board.list.appendChild(
+          boardRow({ ...mine, rank: `${TOP_LIMIT}+` }, { me: true, pinned: true }),
+        );
       }
     } catch (error) {
       if (load !== board.load) return;

@@ -428,6 +428,47 @@ canvas {
   overflow-wrap: anywhere;
 }
 
+/* short screens (a landscape phone): a tighter panel, buttons in two columns */
+@media (max-height: 480px) {
+  .panel {
+    width: min(480px, 92vw);
+    padding: 12px 16px;
+  }
+  .panel-title {
+    font-size: 24px;
+  }
+  .panel-score {
+    margin-top: 2px;
+    font-size: 16px;
+  }
+  .panel-best {
+    min-height: 0;
+    font-size: 13px;
+  }
+  .panel-rank {
+    margin-top: 4px;
+    font-size: 18px;
+  }
+  .panel-streak {
+    margin-top: 2px;
+    font-size: 15px;
+  }
+  .panel-note {
+    margin-top: 4px;
+    font-size: 12px;
+  }
+  .panel-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .panel-actions .btn {
+    padding: 8px 10px;
+    font-size: 15px;
+  }
+}
+
 /* --------------------------------------------------------------------- modals */
 
 .modal-screen {
@@ -1473,6 +1514,8 @@ canvas {
   font-weight: bold;
 }
 .lb-row.pinned {
+  position: sticky;
+  bottom: 0;
   margin-top: 8px;
   box-shadow: 0 -2px 0 rgba(29, 26, 36, 0.2);
 }

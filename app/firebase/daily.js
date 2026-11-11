@@ -7,8 +7,9 @@ import { loadFirebase, friendlyError } from "./index";
  * submitDailyScore function (functions/index.js).
  */
 
+// the code stays on the error: the game tells "offline" from "refused" by it
 const asError = (error) => {
-  throw new Error(friendlyError(error));
+  throw Object.assign(new Error(friendlyError(error)), { code: error && error.code });
 };
 
 const scoresOf = (fb, seed) => fb.storeApi.collection(fb.db, "daily", String(seed), "scores");
