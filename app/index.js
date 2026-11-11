@@ -1283,7 +1283,8 @@ window.addEventListener("load", function () {
       showToast("<b>Checking your account…</b>");
       await auth.ready();
     }
-    return auth.currentUser ? then() : openLogin(then, intent);
+    // an anonymous player (daily leaderboard) counts as signed out here
+    return auth.signedIn ? then() : openLogin(then, intent);
   };
 
   const signIn = async (method) => {
