@@ -81,6 +81,7 @@ import { createEarnings } from "./progress/earn";
 import { readLocal, writeLocal, resetLocal } from "./progress/save";
 import { createCloudSave } from "./progress/cloud";
 import { firestoreSaves } from "./firebase/saves";
+import { profiles } from "./profiles";
 import {
   SECRET_STARS,
   campaignStars,
@@ -1878,7 +1879,10 @@ window.addEventListener("load", function () {
     show(hatchScreen, true);
   };
   const closeHatch = (wear) => {
-    if (wear && hatching && wallet.wear("companion", hatching.companion)) progressChanged();
+    if (wear && hatching && wallet.wear("companion", hatching.companion)) {
+      progressChanged();
+      syncProfile();
+    }
     hatching = null;
     show(hatchScreen, false);
     refreshHome();
@@ -2054,6 +2058,7 @@ window.addEventListener("load", function () {
   const setAnalytics = $("setAnalytics");
   const setGhost = $("setGhost");
   const setShake = $("setShake");
+  const setLastSeen = $("setLastSeen");
   const setControls = $("setControls");
   const setOpacity = $("setOpacity");
   const setPremiumDev = $("setPremiumDev");
@@ -2065,6 +2070,7 @@ window.addEventListener("load", function () {
     setAnalytics.checked = settings.get("analytics") !== false;
     setGhost.checked = settings.get("ghost") !== false;
     setShake.checked = settings.get("shake") !== false;
+    setLastSeen.checked = settings.get("lastSeen") !== false;
     $("vibrationRow").style.display = navigator.vibrate ? "flex" : "none";
     setControls.querySelectorAll("button").forEach((b) => {
       b.classList.toggle("active", b.dataset.value === settings.get("controlSize"));
@@ -2103,6 +2109,10 @@ window.addEventListener("load", function () {
   setSound.onchange = () => (settings.soundMuted = !setSound.checked);
   setAnalytics.onchange = () => setAnalyticsEnabled(setAnalytics.checked);
   setShake.onchange = () => settings.set("shake", setShake.checked);
+  setLastSeen.onchange = () => {
+    settings.set("lastSeen", setLastSeen.checked);
+    syncProfile();
+  };
   setGhost.onchange = () => {
     settings.set("ghost", setGhost.checked);
     ghostOn = setGhost.checked;
@@ -2401,7 +2411,10 @@ window.addEventListener("load", function () {
     const picked = itemOf(slot, shopPick[slot]);
     if (!picked) return;
     if (wallet.owns(slot, picked.id)) {
-      if (wallet.worn()[slot] !== picked.id && wallet.wear(slot, picked.id)) progressChanged();
+      if (wallet.worn()[slot] !== picked.id && wallet.wear(slot, picked.id)) {
+        progressChanged();
+        syncProfile();
+      }
     } else if (wallet.buy(slot, picked.id).ok) {
       track("shop_buy", { item: `${slot}:${picked.id}`, price: picked.price });
       progressChanged();
@@ -2501,6 +2514,13 @@ window.addEventListener("load", function () {
   // for any player with an account: signed in or anonymous. Signing out only stops it.
   let cloudUid = null;
   let playerActed = false;
+  // The player's public look (and last-online day) follows the account: written when cloud save
+  // starts, after wearing an item and when the switch changes. No account, no profile, and
+  // nothing loads. Never shows an error.
+  function syncProfile() {
+    if (!cloudUid) return;
+    profiles.sync(cloudUid, wallet.worn(), { showLastSeen: settings.get("lastSeen") !== false });
+  }
   const syncCloud = () => {
     if (!playerActed) return;
     const user = auth.currentUser;
@@ -2508,6 +2528,7 @@ window.addEventListener("load", function () {
       cloudUid = user.uid;
       // the account's save may bring stars or a streak that earn something
       cloud.start(user.uid).then(checkAchievements);
+      syncProfile();
     } else if (!user && cloudUid) {
       cloudUid = null;
       cloud.stop();
