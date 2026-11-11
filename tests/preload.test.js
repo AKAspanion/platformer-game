@@ -127,10 +127,7 @@ test("a finished preload: the portal shows no loading bar", async () => {
   const start = mark();
   game.world.reset();
   game.world.setup(areas[31]);
-  // coins and water re-read their (cached) images for every level, which land
-  // a moment later: the first update runs after that, not in the same tick
-  await tick();
-  assert.equal(game.isLoaded(), true, "game loaded before the first update");
+  assert.equal(game.isLoaded(), true, "game loaded the moment setup returns");
   const screen = new Screen(canvas(), areas[31].world, null);
   assert.equal(screen.isLoaded(), true, "tile set loaded");
   game.update();
