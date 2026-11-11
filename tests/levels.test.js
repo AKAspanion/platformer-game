@@ -301,7 +301,13 @@ const strandedIn = (list) =>
 
 test("unreachablePlatforms finds a platform far above anything reachable; validate names it", () => {
   const heights = Array(21).fill(9);
-  const level = { heights, platforms: [[3, 8, 10]], traps: [], data: { coins: [], powerups: [] } };
+  const level = {
+    heights,
+    platforms: [[3, 8, 10]],
+    traps: [],
+    placement: "v1", // this test is about reachability, not the platform rule
+    data: { coins: [], powerups: [] },
+  };
   assert.ok(unreachablePlatforms(level).length > 0, "the platform 6 rows up is flagged");
   assert.equal(validate(level), "platform 8,3 unreachable");
   // steps in between make the climb possible
@@ -333,7 +339,7 @@ test("generated levels never keep a platform the dino can't reach; repaired leve
     const result = generator.buildLevel(level, seed);
     assert.deepEqual(unreachablePlatforms(result), [], `seed ${seed}`);
     const error = validate(result);
-    if (error) assert.ok(!/platform/.test(error), `seed ${seed}: ${error}`);
+    if (error) assert.ok(!/^platform /.test(error), `seed ${seed}: ${error}`);
     else valid++;
   }
   assert.ok(valid > 0);

@@ -1,0 +1,107 @@
+{
+  "id": "wmwc1eva8px1kub",
+  "name": "Sunny Coral Reef",
+  "spec": {
+    "version": 2,
+    "name": "Sunny Coral Reef",
+    "tagline": "Splash through bubbly shallows and bonk the biggest crab in the reef!",
+    "palette": {
+      "skyTop": "#7fd4ff",
+      "skyBottom": "#c4f0ff",
+      "ground": "#e9c77a",
+      "surface": "#ffd93d",
+      "accent": "#ff6f91",
+      "liquid": "#2ec4e6"
+    },
+    "terrain": {
+      "surface": "sand",
+      "pits": "liquid",
+      "traps": false
+    },
+    "backdrop": {
+      "skyline": "hills",
+      "celestial": "sun"
+    },
+    "decor": [
+      "coral",
+      "bush",
+      "crystal",
+      "flower"
+    ],
+    "enemies": [
+      {
+        "name": "Bubble Crab",
+        "behavior": "walker",
+        "body": "round",
+        "color": "#ff7a59",
+        "accent": "#ffd1c2",
+        "features": [
+          "one-eye",
+          "antenna"
+        ],
+        "speed": "slow",
+        "armored": false
+      },
+      {
+        "name": "Puff Pufferfish",
+        "behavior": "flyer",
+        "body": "round",
+        "color": "#ffc857",
+        "accent": "#3a86ff",
+        "features": [
+          "spikes",
+          "one-eye"
+        ],
+        "speed": "medium",
+        "armored": false
+      },
+      {
+        "name": "Spitting Clam",
+        "behavior": "turret",
+        "body": "box",
+        "color": "#b388eb",
+        "accent": "#fff3b0",
+        "features": [
+          "shell",
+          "teeth"
+        ],
+        "speed": "slow",
+        "armored": false
+      }
+    ],
+    "boss": {
+      "name": "King Crabbington",
+      "body": "box",
+      "color": "#ff5e4d",
+      "accent": "#ffe066",
+      "features": [
+        "horns",
+        "shell",
+        "three-eyes"
+      ],
+      "armored": false,
+      "flyer": false,
+      "moves": [
+        "charge",
+        "stomp",
+        "fan",
+        "bounce"
+      ]
+    },
+    "music": {
+      "mood": "happy",
+      "tempo": 118,
+      "lead": "square"
+    },
+    "difficulty": 2,
+    "enemyDensity": "low",
+    "hazards": "low",
+    "powerups": [
+      "heart",
+      "shield",
+      "wings"
+    ]
+  },
+  "seed": 889198317,
+  "version": 2
+}
