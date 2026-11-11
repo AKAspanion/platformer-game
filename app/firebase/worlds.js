@@ -58,10 +58,10 @@ export const firestoreWorlds = {
     };
   },
 
-  async publish(world) {
+  async publish(world, { thumb } = {}) {
     const fb = await loadFirebase().catch(asError);
     const call = fb.functionsApi.httpsCallable(fb.functions, "publishWorld");
-    const result = await call({ world }).catch(asError);
+    const result = await call(thumb ? { world, thumb } : { world }).catch(asError);
     return result.data.world;
   },
 
