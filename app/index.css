@@ -13,6 +13,7 @@
   --sal: env(safe-area-inset-left, 0px);
   /* touch button size, set from the screen size in JS (see sizeControls) */
   --ctrl: 64px;
+  --pause-size: 40px;
   --small-btn-size: 52px;
 }
 
@@ -139,11 +140,11 @@ canvas {
   transform: translateX(-50%);
 }
 #pauseBtn {
-  width: var(--ctrl);
-  height: var(--ctrl);
+  width: var(--pause-size);
+  height: var(--pause-size);
   cursor: pointer;
   opacity: var(--ctrl-idle, 0.45);
-  background: url(images/pause_btn.webp) center center / 100% no-repeat;
+  background: url(images/pause_btn.webp) center center / var(--pause-size) no-repeat;
 }
 #pauseBtn:active {
   opacity: var(--ctrl-pressed, 0.75);
@@ -1968,7 +1969,7 @@ canvas {
   position: fixed;
   z-index: 9;
   /* above the pause button, never under it */
-  bottom: calc(var(--sab) + var(--ctrl) * 1.18 + 8px);
+  bottom: calc(var(--sab) + var(--ctrl) * 0.18 + var(--pause-size) + 8px);
   left: 50%;
   max-width: min(520px, calc(100vw - 32px));
   padding: 8px 16px;
