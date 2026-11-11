@@ -2,19 +2,31 @@ const path = require("path");
 const webpack = require("webpack");
 const CopyPlugin = require("copy-webpack-plugin");
 const ESLintPlugin = require("eslint-webpack-plugin");
-// const TerserPlugin = require("terser-webpack-plugin");
 const DashboardPlugin = require("webpack-dashboard/plugin");
-// const { CleanWebpackPlugin } = require("clean-webpack-plugin");
 const { EsbuildPlugin } = require("esbuild-loader");
+const { firebaseEnv, missingFirebaseEnv, buildEnv } = require("./scripts/load-env");
 
-module.exports = {
-  mode: "development",
+// Deploys set REQUIRE_FIREBASE_ENV=1: a live build without its Firebase config
+// would ship a game whose sign-in, worlds and leaderboards all fail.
+if (missingFirebaseEnv.length) {
+  const message = `Missing ${missingFirebaseEnv.join(", ")} (copy .env.example to .env). Online features are off in this build.`;
+  if (process.env.REQUIRE_FIREBASE_ENV === "1") throw new Error(message);
+  console.warn(`\n[env] ${message}\n`);
+}
+
+const projectId = firebaseEnv.FIREBASE_PROJECT_ID || "demo-project";
+
+// a function so the build knows its mode (`--mode production` drops dev-only values)
+module.exports = (env, argv = {}) => ({
+  mode: argv.mode || "development",
   entry: path.resolve(__dirname, "./app/index.js"),
   output: {
     filename: "bundle.js",
     // Firebase (sign-in, shared worlds) is a separate chunk, loaded on demand
     chunkFilename: "chunks/[name].[contenthash:8].js",
     publicPath: "auto",
+    // drop files from older builds (stale chunks would otherwise be deployed)
+    clean: true,
   },
   optimization: {
     minimizer: [
@@ -33,11 +45,12 @@ module.exports = {
     ],
   },
   plugins: [
-    // new CleanWebpackPlugin(),
     new DashboardPlugin(),
     // PREMIUM=1 unlocks premium by default (test builds).
     new webpack.DefinePlugin({
       PREMIUM_DEFAULT: JSON.stringify(process.env.PREMIUM === "1"),
+      // the Firebase web config from .env (app/firebase/config.js)
+      __FIREBASE_ENV__: JSON.stringify(buildEnv(argv.mode || "development")),
     }),
     new ESLintPlugin({}),
     new CopyPlugin({
@@ -75,7 +88,7 @@ module.exports = {
         target: "http://127.0.0.1:9099",
       },
       { context: ["/google.firestore.v1.Firestore"], target: "http://127.0.0.1:8085" },
-      { context: ["/dinos-adventure"], target: "http://127.0.0.1:5001" },
+      { context: [`/${projectId}`], target: "http://127.0.0.1:5001" },
     ],
     open: true,
     client: {
@@ -85,4 +98,4 @@ module.exports = {
       },
     },
   },
-};
+});

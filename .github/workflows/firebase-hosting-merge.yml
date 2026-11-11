@@ -1,9 +1,12 @@
 # Every push to master: run CI, then deploy the game (Hosting), the world
-# creator's functions and the Firestore rules and indexes to dinos-adventure.
+# creator's functions and the Firestore rules and indexes to dinos-adventure,
+# then check the callable functions are still public.
 #
-# Needs the FIREBASE_SERVICE_ACCOUNT_DINOS_ADVENTURE secret (a service
-# account key with deploy roles, see functions/README.md) and the
-# ANTHROPIC_API_KEY function secret set once in the project.
+# Needs these repository secrets:
+#   FIREBASE_SERVICE_ACCOUNT_DINOS_ADVENTURE  a service account key with deploy
+#                                              roles (see functions/README.md)
+#   APP_ENV                                   the contents of .env (see .env.example)
+# and the ANTHROPIC_API_KEY function secret set once in the project.
 name: Deploy to Firebase on merge
 
 on:
@@ -26,13 +29,16 @@ jobs:
   deploy:
     needs: ci
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     environment:
       name: production
       url: https://dino.spanion.in
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
 
       - uses: actions/setup-node@v7
         with:
@@ -47,10 +53,22 @@ jobs:
           pnpm install --frozen-lockfile
           pnpm --dir functions install --frozen-lockfile
 
+      - name: Write .env
+        env:
+          APP_ENV: ${{ secrets.APP_ENV }}
+        run: |
+          if [ -z "$APP_ENV" ]; then
+            echo "::error::The APP_ENV secret is empty. Set it to the contents of .env (see .env.example)."
+            exit 1
+          fi
+          printf '%s\n' "$APP_ENV" > .env
+
       - name: Build
+        env:
+          REQUIRE_FIREBASE_ENV: "1"
         run: pnpm build
 
-      - uses: google-github-actions/auth@v3
+      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DINOS_ADVENTURE }}
 
@@ -62,6 +80,5 @@ jobs:
           --non-interactive --force
           --message "${{ github.sha }}"
 
-      # a lost invoker permission shows as a 403 before any player sees it
-      - name: Check the functions are public
-        run: node scripts/check-functions-public.js https://asia-south1-dinos-adventure.cloudfunctions.net
+      - name: Callable functions are public
+        run: node scripts/check-functions-public.js

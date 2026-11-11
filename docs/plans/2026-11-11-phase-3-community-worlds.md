@@ -38,6 +38,7 @@ None (`run.checkpoints: none`). The run goes through all four tasks and stops be
 ### Task 1: Shared community rules, data layout and hosting route
 
 **Files:**
+
 - Create: `app/worlds/community.js`
 - Modify: `scripts/sync-functions-shared.js` (add `app/worlds/community.js`)
 - Create: `functions/shared/worlds/community.js` (generated)
@@ -49,6 +50,7 @@ None (`run.checkpoints: none`). The run goes through all four tasks and stops be
 - Test: `tests/community-rules.test.js`
 
 **Interfaces:**
+
 - Consumes: existing `sanitizeWorld`, `cleanText` in `app/worlds/spec.js`; existing sync script.
 - Produces (used by Tasks 2, 3 and 4):
 
@@ -80,20 +82,21 @@ export function linkedWorldId(location: { pathname: string, search: string }): s
 
 Firestore:
 
-| Path | Fields | Client access |
-|---|---|---|
-| `worldStats/{worldId}` | `plays, finishes, likes, trend, updatedAt` | read anyone; no writes |
-| `worldStats/{worldId}/days/{day}` | `plays, finishes, likes` | read anyone; no writes |
-| `worldStats/{worldId}/seen/{uid_day_kind}` | `at` (dedupe marker) | none |
-| `worldLikes/{worldId}_{uid}` | `worldId, uid, at` | read only own (`uid == request.auth.uid`); no writes |
-| `thumbs/{worldId}` | `png` (base64), `bytes` | none (served by `worldPage`) |
-| `config/featured` | `worldId` (hand-set override), `current`, `lastWeek`, `pickedAt` | read anyone; no writes |
+| Path                                       | Fields                                                           | Client access                                        |
+| ------------------------------------------ | ---------------------------------------------------------------- | ---------------------------------------------------- |
+| `worldStats/{worldId}`                     | `plays, finishes, likes, trend, updatedAt`                       | read anyone; no writes                               |
+| `worldStats/{worldId}/days/{day}`          | `plays, finishes, likes`                                         | read anyone; no writes                               |
+| `worldStats/{worldId}/seen/{uid_day_kind}` | `at` (dedupe marker)                                             | none                                                 |
+| `worldLikes/{worldId}_{uid}`               | `worldId, uid, at`                                               | read only own (`uid == request.auth.uid`); no writes |
+| `thumbs/{worldId}`                         | `png` (base64), `bytes`                                          | none (served by `worldPage`)                         |
+| `config/featured`                          | `worldId` (hand-set override), `current`, `lastWeek`, `pickedAt` | read anyone; no writes                               |
 
 Index: `worldStats` by `trend` descending.
 
 Hosting: `{ "source": "/w/**", "function": { "functionId": "worldPage", "region": "asia-south1" } }`, placed before any catch-all.
 
 **Spec:**
+
 - §3: "Trending ranks worlds by recent plays: each play counts half as much for every 3 days that pass."
 - §3: "Trending shows the top 30. New shows the newest first, as the Community tab does today."
 - §4: "Every Monday at 00:00 UTC a scheduled function picks the world of the week: among worlds with at least 20 plays in the last 14 days, the one with the most likes per play in those 14 days. On a tie, more plays wins, then the newer world."
@@ -107,6 +110,7 @@ Hosting: `{ "source": "/w/**", "function": { "functionId": "worldPage", "region"
 **Knowledge:** none (this project has no knowledge base)
 
 **Acceptance:**
+
 - Given ms for 2026-11-11T23:59Z, when `dayKey` runs, then "20261111"; one minute later, "20261112".
 - Given world A with 10 plays 9 days ago and world B with 4 plays today, when each play is folded in with `trendAfterPlay`, then B's score is higher than A's.
 - Given two plays at the same moment versus one, when scored, then the two-play score is exactly 1 higher (log2 of double).
@@ -154,6 +158,7 @@ git commit -m "feat(worlds): shared community rules, stats layout and world link
 ### Task 2: Community functions
 
 **Files:**
+
 - Create: `functions/src/community.js`
 - Modify: `functions/src/handlers.js` (`handlePublish` accepts and keeps a thumbnail)
 - Modify: `functions/index.js` (export `recordWorldPlay`, `toggleWorldLike`, `pickWorldOfWeek`, `worldPage`)
@@ -161,16 +166,17 @@ git commit -m "feat(worlds): shared community rules, stats layout and world link
 - Test: `tests/functions.test.js` (publish-with-thumbnail cases)
 
 **Interfaces:**
+
 - Consumes: `dayKey`, `trendAfterPlay`, `pickFeatured`, `isBuiltIn`, `MAX_THUMB_BYTES`, `PLAY_LIMIT`, `LIKE_LIMIT`, `FEATURE_WINDOW_DAYS` from `functions/shared/worlds/community.js` (Task 1); existing `overLimit`, `ApiError`, `signedIn`, `handlePublish`, `sanitizeWorld`.
 - Produces (called by Task 3 by name):
 
-| Function | Kind | Request | Response | Errors |
-|---|---|---|---|---|
-| `recordWorldPlay` | callable | `{ worldId, kind: "play" \| "finish" }` | `{ counted: boolean }` | `unauthenticated`; `invalid-argument` bad id or kind; over the limit → `{ counted: false }`, no error |
-| `toggleWorldLike` | callable | `{ worldId }` | `{ liked: boolean, likes: number }` | `unauthenticated`; `invalid-argument`; `not-found` no such world; `resource-exhausted` "Slow down a little, try again in a minute." |
-| `publishWorld` (changed) | callable | `{ world, thumb? }` (`thumb`: base64 PNG) | `{ world }` | as before; a bad or oversize thumb is dropped, never an error |
-| `pickWorldOfWeek` | `onSchedule("every monday 00:00", timeZone "UTC")` | — | writes `config/featured.current`, `lastWeek`, `pickedAt` | — |
-| `worldPage` | `onRequest` | `GET /w/<id>` or `/w/<id>/thumb.png` | HTML with Open Graph and Twitter tags that redirects players to `/?world=<id>`; or the PNG | `404` HTML page linking to the game |
+| Function                 | Kind                                               | Request                                   | Response                                                                                   | Errors                                                                                                                              |
+| ------------------------ | -------------------------------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `recordWorldPlay`        | callable                                           | `{ worldId, kind: "play" \| "finish" }`   | `{ counted: boolean }`                                                                     | `unauthenticated`; `invalid-argument` bad id or kind; over the limit → `{ counted: false }`, no error                               |
+| `toggleWorldLike`        | callable                                           | `{ worldId }`                             | `{ liked: boolean, likes: number }`                                                        | `unauthenticated`; `invalid-argument`; `not-found` no such world; `resource-exhausted` "Slow down a little, try again in a minute." |
+| `publishWorld` (changed) | callable                                           | `{ world, thumb? }` (`thumb`: base64 PNG) | `{ world }`                                                                                | as before; a bad or oversize thumb is dropped, never an error                                                                       |
+| `pickWorldOfWeek`        | `onSchedule("every monday 00:00", timeZone "UTC")` | —                                         | writes `config/featured.current`, `lastWeek`, `pickedAt`                                   | —                                                                                                                                   |
+| `worldPage`              | `onRequest`                                        | `GET /w/<id>` or `/w/<id>/thumb.png`      | HTML with Open Graph and Twitter tags that redirects players to `/?world=<id>`; or the PNG | `404` HTML page linking to the game                                                                                                 |
 
 ```js
 // functions/src/community.js — pure handlers, injected stores (as functions/src/handlers.js does)
@@ -182,6 +188,7 @@ export function checkThumb(base64: unknown): Buffer | null; // a PNG of at most 
 ```
 
 **Spec:**
+
 - §2: "A play counts when a player starts a community world. Each account counts once per world per day."
 - §2: "A finish counts when a player beats the world's boss arena. Each account counts once per world per day."
 - §2: "Counts are kept by the server; the game never writes them."
@@ -201,6 +208,7 @@ export function checkThumb(base64: unknown): Buffer | null; // a PNG of at most 
 **Knowledge:** none (this project has no knowledge base)
 
 **Acceptance:**
+
 - Given no `request.auth`, when either callable runs, then `unauthenticated`.
 - Given worldId `"<x>"`, a built-in id, or kind `"win"`, when `recordWorldPlay` runs, then `invalid-argument` and nothing is written.
 - Given one account playing world w twice on 20261111, when recorded, then plays rise by 1 (the second returns `counted: false`); on 20261112 it counts again; a finish the same day counts separately once.
@@ -245,6 +253,7 @@ git commit -m "feat(worlds): count plays and likes, pick the world of the week, 
 ### Task 3: Community client
 
 **Files:**
+
 - Create: `app/firebase/community.js`
 - Create: `app/worlds/community-client.js`
 - Modify: `app/worlds/repository.js` (`publish(world, { thumb })`, `byIds(ids)`)
@@ -252,6 +261,7 @@ git commit -m "feat(worlds): count plays and likes, pick the world of the week, 
 - Test: `tests/community-client.test.js`
 
 **Interfaces:**
+
 - Consumes: `TRENDING_LIMIT`, `isBuiltIn`, `dayKey`, `formatCount`, `weekNote` from `app/worlds/community.js` (Task 1); existing `loadFirebase()`, `auth.ensurePlayer()`, `FirestoreRepository`. It calls the callables `recordWorldPlay`, `toggleWorldLike` and `publishWorld` only by name through `httpsCallable`, with the request and response shapes in the table below; it imports no code from the functions.
 - Produces (used by Task 4):
 
@@ -280,13 +290,14 @@ repo.publish(world, options?: { thumb?: string }): Promise<World>;
 repo.byIds(ids: string[]): Promise<World[]>; // sanitized, missing ids left out
 ```
 
-| Callable | Request | Response |
-|---|---|---|
-| `recordWorldPlay` | `{ worldId, kind: "play" \| "finish" }` | `{ counted: boolean }` |
-| `toggleWorldLike` | `{ worldId }` | `{ liked: boolean, likes: number }`, or `resource-exhausted` "Slow down a little, try again in a minute." |
-| `publishWorld` | `{ world, thumb? }` | `{ world }` |
+| Callable          | Request                                 | Response                                                                                                  |
+| ----------------- | --------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `recordWorldPlay` | `{ worldId, kind: "play" \| "finish" }` | `{ counted: boolean }`                                                                                    |
+| `toggleWorldLike` | `{ worldId }`                           | `{ liked: boolean, likes: number }`, or `resource-exhausted` "Slow down a little, try again in a minute." |
+| `publishWorld`    | `{ world, thumb? }`                     | `{ world }`                                                                                               |
 
 **Spec:**
+
 - §2: "Plays and finishes need an account: a player without one gets a silent anonymous account when they start a community world."
 - §2: "Liking without an account creates a silent anonymous account first."
 - §2: "An account can like or unlike at most 60 times an hour; past that the game says "Slow down a little, try again in a minute.""
@@ -297,6 +308,7 @@ repo.byIds(ids: string[]): Promise<World[]>; // sanitized, missing ids left out
 **Knowledge:** none (this project has no knowledge base)
 
 **Acceptance:**
+
 - Given a starter world id, when `recordPlay` runs, then nothing is called.
 - Given no account, when `recordPlay("wabc", "play")` runs, then `ensurePlayer` runs first, then `recordWorldPlay` is called once with `{worldId, kind}`.
 - Given the call rejects (offline), when `recordPlay` runs, then it resolves without throwing.
@@ -338,6 +350,7 @@ git commit -m "feat(worlds): community client for plays, likes, trending and cre
 ### Task 4: Community screens
 
 **Files:**
+
 - Modify: `app/index.js`
 - Modify: `app/index.html`
 - Modify: `app/index.css`
@@ -345,6 +358,7 @@ git commit -m "feat(worlds): community client for plays, likes, trending and cre
 - Test: `tests/world-thumb.test.js`
 
 **Interfaces:**
+
 - Consumes: `community` (`recordPlay`, `toggleLike`, `stats`, `trending`, `featured`, `liked`, `myWeek`), `repo.publish(world, {thumb})`, `repo.byIds` (Task 3); `formatCount`, `weekNote`, `isBuiltIn`, `worldLink`, `linkedWorldId`, `THUMB_SIZE`, `MAX_THUMB_BYTES` (Task 1); existing `previewImage`, `shareRun`, `track`, `worldCard`, `renderCommunity`, `renderWorlds`, `selectTab`, `openCreator`, `startCustom`, `isPremium`, `openPremium`, `showToast`.
 - Produces:
 
@@ -356,25 +370,26 @@ export function publishThumb(canvas: HTMLCanvasElement): string | null;
 
 Screens and states:
 
-| Screen | State | Shows |
-|---|---|---|
-| Home | Worlds card | opens Community for everyone (no premium dialog); Create and Remix still ask for premium |
-| Community | Trending (default) | top 30 by trend; worlds with no plays aren't listed |
-| Community | New | newest first, as today |
-| Community | loading Trending | the existing loading state of the list |
-| Community | Trending failed | the existing load-error state with Try again |
-| Community | featured | banner "★ World of the week: <name> by <author>" with Play |
-| Community | no featured | no banner |
-| World card | community world | "▶ 1.2k · ❤ 37", ❤ button (filled when liked), Share, Remix |
-| World card | built-in world | no counts, no ❤, no Share |
-| World card | remixed | "Remix of <name>" |
-| My worlds | published world | "120 plays · 37 beat the boss · 15 ❤ this week" |
-| Toast | weekly creator note | "🎉 Your worlds: 120 plays and 37 boss wins this week" |
-| Toast | missing linked world | "That world doesn't exist anymore." |
-| Toast | link copied | "Link copied" |
-| Toast | like rate limit | "Slow down a little, try again in a minute." |
+| Screen     | State                | Shows                                                                                    |
+| ---------- | -------------------- | ---------------------------------------------------------------------------------------- |
+| Home       | Worlds card          | opens Community for everyone (no premium dialog); Create and Remix still ask for premium |
+| Community  | Trending (default)   | top 30 by trend; worlds with no plays aren't listed                                      |
+| Community  | New                  | newest first, as today                                                                   |
+| Community  | loading Trending     | the existing loading state of the list                                                   |
+| Community  | Trending failed      | the existing load-error state with Try again                                             |
+| Community  | featured             | banner "★ World of the week: <name> by <author>" with Play                               |
+| Community  | no featured          | no banner                                                                                |
+| World card | community world      | "▶ 1.2k · ❤ 37", ❤ button (filled when liked), Share, Remix                              |
+| World card | built-in world       | no counts, no ❤, no Share                                                                |
+| World card | remixed              | "Remix of <name>"                                                                        |
+| My worlds  | published world      | "120 plays · 37 beat the boss · 15 ❤ this week"                                          |
+| Toast      | weekly creator note  | "🎉 Your worlds: 120 plays and 37 boss wins this week"                                   |
+| Toast      | missing linked world | "That world doesn't exist anymore."                                                      |
+| Toast      | link copied          | "Link copied"                                                                            |
+| Toast      | like rate limit      | "Slow down a little, try again in a minute."                                             |
 
 **Spec:**
+
 - §1: "Browsing, searching, playing, liking and sharing community worlds are free. Creating and remixing a world use AI and stay premium."
 - §2: "The ❤ button is filled when the player has liked the world."
 - §3: "The Community tab has two lists, Trending (the default) and New."
@@ -393,6 +408,7 @@ Screens and states:
 **Knowledge:** none (this project has no knowledge base)
 
 **Acceptance:**
+
 - Given a canvas whose PNG is 40 KB, when `publishThumb` runs, then it returns base64 of a 480x270 PNG; given one whose PNG would be over 102,400 bytes, then null.
 - Given premium off, when the Worlds card is clicked, then Community opens with Trending selected; pressing Create or Remix opens the premium dialog.
 - Given Trending loads 3 worlds, when shown, then they appear in the server's order with "▶ <plays> · ❤ <likes>" each; switching to New shows the newest first.

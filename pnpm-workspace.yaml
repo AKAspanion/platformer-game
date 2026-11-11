@@ -3,3 +3,11 @@ allowBuilds:
   esbuild: true
   "@firebase/util": false
   protobufjs: false
+
+# Patched versions of vulnerable transitive dependencies (pnpm audit).
+minimumReleaseAgeExclude:
+  - minimatch@11.0.8
+
+overrides:
+  "@grpc/grpc-js@<1.13.6": "^1.14.7"
+  "minimatch@>=7.0.0 <11.0.1": "^11.0.8"

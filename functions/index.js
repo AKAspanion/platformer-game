@@ -5,9 +5,11 @@
  *   designWorld({ prompt })  -> { spec }    Claude turns a prompt into a world spec
  *   publishWorld({ world })  -> { world }   validates a world and shares it in Firestore
  *   searchWorlds({ query })  -> { worlds }  every shared world matching a search
- *   submitDailyScore({ seed, score, seconds })
+ *   startRun({ mode, seed? })  -> { ticket, seed, startedAt }  a ranked daily or endless run
+ *                                           begins (the server picks endless seeds)
+ *   submitDailyScore({ seed, score, seconds, ticket })
  *                            -> { rank, total, best, improved }  the daily challenge's leaderboard
- *   submitEndlessScore({ seed, level, score, seconds })
+ *   submitEndlessScore({ seed, level, score, seconds, ticket })
  *                            -> { rank, total, best, improved }  the endless mode's leaderboard
  *   recordWorldPlay({ worldId, kind }) -> { counted }   a play or finish, once per account per day
  *   toggleWorldLike({ worldId })       -> { liked, likes }
@@ -28,11 +30,13 @@
  * Config:
  *   ANTHROPIC_API_KEY  secret:  firebase functions:secrets:set ANTHROPIC_API_KEY
  *   WORLD_MODEL        optional, functions/.env  (default claude-haiku-5-5)
+ *   APP_CHECK_ENFORCE  functions/.env: false = monitor (calls without a valid App
+ *                      Check token are logged), true = refused. See functions/README.md.
  */
 import { setGlobalOptions } from "firebase-functions";
 import { onCall, onRequest, HttpsError } from "firebase-functions/https";
 import { onSchedule } from "firebase-functions/scheduler";
-import { defineSecret } from "firebase-functions/params";
+import { defineSecret, defineBoolean } from "firebase-functions/params";
 import * as logger from "firebase-functions/logger";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore, FieldPath } from "firebase-admin/firestore";
@@ -57,6 +61,7 @@ import { worldLink } from "./shared/worlds/community.js";
 import { handleSubmitDaily, outranks } from "./src/daily.js";
 import { handleSetReminders, handleSendReminders } from "./src/reminders.js";
 import { handleSubmitEndless } from "./src/endless.js";
+import { handleStartRun } from "./src/runs.js";
 import { compareRuns } from "./shared/modes/endless-rules.js";
 import { createDesigner, Anthropic } from "./src/designer.js";
 
@@ -69,6 +74,10 @@ initializeApp();
 const db = getFirestore();
 
 const ANTHROPIC_API_KEY = defineSecret("ANTHROPIC_API_KEY");
+const APP_CHECK_ENFORCE = defineBoolean("APP_CHECK_ENFORCE", {
+  default: false,
+  description: "Refuse callable requests without a valid App Check token",
+});
 const MODEL = process.env.WORLD_MODEL || "claude-haiku-5-5";
 
 const limiter = (uid, kind, max) =>
@@ -104,9 +113,14 @@ const store = {
   },
 };
 
-/** ApiError -> HttpsError (shown to the player); anything else is logged. */
+/**
+ * Every callable: App Check per APP_CHECK_ENFORCE (monitor mode logs calls
+ * without a valid token, so the rollout can be watched before enforcing);
+ * ApiError -> HttpsError (shown to the player); anything else is logged.
+ */
 const callable = (options, handler) =>
-  onCall(options, async (request) => {
+  onCall({ enforceAppCheck: APP_CHECK_ENFORCE, ...options }, async (request) => {
+    if (!request.app) logger.info("call without App Check", { appCheck: "missing" });
     try {
       return await handler(request);
     } catch (error) {
@@ -147,19 +161,32 @@ export const publishWorld = callable({ timeoutSeconds: 20 }, (request) =>
   handlePublish(request, { store, limiter, log: (message) => logger.info(message) }),
 );
 
-// Firestore can't search text, so search reads every world, at most once per
-// two minutes per instance: a search costs nothing more than a cache hit.
+// Firestore can't search text, so search matches against the newest worlds'
+// searchable fields only (a field mask: no specs or thumbnails), cached two
+// minutes per instance, then reads the few full worlds it returns.
 const SEARCH_CACHE_MS = 120000;
+const SEARCH_SCAN_LIMIT = 5000;
+const SEARCH_FIELDS = ["id", "name", "tagline", "author", "createdAt", "spec.boss.name"];
 let everyWorld = null;
 const allWorlds = async () => {
   if (everyWorld && Date.now() - everyWorld.at < SEARCH_CACHE_MS) return everyWorld.list;
-  const snap = await db.collection("worlds").orderBy("createdAt", "desc").get();
-  everyWorld = { at: Date.now(), list: snap.docs.map((d) => d.data()) };
+  const snap = await db
+    .collection("worlds")
+    .orderBy("createdAt", "desc")
+    .limit(SEARCH_SCAN_LIMIT)
+    .select(...SEARCH_FIELDS)
+    .get();
+  everyWorld = { at: Date.now(), list: snap.docs.map((d) => ({ ...d.data(), id: d.id })) };
   return everyWorld.list;
+};
+const worldsByIds = async (ids) => {
+  if (!ids.length) return [];
+  const snaps = await db.getAll(...ids.map((id) => db.collection("worlds").doc(id)));
+  return snaps.filter((s) => s.exists).map((s) => s.data());
 };
 
 export const searchWorlds = callable({ timeoutSeconds: 30 }, (request) =>
-  handleSearch(request, { allWorlds }),
+  handleSearch(request, { allWorlds, worldsByIds }),
 );
 
 // daily/{seed}/scores/{uid}: one best run per player per day
@@ -190,8 +217,35 @@ const scores = {
   count: (seed) => countOf(scoresOf(seed)),
 };
 
+// runs/{ticket}: one per ranked run, closed to clients; a TTL policy on
+// expireAt deletes old ones (firestore.indexes.json)
+const runsOf = () => db.collection("runs");
+
+const tickets = {
+  async create(data) {
+    const ref = runsOf().doc();
+    await ref.create(data);
+    return ref.id;
+  },
+  claim: (id, accept) =>
+    db.runTransaction(async (transaction) => {
+      const ref = runsOf().doc(id);
+      const snap = await transaction.get(ref);
+      if (!accept(snap.exists ? snap.data() : null)) return false;
+      transaction.update(ref, { used: true, usedAt: Date.now() });
+      return true;
+    }),
+  async release(id) {
+    await runsOf().doc(id).update({ used: false, usedAt: null });
+  },
+};
+
+export const startRun = callable({ timeoutSeconds: 15 }, (request) =>
+  handleStartRun(request, { tickets, limiter }),
+);
+
 export const submitDailyScore = callable({ timeoutSeconds: 20 }, (request) =>
-  handleSubmitDaily(request, { scores, limiter }),
+  handleSubmitDaily(request, { scores, tickets, limiter }),
 );
 
 // endless/{uid}: one best run per player, ever
@@ -227,8 +281,19 @@ const board = {
 };
 
 export const submitEndlessScore = callable({ timeoutSeconds: 20 }, (request) =>
-  handleSubmitEndless(request, { board, limiter }),
+  handleSubmitEndless(request, { board, tickets, limiter }),
 );
+
+/** Deletes every document `query` matches, 400 per batch. */
+async function deleteAll(query) {
+  for (;;) {
+    const snap = await query.limit(400).get();
+    if (snap.empty) return;
+    const batch = db.batch();
+    snap.docs.forEach((d) => batch.delete(d.ref));
+    await batch.commit();
+  }
+}
 
 const accounts = {
   async anonymizeWorlds(uid, author) {
@@ -241,15 +306,11 @@ const accounts = {
     everyWorld = null;
     return snap.size;
   },
-  async deleteDailyScores(uid) {
-    for (;;) {
-      const snap = await db.collectionGroup("scores").where("uid", "==", uid).limit(400).get();
-      if (snap.empty) return;
-      const batch = db.batch();
-      snap.docs.forEach((d) => batch.delete(d.ref));
-      await batch.commit();
-    }
-  },
+  deleteDailyScores: (uid) => deleteAll(db.collectionGroup("scores").where("uid", "==", uid)),
+  deleteLikes: (uid) => deleteAll(db.collection("worldLikes").where("uid", "==", uid)),
+  deleteRuns: (uid) => deleteAll(db.collection("runs").where("uid", "==", uid)),
+  // markers written before they carried a uid hold no account name; TTL removes new ones
+  deleteSeen: (uid) => deleteAll(db.collectionGroup("seen").where("uid", "==", uid)),
   async deleteEndless(uid) {
     await endlessBoard.doc(uid).delete();
   },
@@ -360,7 +421,16 @@ export const worldPage = onRequest({ timeoutSeconds: 15 }, async (req, res) => {
         return snap.exists ? Buffer.from(String(snap.get("png")), "base64") : null;
       },
     });
-    res.status(page.status).set("Cache-Control", page.cacheControl).type(page.type).send(page.body);
+    res
+      .status(page.status)
+      .set({
+        "Cache-Control": page.cacheControl,
+        "X-Content-Type-Options": "nosniff",
+        "Referrer-Policy": "strict-origin-when-cross-origin",
+        "Content-Security-Policy": "frame-ancestors 'self'; object-src 'none'; base-uri 'self'",
+      })
+      .type(page.type)
+      .send(page.body);
   } catch (error) {
     logger.error(error);
     res.status(500).type("text").send("Something went wrong.");
@@ -377,7 +447,7 @@ const subsOf = () => db.collection("pushSubs");
 const SUBS_PAGE = 300;
 
 const reminderSubs = {
-  // runs fn(current | null) -> the new document in one transaction
+  // runs fn(current | null) -> the new document (null: leave it) in one transaction
   update: (uid, change) =>
     db.runTransaction(async (transaction) => {
       const ref = subsOf().doc(uid);
@@ -386,7 +456,8 @@ const reminderSubs = {
         return;
       }
       const snap = await transaction.get(ref);
-      transaction.set(ref, change(snap.exists ? snap.data() : null));
+      const next = change(snap.exists ? snap.data() : null);
+      if (next) transaction.set(ref, next);
     }),
   // one device belongs to one account: drop the token from every other one
   async release(token, uid) {

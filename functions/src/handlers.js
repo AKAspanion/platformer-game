@@ -5,7 +5,7 @@
  *
  *   handleDesign({ auth, data: { prompt } }, { design, limiter })  -> { spec }
  *   handlePublish({ auth, data: { world, thumb? } }, { store, limiter }) -> { world }
- *   handleSearch({ auth, data: { query } }, { allWorlds })         -> { worlds }
+ *   handleSearch({ auth, data: { query } }, { allWorlds, worldsByIds }) -> { worlds }
  *   handleDeleteAccount({ auth }, { accounts })                    -> { worlds }
  *
  * `auth` is the callable's request.auth ({ uid, token }), null when signed out.
@@ -14,6 +14,7 @@
  */
 import { checkThumb } from "./community.js";
 import { sanitizeWorld, cleanText, matchWorlds, searchTerms, ANONYMOUS } from "../shared/spec.js";
+import { isBuiltIn } from "../shared/worlds/community.js";
 
 export class ApiError extends Error {
   constructor(code, message) {
@@ -33,18 +34,24 @@ export const signedIn = (auth) => {
 };
 
 /**
- * Email + password accounts confirm their address before creating worlds
- * (Google accounts are verified by Google). The game asks for it first; this
- * is the check that counts.
+ * Creating worlds needs a real account: anonymous players (free to make in a
+ * loop) never reach the AI designer or publishing, and email + password
+ * accounts confirm their address first (Google accounts are verified by
+ * Google). The game asks for both first; this is the check that counts.
  */
-const verified = (auth) => {
+export const realAccount = (auth, what = "create worlds") => {
   const token = auth.token || {};
   const provider = token.firebase && token.firebase.sign_in_provider;
+  if (provider === "anonymous") {
+    throw new ApiError("unauthenticated", `Sign in to ${what}.`);
+  }
   if (provider === "password" && token.email_verified !== true) {
-    throw new ApiError("permission-denied", "Verify your email to create worlds.");
+    throw new ApiError("permission-denied", `Verify your email to ${what}.`);
   }
   return auth;
 };
+
+const verified = (auth) => realAccount(auth, "create worlds");
 
 /** The name shown on a user's worlds: the token's display name, never the email. */
 export const authorName = (auth) => cleanText(auth && auth.token && auth.token.name, 20, "Someone");
@@ -74,7 +81,10 @@ export async function handlePublish(
 ) {
   const user = verified(signedIn(auth));
   const world = sanitizeWorld(data && data.world);
-  if (!world) throw new ApiError("invalid-argument", "That world can't be shared.");
+  // the Dino Team's own worlds keep their ids: a copy would replace them for everyone
+  if (!world || isBuiltIn(world.id)) {
+    throw new ApiError("invalid-argument", "That world can't be shared.");
+  }
   if (await limiter(user.uid, "publish", LIMITS.publish)) {
     throw new ApiError("resource-exhausted", "You shared a lot of worlds lately, try again later.");
   }
@@ -90,23 +100,38 @@ export async function handlePublish(
 
 export const MAX_RESULTS = 30;
 
-/** Every shared world matching `query` (allWorlds() -> raw[], cached by index.js). */
-export async function handleSearch({ auth, data }, { allWorlds }) {
+/**
+ * Shared worlds matching `query`, best first. allWorlds() -> the searchable
+ * fields of every world (id, name, tagline, author, createdAt, spec.boss.name;
+ * cached by index.js); worldsByIds(ids) -> the full worlds, read only for the
+ * hits. Without worldsByIds, allWorlds() must give full worlds.
+ */
+export async function handleSearch({ auth, data }, { allWorlds, worldsByIds }) {
   signedIn(auth);
   const query = String((data && data.query) || "").slice(0, 60);
   if (searchTerms(query).join("").length < 2) {
     throw new ApiError("invalid-argument", "Type at least 2 letters to search.");
   }
-  const worlds = (await allWorlds()).map(sanitizeWorld).filter(Boolean);
-  return { worlds: matchWorlds(worlds, query, MAX_RESULTS) };
+  const index = (await allWorlds()).filter((w) => w && typeof w.id === "string");
+  // a few spare hits, for worlds that turn out invalid or gone
+  const hits = matchWorlds(index, query, MAX_RESULTS * 2);
+  const full = worldsByIds ? await worldsByIds(hits.map((w) => w.id)) : hits;
+  const byId = new Map(full.filter(Boolean).map((w) => [w.id, w]));
+  const worlds = hits
+    .map((hit) => sanitizeWorld(byId.get(hit.id)))
+    .filter(Boolean)
+    .slice(0, MAX_RESULTS);
+  return { worlds };
 }
 
 /**
  * Deletes the caller's account. Their worlds stay shared, credited to
  * "Anonymous" with no account behind them; their daily leaderboard scores are
- * deleted, and so are their endless entry, cloud save and reminders; then their rate limits and the account
- * itself go. `accounts`: anonymizeWorlds(uid, author) -> count, deleteDailyScores(uid), deleteEndless(uid),
- * deleteSave(uid), deleteReminders(uid), deleteData(uid), deleteUser(uid).
+ * deleted, and so are their endless entry, cloud save, reminders, likes,
+ * run tickets and play markers (counts stay: they hold no account); then their rate limits and
+ * the account itself go. `accounts`: anonymizeWorlds(uid, author) -> count,
+ * deleteDailyScores(uid), deleteEndless(uid), deleteSave(uid), deleteReminders(uid),
+ * deleteLikes(uid), deleteSeen(uid), deleteRuns(uid), deleteData(uid), deleteUser(uid).
  */
 export async function handleDeleteAccount({ auth }, { accounts }) {
   const user = signedIn(auth);
@@ -115,6 +140,9 @@ export async function handleDeleteAccount({ auth }, { accounts }) {
   await accounts.deleteEndless(user.uid);
   await accounts.deleteSave(user.uid);
   await accounts.deleteReminders(user.uid);
+  await accounts.deleteLikes(user.uid);
+  await accounts.deleteSeen(user.uid);
+  await accounts.deleteRuns(user.uid);
   await accounts.deleteData(user.uid);
   await accounts.deleteUser(user.uid);
   return { worlds };

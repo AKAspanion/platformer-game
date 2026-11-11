@@ -36,11 +36,11 @@ campaign still have goals to chase.
 - "Cosmetics change looks only: no item changes speed, jumps, hearts, damage or score."
 - The catalogue (id, name, price in coins):
 
-  | Slot      | Items                                                                                                                  |
-  | --------- | ---------------------------------------------------------------------------------------------------------------------- |
-  | Skin      | `classic` Classic 0 · `mint` Mint 200 · `sunset` Sunset 300 · `midnight` Midnight 500 · `ghost` Ghost 750 · `gold` Gold 1000 |
-  | Hat       | `none` No hat 0 · `cap` Cap 150 · `party` Party hat 200 · `viking` Viking 400 · `wizard` Wizard 500 · `crown` Crown 600 |
-  | Fireball  | `classic` Classic 0 · `blue` Blue flame 250 · `green` Green flame 250 · `purple` Purple flame 400                      |
+  | Slot     | Items                                                                                                                        |
+  | -------- | ---------------------------------------------------------------------------------------------------------------------------- |
+  | Skin     | `classic` Classic 0 · `mint` Mint 200 · `sunset` Sunset 300 · `midnight` Midnight 500 · `ghost` Ghost 750 · `gold` Gold 1000 |
+  | Hat      | `none` No hat 0 · `cap` Cap 150 · `party` Party hat 200 · `viking` Viking 400 · `wizard` Wizard 500 · `crown` Crown 600      |
+  | Fireball | `classic` Classic 0 · `blue` Blue flame 250 · `green` Green flame 250 · `purple` Purple flame 400                            |
 
 - "The free item of each slot is owned from the start and worn by default."
 - "One item is worn per slot. Wearing an item takes effect in the next level, and on the shop's preview at once."
@@ -72,20 +72,20 @@ campaign still have goals to chase.
 - "Each achievement unlocks once and pays its coins once."
 - The list (id, name, how, coins):
 
-  | id               | Name            | How                                                          | Coins |
-  | ---------------- | --------------- | ------------------------------------------------------------ | ----- |
-  | `first-steps`    | First Steps     | Finish Grassland 1                                           | 50    |
-  | `coin-collector` | Coin Collector  | Collect 1,000 coins in total                                 | 100   |
-  | `big-spender`    | Big Spender     | Buy your first item                                          | 50    |
-  | `exterminator`   | Exterminator    | Defeat 500 enemies in total                                  | 250   |
-  | `untouchable`    | Untouchable     | Beat a campaign boss without losing a heart                  | 250   |
-  | `speedy`         | Speedy          | Earn the time star on every level of one world               | 250   |
-  | `daily-habit`    | Daily Habit     | Reach a 7-day daily streak                                   | 250   |
-  | `star-seeker`    | Star Seeker     | Collect 75 stars                                             | 250   |
-  | `completionist`  | Completionist   | Collect all 90 stars                                         | 500   |
-  | `peak-performer` | Peak Performer  | Beat the Starfall Peaks boss                                 | 500   |
-  | `rush-hour`      | Rush Hour       | Finish boss rush                                             | 500   |
-  | `world-traveller`| World Traveller | Finish 3 different community worlds                          | 250   |
+  | id                | Name            | How                                            | Coins |
+  | ----------------- | --------------- | ---------------------------------------------- | ----- |
+  | `first-steps`     | First Steps     | Finish Grassland 1                             | 50    |
+  | `coin-collector`  | Coin Collector  | Collect 1,000 coins in total                   | 100   |
+  | `big-spender`     | Big Spender     | Buy your first item                            | 50    |
+  | `exterminator`    | Exterminator    | Defeat 500 enemies in total                    | 250   |
+  | `untouchable`     | Untouchable     | Beat a campaign boss without losing a heart    | 250   |
+  | `speedy`          | Speedy          | Earn the time star on every level of one world | 250   |
+  | `daily-habit`     | Daily Habit     | Reach a 7-day daily streak                     | 250   |
+  | `star-seeker`     | Star Seeker     | Collect 75 stars                               | 250   |
+  | `completionist`   | Completionist   | Collect all 90 stars                           | 500   |
+  | `peak-performer`  | Peak Performer  | Beat the Starfall Peaks boss                   | 500   |
+  | `rush-hour`       | Rush Hour       | Finish boss rush                               | 500   |
+  | `world-traveller` | World Traveller | Finish 3 different community worlds            | 250   |
 
 - "Totals count from when phase 2 ships; the stars and streak achievements count the stars and streak the player already has."
 - "When an achievement unlocks, a toast shows for 3 seconds: "🏆 <name> · +<coins> coins". Several at once show one after another."

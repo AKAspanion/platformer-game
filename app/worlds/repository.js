@@ -23,6 +23,8 @@ import { sanitizeWorld, specFromPrompt, newWorld, matchWorlds } from "./spec.js"
  */
 
 const LOCAL_KEY = "shared_worlds";
+/** How long a failed live watch waits before trying again. */
+export const WATCH_RETRY_MS = 30000;
 const CACHE_KEY = "shared_worlds_cache";
 const MAX_LOCAL = 200;
 
@@ -208,13 +210,31 @@ export class FirestoreRepository {
 
   subscribe(cb) {
     this.listeners.add(cb);
-    if (!this.stop) this.stop = this.worlds.watch(20, (raw) => this.deliver(raw));
+    this.startWatch();
     return () => {
       this.listeners.delete(cb);
-      if (!this.listeners.size && this.stop) {
-        this.stop();
+      if (!this.listeners.size) {
+        clearTimeout(this.retry);
+        if (this.stop) this.stop();
         this.stop = null;
       }
     };
+  }
+
+  /** Watches for new worlds; after an error (offline at start) tries again while anyone listens. */
+  startWatch() {
+    if (this.stop) return;
+    const stop = this.worlds.watch(
+      20,
+      (raw) => this.deliver(raw),
+      () => {
+        if (this.stop !== stop) return;
+        stop();
+        this.stop = null;
+        clearTimeout(this.retry);
+        this.retry = setTimeout(() => this.listeners.size && this.startWatch(), WATCH_RETRY_MS);
+      },
+    );
+    this.stop = stop;
   }
 }

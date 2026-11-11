@@ -40,7 +40,11 @@ export async function handleSetReminders({ auth, data }, { subs, limiter, now = 
   }
   const body = data && typeof data === "object" ? data : {};
   const on = body.on === true;
-  if (!validToken(body.token)) throw new ApiError("invalid-argument", "That device can't get reminders.");
+  if (await limiter(auth.uid, "reminders", SETTINGS_LIMIT)) {
+    throw new ApiError("resource-exhausted", BUSY);
+  }
+  if (!validToken(body.token))
+    throw new ApiError("invalid-argument", "That device can't get reminders.");
   if (on) {
     if (!PLATFORMS.includes(body.platform)) {
       throw new ApiError("invalid-argument", "That device can't get reminders.");
@@ -48,9 +52,6 @@ export async function handleSetReminders({ auth, data }, { subs, limiter, now = 
     if (!validTimeZone(body.timeZone)) {
       throw new ApiError("invalid-argument", "That time zone isn't supported.");
     }
-  }
-  if (await limiter(auth.uid, "reminders", SETTINGS_LIMIT)) {
-    throw new ApiError("resource-exhausted", BUSY);
   }
 
   const { token } = body;
@@ -115,13 +116,18 @@ export async function handleSendReminders({
       result.sent++;
       const dead = new Set((invalidTokens || []).filter((t) => tokens.includes(t)));
       if (dead.size) {
-        const left = devices.filter((d) => !dead.has(d.token));
-        await subs.update(sub.uid, { devices: left, tokens: left.map((d) => d.token) });
+        // from the current document, so a device added during this pass survives
+        await subs.update(sub.uid, (current) => {
+          if (!current) return null; // reminders were turned off meanwhile
+          const left = ((current && current.devices) || []).filter((d) => !dead.has(d.token));
+          return { ...current, devices: left, tokens: left.map((d) => d.token) };
+        });
         result.pruned += dead.size;
       }
     } catch (error) {
       log(`reminder failed (${error && error.name}), pass goes on`);
-      // a failed send gives the day back so a later hour can retry
+      // a failed send gives the day back, so a pass later in the 18:00 hour
+      // (or a retried run of this one) can still send it
       if (claimed) {
         try {
           await subs.update(sub.uid, { lastSentDay: sub.lastSentDay ?? null });

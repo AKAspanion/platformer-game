@@ -17,7 +17,7 @@ function fakeSubs(docs = {}) {
     async update(uid, change) {
       const current = map.get(uid) || null;
       const next = typeof change === "function" ? change(current) : { ...current, ...change };
-      map.set(uid, structuredClone(next));
+      if (next) map.set(uid, structuredClone(next)); // null leaves the document, like index.js
     },
     async release(token, uid) {
       for (const [other, doc] of map) {
@@ -58,7 +58,10 @@ const on = (token = "t1", extra = {}) => ({
 
 test("setReminders: signed out is unauthenticated", async () => {
   const subs = fakeSubs();
-  await assert.rejects(set(on(), { subs, limiter: open }, null), (e) => e.code === "unauthenticated");
+  await assert.rejects(
+    set(on(), { subs, limiter: open }, null),
+    (e) => e.code === "unauthenticated",
+  );
   assert.equal(subs.map.size, 0);
 });
 
@@ -124,7 +127,8 @@ test("setReminders: over the limit changes nothing", async () => {
   await assert.rejects(
     set(on(), { subs, limiter: async () => true }),
     (e) =>
-      e.code === "resource-exhausted" && e.message === "Couldn't turn on reminders. Try again later.",
+      e.code === "resource-exhausted" &&
+      e.message === "Couldn't turn on reminders. Try again later.",
   );
   assert.equal(subs.map.size, 0);
 });
@@ -223,7 +227,10 @@ test("sendReminders: no cloud save gets the daily reminder", async () => {
   const subs = fakeSubs({ u1: sub([dev("t1", 1)]) });
   const messaging = fakeMessaging();
   await pass({ subs, saves: savesOf({}), messaging });
-  assert.equal(messaging.sent[0].message.body, "Today's challenge is up. 5 new levels are waiting.");
+  assert.equal(
+    messaging.sent[0].message.body,
+    "Today's challenge is up. 5 new levels are waiting.",
+  );
 });
 
 test("sendReminders: unregistered tokens are removed", async () => {
@@ -248,7 +255,12 @@ test("sendReminders: a failed send gives the day back and the pass goes on", asy
     },
   };
   const logs = [];
-  const out = await pass({ subs, saves: savesOf({}), messaging: failing, log: (m) => logs.push(m) });
+  const out = await pass({
+    subs,
+    saves: savesOf({}),
+    messaging: failing,
+    log: (m) => logs.push(m),
+  });
   assert.deepEqual(out, { sent: 1, skipped: 0, pruned: 0 });
   assert.equal(subs.map.get("u1").lastSentDay, 20261110);
   assert.equal(subs.map.get("u2").lastSentDay, TODAY);
@@ -276,4 +288,33 @@ test("sendReminders: an account with no devices is stamped, not messaged", async
   await pass({ subs, saves: savesOf({}), messaging });
   assert.equal(messaging.sent.length, 0);
   assert.equal(subs.map.get("u1").lastSentDay, TODAY);
+});
+
+test("sendReminders: pruning keeps a device added during the pass", async () => {
+  const subs = fakeSubs({ u1: sub([dev("t1", 1), dev("t2", 2)]) });
+  const messaging = fakeMessaging({ invalid: ["t2"] });
+  const send = messaging.send.bind(messaging);
+  messaging.send = async (tokens, message) => {
+    // the player turns reminders on for a new phone while the message is going out
+    const doc = subs.map.get("u1");
+    doc.devices.push(dev("t3", 3));
+    doc.tokens.push("t3");
+    return send(tokens, message);
+  };
+  await pass({ subs, saves: savesOf({}), messaging });
+  assert.deepEqual(subs.map.get("u1").tokens, ["t1", "t3"]);
+});
+
+test("setReminders: the limiter runs before the request is checked", async () => {
+  const subs = fakeSubs();
+  let calls = 0;
+  const limiter = async () => {
+    calls++;
+    return true;
+  };
+  await assert.rejects(
+    set(on("t1", { timeZone: "x".repeat(100000) }), { subs, limiter }),
+    (e) => e.code === "resource-exhausted",
+  );
+  assert.equal(calls, 1);
 });
