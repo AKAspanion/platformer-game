@@ -117,9 +117,8 @@ test("submitEndless names the entry from the server, never the request", async (
     "seconds",
     "seed",
     "uid",
-    "updatedAt",
   ]);
-  assert.equal(board.entries.get("u1").updatedAt, NOW);
+  // no time is stored: nothing reads one, and a board entry never carries one (spec 4.4)
 });
 
 test("submitEndless keeps the best run: level, then score, then time", async () => {

@@ -1,21 +1,20 @@
 import { firestoreEndless } from "../firebase/endless";
+import { boardRows } from "../daily/leaderboard";
 
 /**
  * Endless mode's global leaderboard: one entry per player, their best run.
  *
  *   board.submit({ seed, level, score, seconds, ticket }) -> { rank, total, best, improved }
- *   board.top(limit = 50)                         -> [{ uid, name, level, score, seconds, rank }]
- *   board.mine(uid)                               -> { uid, name, level, score, seconds } | null
+ *   board.load() -> { rows: [{ uid, name, level, score, seconds, rank }],
+ *                     mine: { uid, name, level, score, seconds } | null }
  *
  * `backend` (app/firebase/endless.js in the game): call(name, data) runs a
- * callable function, list(limit) the entries best first, get(uid) one entry.
- * Backend errors are passed on as they are, with messages written for
- * players. The client never sends a name: the server decides it.
+ * callable function, board() the getEndlessBoard function's answer, { top, me
+ * }: the top 50 best first and the caller's own entry (spec 4.4; no client
+ * reads the board documents). Backend errors are passed on as they are, with
+ * messages written for players; an answer that isn't a board fails like one.
+ * The client never sends a name: the server decides it.
  */
-
-export const TOP_LIMIT = 50;
-/** firestore.rules refuses lists above this. */
-const MAX_LIMIT = 100;
 
 const row = (entry) => ({
   uid: entry.uid,
@@ -31,15 +30,8 @@ export function createEndlessBoard(backend) {
       return backend.call("submitEndlessScore", { seed, level, score, seconds, ticket });
     },
 
-    async top(limit = TOP_LIMIT) {
-      const count = Math.min(MAX_LIMIT, Math.max(1, Math.floor(Number(limit)) || TOP_LIMIT));
-      const entries = await backend.list(count);
-      return entries.map((entry, i) => ({ ...row(entry), rank: i + 1 }));
-    },
-
-    async mine(uid) {
-      const entry = await backend.get(uid);
-      return entry ? row(entry) : null;
+    async load() {
+      return boardRows(await backend.board(), row);
     },
   };
 }
