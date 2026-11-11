@@ -38,3 +38,17 @@ test("the pause button keeps its bottom-middle place everywhere", () => {
   assert.match(place, /bottom:\s*calc\(var\(--sab\)/);
   assert.doesNotMatch(ruleFor(".no-touch #pauseBtn") || "", /left|bottom|top|right|position/);
 });
+
+test("the pause button keeps its original 40 px size, and the hint clears it", () => {
+  const root = ruleFor(":root");
+  assert.match(root, /--pause-size:\s*40px/);
+  const plain = ruleFor("#pauseBtn");
+  assert.match(plain, /width:\s*var\(--pause-size\)/);
+  assert.match(plain, /height:\s*var\(--pause-size\)/);
+  assert.match(plain, /\/\s*var\(--pause-size\)\s*no-repeat/);
+  const hintBottoms = [...css.matchAll(/(^|\})\s*\.hint\s*\{([^{}]*)\}/g)]
+    .map((m) => m[2])
+    .filter((body) => /bottom:/.test(body));
+  assert.ok(hintBottoms.length > 0, "a .hint rule places it");
+  for (const body of hintBottoms) assert.match(body, /bottom:[^;]*var\(--pause-size\)/);
+});

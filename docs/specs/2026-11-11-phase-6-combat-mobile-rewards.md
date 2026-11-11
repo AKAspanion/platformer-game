@@ -224,6 +224,7 @@ Added after the build at the developer's request: the daily and endless board en
 - "Nobody reads the daily or endless board documents directly: the rules allow no client read or list of `daily/{seed}/scores` or `endless`."
 - "Boards come from Cloud Functions that return, for each entry, only what the board shows: the uid, the name, the score, the time in seconds, and for endless the level reached. Never `updatedAt` or a document's create or update time."
 - "A board call returns the top 50 and the caller's own entry (signed in, anonymous included); it never returns another player's entry outside the top 50."
+- "The server keeps each board's top 50 for 60 seconds, so polling a board can't time a top player's improvement more finely than that. The caller's own entry is always current." (Added after the security review.)
 - "Ranking, the pinned row, the error copy and the offline behaviour stay as phase 1 and the fixes-and-leaderboards spec describe them."
 
 ## 5. Analytics

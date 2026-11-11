@@ -73,6 +73,7 @@ import { handleGetProfiles } from "./src/profiles.js";
 import {
   handleGetDailyBoard,
   handleGetEndlessBoard,
+  createBoardCache,
   DAILY_FIELDS,
   ENDLESS_FIELDS,
 } from "./src/boards.js";
@@ -357,13 +358,15 @@ const boardReads = {
   },
 };
 const boardLog = (message) => logger.warn(message);
+// one per instance: a board's top is kept 60 s, so polling can't time an improvement
+const boardCache = createBoardCache();
 
 export const getDailyBoard = callable({ timeoutSeconds: 15 }, (request) =>
-  handleGetDailyBoard(request, { scores: boardReads.daily, log: boardLog }),
+  handleGetDailyBoard(request, { scores: boardReads.daily, log: boardLog, cache: boardCache }),
 );
 
 export const getEndlessBoard = callable({ timeoutSeconds: 15 }, (request) =>
-  handleGetEndlessBoard(request, { board: boardReads.endless, log: boardLog }),
+  handleGetEndlessBoard(request, { board: boardReads.endless, log: boardLog, cache: boardCache }),
 );
 
 /** Deletes every document `query` matches, 400 per batch. */
