@@ -114,3 +114,11 @@ test("the landscape home no longer reserves a column for the cards", () => {
     /home-cards/,
   );
 });
+
+test("the Quests panel sits above the home screen, like the Leaderboards panel", () => {
+  const rule = css.match(/([^{}]*)\{\s*z-index:\s*13;\s*\}/);
+  assert.ok(rule, "a z-index: 13 rule exists");
+  const selectors = rule[1].split(",").map((s) => s.trim());
+  assert.ok(selectors.includes("#leaderboardScreen"));
+  assert.ok(selectors.includes("#questsScreen"));
+});

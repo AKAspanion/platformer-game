@@ -520,7 +520,8 @@ canvas {
 #world1Screen,
 #loginScreen,
 #deleteScreen,
-#leaderboardScreen {
+#leaderboardScreen,
+#questsScreen {
   z-index: 13;
 }
 #verifyScreen {
@@ -2239,6 +2240,31 @@ canvas {
 }
 .nest-row.ready {
   color: var(--gold);
+}
+/* the cards sit on the cream Quests panel: dark text, tinted tracks */
+#questsScreen .home-card {
+  color: var(--ink);
+  background: rgba(29, 26, 36, 0.05);
+  border-color: rgba(29, 26, 36, 0.1);
+}
+#questsScreen .card-title,
+#questsScreen .nest-row.ready {
+  color: var(--red-dark);
+}
+#questsScreen .quest-keys {
+  color: var(--ink);
+}
+#questsScreen .quest-bar {
+  background: rgba(29, 26, 36, 0.12);
+}
+#questsScreen .quest-fill {
+  background: #e3a600;
+}
+#questsScreen .quest-row.done .quest-fill {
+  background: #3fa34d;
+}
+#questsScreen .quest-coins {
+  color: #9a6b00;
 }
 .card-note {
   font-size: 12px;
