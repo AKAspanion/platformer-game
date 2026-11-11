@@ -6,8 +6,12 @@ import { requestImage } from "./preload";
  * it is only drawn (by the shell, from createFollower's position).
  */
 export const FOLLOW_TICKS = 10; // how far behind the dino it walks
-/** The size a companion is drawn at: its sprites are 32 x 28, so 1x and no pixel row is dropped. */
-export const COMPANION_SIZE = { width: 32, height: 28 };
+/**
+ * The size a companion is drawn at: its 16 x 14 art (scripts/generate-sprites.py,
+ * saved 2x as 32 x 28), so one art pixel is one game pixel and it stays small
+ * beside the dino.
+ */
+export const COMPANION_SIZE = { width: 16, height: 14 };
 
 /** A trail of the dino's positions; `at()` is where the companion stands, `delay` ticks back. */
 export function createFollower(delay = FOLLOW_TICKS) {

@@ -99,7 +99,7 @@ import {
   bossRushOpen,
   bossesBeaten,
 } from "./progress/unlocks";
-import { CATALOG, FREE, itemOf, isHatchOnly } from "./shop/catalog";
+import { CATALOG, FREE, itemOf, isHatchOnly, COMPANION_IDS } from "./shop/catalog";
 import { ACHIEVEMENTS } from "./achievements/catalog";
 import { newlyEarned, progressToward } from "./achievements/check";
 import { createSecretSession } from "./modes/secret";
@@ -257,6 +257,13 @@ window.addEventListener("load", function () {
   const eggsFoundNow = new Set(); // found this session: gone even when the save can't be written
   const follower = createFollower();
   let wornCompanion = "none"; // the companion drawn in this level
+  // test hosts only (localhost, ?debug previews): ?companion=trike wears it this session, saved nowhere
+  const testCompanion = (() => {
+    const id = canToggleLocally()
+      ? new URLSearchParams(window.location.search).get("companion")
+      : null;
+    return id && COMPANION_IDS.includes(id) ? id : null;
+  })();
   let bossBounced = false; // a fireball bounced off a boss shield in this level
   const earnings = createEarnings();
   const isCampaignLevel = (id) => !session && LEVELS.some((l) => l.id === id);
@@ -882,7 +889,7 @@ window.addEventListener("load", function () {
     applyWornLook();
     bossBounced = false;
     follower.reset();
-    wornCompanion = wallet.worn().companion || "none";
+    wornCompanion = testCompanion || wallet.worn().companion || "none";
     companionFrames(wornCompanion); // asks again for a sprite that failed to load
     if (session && session.kind === "endless") {
       const reached = session.level(areaId);
