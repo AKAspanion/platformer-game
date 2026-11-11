@@ -6,6 +6,10 @@
     "cleanUrls": false,
     "rewrites": [
       {
+        "source": "/auth/action",
+        "destination": "/auth-action.html"
+      },
+      {
         "source": "/w/**",
         "function": {
           "functionId": "worldPage",
@@ -53,7 +57,7 @@
         ]
       },
       {
-        "source": "/@(index.html|sw.js|bundle.js|manifest.json|assetlinks.json)",
+        "source": "/@(index.html|sw.js|bundle.js|manifest.json|assetlinks.json|404.html|auth-action.html|auth-action.js|pages.css)",
         "headers": [
           {
             "key": "Cache-Control",

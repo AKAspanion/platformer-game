@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <!-- /auth/action (firebase.json rewrite): where the links in the game's
+       account emails land. app/pages/auth-action.js does the work. -->
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#1d1a24" />
+    <meta name="robots" content="noindex" />
+    <title>Your account · Dino's Adventure</title>
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/images/icons-192.png" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Grandstander&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/pages.css" />
+    <script defer src="/auth-action.js"></script>
+  </head>
+  <body>
+    <a class="logo" href="/">Dino's <span>Adventure</span></a>
+    <main class="panel" aria-live="polite">
+      <div id="loading">
+        <div class="spinner" aria-hidden="true"></div>
+        <p class="text">Checking your link…</p>
+      </div>
+
+      <div id="result" hidden>
+        <img id="resultDino" class="dino" width="204" height="142" alt="" />
+        <h1 id="resultTitle" class="title"></h1>
+        <p id="resultText" class="text"></p>
+        <div class="actions">
+          <a id="resultPrimary" class="btn btn-primary" hidden></a>
+          <button id="resultButton" class="btn btn-primary" type="button" hidden></button>
+          <a id="resultSecondary" class="btn btn-ghost" hidden></a>
+        </div>
+      </div>
+
+      <form id="resetForm" class="form" hidden novalidate>
+        <h1 class="title">New password</h1>
+        <p class="text">For <b id="resetEmail"></b></p>
+        <input id="resetUser" type="email" autocomplete="username" hidden readonly />
+        <label class="field">
+          <span>Choose a password (at least 6 characters)</span>
+          <span class="input-wrap">
+            <input
+              id="resetPassword"
+              class="input"
+              type="password"
+              autocomplete="new-password"
+              minlength="6"
+              required
+            />
+            <button id="resetReveal" class="reveal" type="button" aria-pressed="false">Show</button>
+          </span>
+        </label>
+        <p id="resetMessage" class="message" role="alert"></p>
+        <div class="actions">
+          <button id="resetSave" class="btn btn-primary" type="submit">Save password</button>
+        </div>
+      </form>
+    </main>
+  </body>
+</html>
