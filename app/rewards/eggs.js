@@ -5,9 +5,9 @@
  * companion already owned pays coins instead. The nest lives in storage key
  * "nest" (shape: normalizeNest in app/progress/save.js).
  */
-import { createKeyStore, defaultStorage, normalizeNest } from "../progress/save";
-import { COMMON_COMPANIONS, RARE_COMPANIONS } from "../shop/catalog";
-import { mulberry32 } from "../pcg/generator";
+import { createKeyStore, defaultStorage, normalizeNest } from "../progress/save.js";
+import { COMMON_COMPANIONS, RARE_COMPANIONS } from "../shop/catalog.js";
+import { mulberry32 } from "../pcg/generator.js";
 
 export const HATCH_MS = 86400000; // 24 hours
 export const RARE_CHANCE = 0.1;

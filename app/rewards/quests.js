@@ -6,10 +6,10 @@
  * finished quest gives the chest a key; 12 keys in a Monday-to-Sunday week open it.
  * State lives under the storage key "quests" (see `normalizeQuests`).
  */
-import { ENEMY_TYPES, mulberry32 } from "../pcg/generator";
-import { LEVELS, WORLDS } from "../util/index";
-import { bossRushOpen } from "../progress/unlocks";
-import { normalizeQuests, createKeyStore } from "../progress/save";
+import { ENEMY_TYPES, mulberry32 } from "../pcg/generator.js";
+import { LEVELS, WORLDS } from "../util/index.js";
+import { bossRushOpen } from "../progress/unlocks.js";
+import { normalizeQuests, createKeyStore } from "../progress/save.js";
 
 export const QUEST_COINS = [50, 75, 100];
 export const CHEST_KEYS = 12;
