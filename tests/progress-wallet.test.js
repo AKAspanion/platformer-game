@@ -3,7 +3,16 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createWallet } from "../app/progress/wallet";
 import { createStats } from "../app/progress/stats";
-import { CATALOG, FREE, itemOf } from "../app/shop/catalog";
+import {
+  CATALOG,
+  FREE,
+  itemOf,
+  SLOTS,
+  COMPANION_IDS,
+  COMMON_COMPANIONS,
+  RARE_COMPANIONS,
+  isHatchOnly,
+} from "../app/shop/catalog";
 
 function memoryStorage(initial = {}) {
   const data = { ...initial };
@@ -29,7 +38,12 @@ const walletWith = (state) => memoryStorage({ wallet: JSON.stringify(state) });
 
 test("a fresh wallet wears and owns the free items, with no coins", () => {
   const w = createWallet(memoryStorage(), "d");
-  assert.deepEqual(w.worn(), { skin: "classic", hat: "none", fireball: "classic" });
+  assert.deepEqual(w.worn(), {
+    skin: "classic",
+    hat: "none",
+    fireball: "classic",
+    companion: "none",
+  });
   assert.ok(w.owns("skin", "classic") && w.owns("hat", "none") && w.owns("fireball", "classic"));
   assert.equal(w.owns("hat", "cap"), false);
   assert.equal(w.balance(), 0);
@@ -134,7 +148,12 @@ test("blocked storage keeps the wallet working for the session", () => {
 test("a corrupt wallet reads as a fresh one", () => {
   const w = createWallet(memoryStorage({ wallet: "{{" }), "d");
   assert.equal(w.balance(), 0);
-  assert.deepEqual(w.worn(), { skin: "classic", hat: "none", fireball: "classic" });
+  assert.deepEqual(w.worn(), {
+    skin: "classic",
+    hat: "none",
+    fireball: "classic",
+    companion: "none",
+  });
 });
 
 test("the catalogue matches the spec table and each slot has one free item", () => {
@@ -142,14 +161,17 @@ test("the catalogue matches the spec table and each slot has one free item", () 
     skin: "classic:Classic:0 mint:Mint:200 sunset:Sunset:300 midnight:Midnight:500 ghost:Ghost:750 gold:Gold:1000",
     hat: "none:No hat:0 cap:Cap:150 party:Party hat:200 viking:Viking:400 wizard:Wizard:500 crown:Crown:600",
     fireball: "classic:Classic:0 blue:Blue flame:250 green:Green flame:250 purple:Purple flame:400",
+    companion:
+      "none:None:0 hatchling:Hatchling:0 ptero:Ptero Chick:0 trike:Mini Trike:0 stego:Tiny Stego:0 raptor:Baby Raptor:0 ankylo:Little Anky:0 golden:Golden Hatchling:0 crystal:Crystal Drake:0",
   };
-  assert.deepEqual(Object.keys(CATALOG), ["skin", "hat", "fireball"]);
+  assert.deepEqual(Object.keys(CATALOG), ["skin", "hat", "fireball", "companion"]);
   Object.keys(table).forEach((slot) => {
     assert.equal(CATALOG[slot].map((i) => `${i.id}:${i.name}:${i.price}`).join(" "), table[slot]);
+    if (slot === "companion") return;
     assert.equal(CATALOG[slot].filter((i) => i.price === 0).length, 1);
     assert.equal(CATALOG[slot].find((i) => i.price === 0).id, FREE[slot]);
   });
-  assert.deepEqual(FREE, { skin: "classic", hat: "none", fireball: "classic" });
+  assert.deepEqual(FREE, { skin: "classic", hat: "none", fireball: "classic", companion: "none" });
   assert.deepEqual(itemOf("hat", "crown"), { id: "crown", name: "Crown", price: 600 });
   assert.equal(itemOf("hat", "nope"), null);
   assert.equal(itemOf("toString", "x"), null);
@@ -178,7 +200,64 @@ test("stats count kills per device, keep flags and the fastest boss rush", () =>
     secretBoss: true,
     worldsFinished: ["w1"],
     bossRushBest: 250,
+    burned: {},
+    bestCombo: 0,
+    shieldlessBoss: false,
+    endlessDeepest: 0,
   });
   assert.equal(createStats(storage, "other").kills(), 5);
   assert.equal(createStats(memoryStorage(), "d").bossRushTime(NaN), null);
+});
+
+test("the companion slot: free None, 8 hatchable ids, 6 common and 2 rare", () => {
+  assert.deepEqual(SLOTS, ["skin", "hat", "fireball", "companion"]);
+  assert.equal(FREE.companion, "none");
+  assert.equal(COMPANION_IDS.length, 8);
+  assert.equal(COMMON_COMPANIONS.length, 6);
+  assert.deepEqual(RARE_COMPANIONS, ["golden", "crystal"]);
+  assert.ok(isHatchOnly("companion", "trike"));
+  assert.ok(!isHatchOnly("companion", "none"));
+  assert.ok(!isHatchOnly("hat", "cap"));
+  assert.ok(!isHatchOnly("companion", "dragon"));
+});
+
+test("a companion can't be bought, only granted once", () => {
+  const wallet = createWallet(memoryStorage(), "A");
+  wallet.earn(5000);
+  assert.deepEqual(wallet.buy("companion", "trike"), { ok: false, need: 0, hatchOnly: true });
+  assert.equal(wallet.balance(), 5000);
+  assert.equal(wallet.wear("companion", "trike"), false);
+  assert.equal(wallet.grant("companion", "trike"), true);
+  assert.equal(wallet.owns("companion", "trike"), true);
+  assert.equal(wallet.balance(), 5000);
+  assert.equal(wallet.grant("companion", "trike"), false);
+  assert.equal(wallet.grant("companion", "dragon"), false);
+  assert.equal(wallet.grant("hat", "cap"), false);
+  assert.equal(wallet.wear("companion", "trike"), true);
+  assert.equal(wallet.worn().companion, "trike");
+});
+
+test("a fresh device wears no companion", () => {
+  assert.equal(createWallet(memoryStorage(), "A").worn().companion, "none");
+});
+
+test("stats count burned projectiles per device and keep the higher bests", () => {
+  const storage = memoryStorage();
+  const s = createStats(storage, "d");
+  s.addBurned(4);
+  s.addBurned(0);
+  s.addBurned(1.5);
+  assert.equal(s.burned(), 4);
+  createStats(storage, "e").addBurned(6);
+  assert.equal(s.burned(), 10);
+  s.bestCombo(12);
+  s.bestCombo(7);
+  s.bestCombo(NaN);
+  s.endlessDeepest(9);
+  s.endlessDeepest(4);
+  s.markShieldlessBoss();
+  const read = createStats(storage, "d").read();
+  assert.equal(read.bestCombo, 12);
+  assert.equal(read.endlessDeepest, 9);
+  assert.equal(read.shieldlessBoss, true);
 });

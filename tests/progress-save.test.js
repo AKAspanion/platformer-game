@@ -12,6 +12,7 @@ import {
   SAVE_VERSION,
   MAX_SAVE_BYTES,
 } from "../app/progress/save";
+import { COMPANION_IDS } from "../app/shop/catalog";
 
 function memoryStorage(initial = {}) {
   const data = { ...initial };
@@ -79,7 +80,7 @@ test("writeLocal then readLocal returns what was written, new keys included", ()
       earned: { dev: 5 },
       rewards: { "first-steps": 50 },
       owned: ["hat:cap"],
-      worn: { skin: "classic", hat: "cap", fireball: "classic" },
+      worn: { skin: "classic", hat: "cap", fireball: "classic", companion: "none" },
       wornAt: 3,
     },
     stats: {
@@ -88,7 +89,13 @@ test("writeLocal then readLocal returns what was written, new keys included", ()
       secretBoss: false,
       worldsFinished: ["w1"],
       bossRushBest: 252,
+      burned: { dev: 4 },
+      bestCombo: 6,
+      shieldlessBoss: true,
+      endlessDeepest: 3,
     },
+    nest: { eggs: [{ id: "s1", source: "story", foundAt: 9 }], found: ["s1"], hatched: [] },
+    quests: { ...emptyProgress().quests, day: 20403, week: 20399 },
   });
   writeLocal(p, storage);
   assert.deepEqual(readLocal(storage), p);
@@ -314,4 +321,193 @@ test("resetAt round-trips and a corrupt one reads as 0", () => {
   assert.equal(readLocal(storage).resetAt, 77);
   storage.data.progress_reset_at = '"x"';
   assert.equal(readLocal(storage).resetAt, 0);
+});
+
+const both = (a, b, key) => {
+  const ab = mergeProgress(withProgress({ [key]: a }), withProgress({ [key]: b }))[key];
+  assert.deepEqual(ab, mergeProgress(withProgress({ [key]: b }), withProgress({ [key]: a }))[key]);
+  return ab;
+};
+const nestOf = (value) => ({ ...emptyProgress().nest, ...value });
+const questsOf = (value) => ({ ...emptyProgress().quests, ...value });
+const pick = (id, extra = {}) => ({
+  id,
+  tier: 0,
+  target: 5,
+  coins: 25,
+  text: "Do five",
+  stat: "kills",
+  ...extra,
+});
+
+test("a nest and quests read from junk normalize to empty without throwing", () => {
+  ["x", [], 5, null, { eggs: 5 }].forEach((junk) => {
+    const p = readLocal(memoryStorage({ nest: JSON.stringify(junk), quests: JSON.stringify(junk) }));
+    assert.deepEqual(p.nest, emptyProgress().nest);
+    assert.deepEqual(p.quests, emptyProgress().quests);
+  });
+  const nest = {
+    eggs: [
+      { id: "s1", source: "story" },
+      { id: "s2", source: "story", foundAt: 5 },
+      { id: "s3", source: "bogus", foundAt: 5 },
+      "x",
+    ],
+    found: ["s2", 7],
+  };
+  assert.deepEqual(readLocal(memoryStorage({ nest: JSON.stringify(nest) })).nest, {
+    eggs: [{ id: "s2", source: "story", foundAt: 5 }],
+    found: ["s2"],
+    hatched: [],
+  });
+  const quests = { day: 5, picks: [{ id: "q" }], progress: [1], played: { daily: "no" } };
+  assert.deepEqual(readLocal(memoryStorage({ quests: JSON.stringify(quests) })).quests, {
+    ...emptyProgress().quests,
+    day: 5,
+  });
+});
+
+test("nest and quests round-trip through storage", () => {
+  const storage = memoryStorage();
+  const nest = nestOf({ eggs: [{ id: "s9", source: "story", foundAt: 4 }], found: ["s9"] });
+  const quests = questsOf({ day: 20403, picks: [pick("a")], progress: [2], week: 20399 });
+  writeLocal(withProgress({ nest, quests }), storage);
+  const read = readLocal(storage);
+  assert.deepEqual(read.nest, nest);
+  assert.deepEqual(read.quests, quests);
+});
+
+test("merge: eggs are the union by id with the lower foundAt, found is a union", () => {
+  const a = nestOf({ eggs: [{ id: "s9", source: "story", foundAt: 200 }], found: ["s9"] });
+  const b = nestOf({
+    eggs: [
+      { id: "s9", source: "story", foundAt: 100 },
+      { id: "d20261111", source: "daily", foundAt: 300 },
+    ],
+    found: ["s9", "d20261111"],
+  });
+  const merged = both(a, b, "nest");
+  assert.deepEqual(merged.found, ["d20261111", "s9"]);
+  assert.equal(merged.eggs.find((e) => e.id === "s9").foundAt, 100);
+  assert.equal(merged.eggs.length, 2);
+});
+
+test("merge: a hatched egg leaves the nest", () => {
+  const a = nestOf({ found: ["s9"], hatched: ["s9"] });
+  const b = nestOf({ eggs: [{ id: "s9", source: "story", foundAt: 1 }], found: ["s9"] });
+  const merged = both(a, b, "nest");
+  assert.deepEqual(merged.hatched, ["s9"]);
+  assert.deepEqual(merged.eggs, []);
+});
+
+test("merge: a reward paid on two devices counts once", () => {
+  const a = withProgress({ wallet: { ...emptyProgress().wallet, earned: { A: 10 }, rewards: { q20403a: 75 } } });
+  const b = withProgress({ wallet: { ...emptyProgress().wallet, earned: { B: 5 }, rewards: { q20403a: 75 } } });
+  const merged = mergeProgress(a, b);
+  assert.deepEqual(merged.wallet.rewards, { q20403a: 75 });
+  assert.deepEqual(merged, mergeProgress(b, a));
+});
+
+test("merge: quests of the same day take the higher progress per pick", () => {
+  const picks = [pick("a"), pick("b"), pick("c")];
+  const merged = both(
+    questsOf({ day: 20403, picks, progress: [3, 0, 1] }),
+    questsOf({ day: 20403, picks, progress: [1, 2, 1] }),
+    "quests",
+  );
+  assert.deepEqual(merged.progress, [3, 2, 1]);
+  assert.deepEqual(merged.picks, picks);
+});
+
+test("merge: the later day's quests win; different picks on one day take the further copy", () => {
+  const a = questsOf({ day: 20404, picks: [pick("x")], progress: [0] });
+  const b = questsOf({ day: 20403, picks: [pick("y")], progress: [5] });
+  const merged = both(a, b, "quests");
+  assert.equal(merged.day, 20404);
+  assert.deepEqual(merged.picks, [pick("x")]);
+  assert.deepEqual(merged.progress, [0]);
+  const c = questsOf({ day: 20403, picks: [pick("p")], progress: [1] });
+  const d = questsOf({ day: 20403, picks: [pick("q")], progress: [4] });
+  assert.deepEqual(both(c, d, "quests").picks, [pick("q")]);
+  const e = questsOf({ day: 20403, picks: [pick("p")], progress: [1] });
+  const f = questsOf({ day: 20403, picks: [pick("q")], progress: [1] });
+  assert.deepEqual(both(e, f, "quests"), both(f, e, "quests"));
+});
+
+test("merge: weekDone unions in a week and the later week wins", () => {
+  const same = both(
+    questsOf({ week: 20398, weekDone: ["q20401a"] }),
+    questsOf({ week: 20398, weekDone: ["q20402b"] }),
+    "quests",
+  );
+  assert.deepEqual(same.weekDone, ["q20401a", "q20402b"]);
+  const later = both(
+    questsOf({ week: 20405, weekDone: ["q20406a"] }),
+    questsOf({ week: 20398, weekDone: ["q20401a"] }),
+    "quests",
+  );
+  assert.equal(later.week, 20405);
+  assert.deepEqual(later.weekDone, ["q20406a"]);
+});
+
+test("merge: played unions per mode and keeps the last 7 days", () => {
+  const merged = both(
+    questsOf({ day: 20403, played: { daily: [20390, 20400, 20403] } }),
+    questsOf({ day: 20403, played: { endless: [20402] } }),
+    "quests",
+  );
+  assert.deepEqual(merged.played, { daily: [20400, 20403], endless: [20402] });
+});
+
+test("merge: burned and the new stats", () => {
+  const stats = (changes) => ({ ...emptyProgress().stats, ...changes });
+  const merged = both(
+    stats({ burned: { A: 40 }, bestCombo: 12, endlessDeepest: 9 }),
+    stats({ burned: { A: 30, B: 70 }, bestCombo: 31, shieldlessBoss: true, endlessDeepest: 26 }),
+    "stats",
+  );
+  assert.deepEqual(merged.burned, { A: 40, B: 70 });
+  assert.equal(merged.bestCombo, 31);
+  assert.equal(merged.shieldlessBoss, true);
+  assert.equal(merged.endlessDeepest, 26);
+});
+
+test("reset empties the nest, quests, new stats and companions, and stays empty when merged", () => {
+  const storage = memoryStorage();
+  const old = withProgress({
+    nest: nestOf({ found: ["s1"], hatched: ["s1"] }),
+    quests: questsOf({ day: 5, week: 3, weekDone: ["q1a"] }),
+    stats: { ...emptyProgress().stats, burned: { A: 9 }, bestCombo: 9, endlessDeepest: 9 },
+    wallet: { ...emptyProgress().wallet, owned: ["companion:trike"] },
+  });
+  writeLocal(old, storage);
+  const reset = resetLocal(storage, 1000);
+  assert.deepEqual(reset.nest, emptyProgress().nest);
+  assert.deepEqual(reset.quests, emptyProgress().quests);
+  assert.deepEqual(reset.stats, emptyProgress().stats);
+  assert.deepEqual(reset.wallet.owned, []);
+  const merged = mergeProgress(reset, old);
+  assert.deepEqual(merged.nest, emptyProgress().nest);
+  assert.deepEqual(merged.quests, emptyProgress().quests);
+  assert.deepEqual(merged.wallet.owned, []);
+});
+
+test("a year of rewards, eggs and companions stays under 40,000 bytes", () => {
+  const rewards = {};
+  const found = [];
+  for (let i = 0; i < 365; i++) {
+    const day = 20000 + i;
+    "abc".split("").forEach((l) => (rewards[`q${day}${l}`] = 75));
+    found.push(`d${20260101 + i}`);
+  }
+  for (let i = 0; i < 52; i++) rewards[`c${20000 + i * 7}`] = 100;
+  const p = withProgress({
+    wallet: {
+      ...emptyProgress().wallet,
+      rewards,
+      owned: COMPANION_IDS.map((id) => `companion:${id}`),
+    },
+    nest: nestOf({ found, hatched: found }),
+  });
+  assert.ok(saveBytes(p) < 40000, `${saveBytes(p)} bytes`);
 });

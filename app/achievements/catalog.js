@@ -1,4 +1,4 @@
-/** The 12 achievements: each unlocks once and pays its coins once. */
+/** The 24 achievements: each unlocks once and pays its coins once. */
 export const ACHIEVEMENTS = [
   { id: "first-steps", name: "First Steps", how: "Finish Grassland 1", coins: 50 },
   { id: "coin-collector", name: "Coin Collector", how: "Collect 1,000 coins in total", coins: 100 },
@@ -32,4 +32,36 @@ export const ACHIEVEMENTS = [
     how: "Finish 3 different community worlds",
     coins: 250,
   },
+  {
+    id: "world-conqueror",
+    name: "World Conqueror",
+    how: "Beat all five story world bosses",
+    coins: 500,
+  },
+  {
+    id: "grand-tour",
+    name: "Grand Tour",
+    how: "Finish every level of the five worlds and Starfall Peaks",
+    coins: 1000,
+  },
+  { id: "combo-king", name: "Combo King", how: "Reach a x4 combo", coins: 250 },
+  { id: "unbroken", name: "Unbroken", how: "Reach a combo of 50", coins: 500 },
+  {
+    id: "shield-breaker",
+    name: "Shield Breaker",
+    how: "Beat a boss without a fireball bouncing off its shield",
+    coins: 250,
+  },
+  {
+    id: "sharpshooter",
+    name: "Sharpshooter",
+    how: "Burn 100 enemy projectiles in total",
+    coins: 250,
+  },
+  { id: "egg-hunter", name: "Egg Hunter", how: "Find 10 eggs", coins: 250 },
+  { id: "full-nest", name: "Full Nest", how: "Hatch every companion", coins: 500 },
+  { id: "questing", name: "Questing", how: "Finish 25 daily quests", coins: 250 },
+  { id: "treasure-hunter", name: "Treasure Hunter", how: "Open 4 weekly chests", coins: 500 },
+  { id: "deep-diver", name: "Deep Diver", how: "Reach endless level 25", coins: 250 },
+  { id: "devoted", name: "Devoted", how: "Reach a 30-day daily streak", coins: 500 },
 ];

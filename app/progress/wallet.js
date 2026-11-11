@@ -7,7 +7,7 @@
  * every item stays owned, and new coins pay the difference off first.
  */
 import { createKeyStore, defaultStorage, deviceId, normalizeWallet } from "./save";
-import { FREE, itemOf } from "../shop/catalog";
+import { FREE, itemOf, isHatchOnly } from "../shop/catalog";
 
 const sum = (map) => Object.keys(map).reduce((total, key) => total + map[key], 0);
 const key = (slot, id) => `${slot}:${id}`;
@@ -47,11 +47,20 @@ export function createWallet(storage = defaultStorage(), device = deviceId(stora
       const item = itemOf(slot, id);
       const state = keep.read();
       if (!item || owns(state, slot, id)) return { ok: false, need: 0 };
+      if (isHatchOnly(slot, id)) return { ok: false, need: 0, hatchOnly: true };
       const balance = balanceOf(state);
       if (balance < item.price) return { ok: false, need: item.price - balance };
       state.owned.push(key(slot, id));
       keep.write(state);
       return { ok: true };
+    },
+    /** Gives a hatch-only item for free; false if unknown, not hatch-only or already owned. */
+    grant(slot, id) {
+      const state = keep.read();
+      if (!isHatchOnly(slot, id) || owns(state, slot, id)) return false;
+      state.owned.push(key(slot, id));
+      keep.write(state);
+      return true;
     },
     wear(slot, id) {
       const state = keep.read();

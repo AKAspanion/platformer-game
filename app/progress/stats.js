@@ -19,6 +19,22 @@ export function createStats(storage = defaultStorage(), device = deviceId(storag
       });
     },
     kills: () => sum(keep.read().kills),
+    addBurned(n) {
+      if (!Number.isInteger(n) || n <= 0) return;
+      update((state) => {
+        state.burned[device] = (state.burned[device] || 0) + n;
+      });
+    },
+    burned: () => sum(keep.read().burned),
+    bestCombo(value) {
+      if (!Number.isFinite(value) || value <= keep.read().bestCombo) return;
+      update((state) => (state.bestCombo = value));
+    },
+    markShieldlessBoss: () => update((state) => (state.shieldlessBoss = true)),
+    endlessDeepest(level) {
+      if (!Number.isFinite(level) || level <= keep.read().endlessDeepest) return;
+      update((state) => (state.endlessDeepest = level));
+    },
     markFlawlessBoss: () => update((state) => (state.flawlessBoss = true)),
     markSecretBoss: () => update((state) => (state.secretBoss = true)),
     finishWorld(worldId) {
