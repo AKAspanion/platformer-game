@@ -7,3 +7,4 @@ node_modules
 *.apk
 *.keystore
 signing-key-info.txt
+server/data

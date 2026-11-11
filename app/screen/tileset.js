@@ -1,9 +1,20 @@
 export default class TileSet {
-  constructor(tileSize, columns, world = 1) {
+  /** `skin` (optional) is a generated tile set from app/util/registry: no files to load. */
+  constructor(tileSize, columns, world = 1, skin = null) {
     const worldKey = `world-${world}`;
     this.loaded = false;
     this.columns = columns;
     this.tileSize = tileSize;
+
+    if (skin) {
+      this.images = skin.tiles;
+      this.objectImages = skin.objects;
+      this.tileBackground = skin.background;
+      this.assetCount = 1;
+      this.loadCount = 1;
+      this.loaded = true;
+      return;
+    }
 
     this.images = [];
     this.images.push(null);

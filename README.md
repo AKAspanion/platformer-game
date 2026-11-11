@@ -96,12 +96,43 @@ developer switch in Settings on localhost):
 
 - **Daily challenge:** 5 generated levels from today's date, the same for everyone.
 - **Endless:** generated forever, one level ahead, getting harder.
-- **Create a world:** describe a world in words; Claude Haiku 5.5 turns it into a small
-  world spec and the generator builds the levels. See [server/README.md](server/README.md)
-  for the tiny API server (it holds the API key). Without a server the game uses an
-  offline keyword parser.
+- **Worlds (create & share):** describe a world in words and the game builds all of it:
+  6 levels (5 + a boss arena), its own pixel-art tiles, backdrop, decorations and liquid,
+  2-4 new enemies (walkers, flyers, turrets), a crowned boss with a move set picked from
+  the boss attacks, chiptune music (a world theme and a boss battle theme) and creature /
+  boss sounds. Every world is shared straight away with everyone using the same world
+  server. This is the only mode that needs a sign-in.
 
 Build flags: `PREMIUM=1` (premium on by default, for test builds) and `WORLD_API_URL=...`.
+
+### How created worlds work
+
+The AI (Claude, on the server) only writes a small **world spec**
+(`app/worlds/spec.js`): palette, surface style, pits, skyline, decor, creature designs,
+the boss and its moves, music mood / tempo / lead voice, difficulty. Each device then
+generates the assets from the spec with a seeded RNG (`app/gen`): sprites are painted
+into pixel buffers, music and sounds are synthesized to WAV, and the level generator
+builds and checks the 6 levels. So a shared world is a few KB of JSON, every player
+gets the same world, and every level is checked to be beatable. Without a server the
+game uses an offline keyword designer and keeps worlds on the device.
+
+| Piece                                    | Where                                             |
+| ---------------------------------------- | ------------------------------------------------- |
+| World spec, validation, offline designer | `app/worlds/spec.js`                              |
+| Shared repository (server / local mock)  | `app/worlds/repository.js`                        |
+| Sign-in (mock, Firebase-shaped)          | `app/auth/index.js`                               |
+| Art: creatures, bosses                   | `app/gen/creatures.js`                            |
+| Art: tiles, backdrop, decor, liquid      | `app/gen/scenery.js`                              |
+| Music and sound effects                  | `app/gen/audio.js`                                |
+| Build a world, register with the engine  | `app/gen/index.js`                                |
+| Server: AI designer + world repository   | `server/world-api.mjs`, `server/worlds-store.mjs` |
+
+**Sign-in is mocked** for now: pick a name ("Continue with Google" or email); the
+account lives on the device and the server accepts its unsigned `mock.` tokens
+(`AUTH_MODE=mock`). The auth module mirrors Firebase Auth (`onAuthStateChanged`,
+`signInWith…`, `signOut`, `getIdToken`) so moving to Firebase is a swap of
+`app/auth/index.js`, `verifyToken` in `server/worlds-store.mjs`, and (optionally) a
+Firestore backend for the repository with the same `list` / `publish` / `subscribe`.
 
 ## Sprites
 
@@ -126,8 +157,9 @@ gate has a sound. The boss music and sound effects are synthesized chiptune made
 `yarn test` runs headless tests (esbuild + `node:test`): combat, hearts and pits,
 power-ups, enemy attacks and the new enemies, Dino animation states, level integrity for
 every story level (spawns, portals, footing, coins), the generator across all themes and
-difficulties, daily/endless/custom modes, the world creator, and a random-input fuzz run
-on every level.
+difficulties, daily/endless/custom modes, the world creator (spec validation, generated
+art and music, 6-level worlds, generated boss fights, sign-in, the shared repository), and
+a random-input fuzz run on every level.
 
 Open the game with `?debug` (e.g. `http://localhost:2108/?debug`) to get `window.debugGame`
 in the console for poking at the running game.

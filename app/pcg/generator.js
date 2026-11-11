@@ -129,6 +129,23 @@ const DECOR = {
   },
 };
 
+// Generated worlds (app/gen paints these object ids for each world).
+DECOR.gen = {
+  signRight: { id: 5, xOffset: 1, yOffset: 2, width: 14, height: 14 },
+  signLeft: { id: 6, xOffset: 1, yOffset: 2, width: 14, height: 14 },
+  big: [
+    { id: 1, xOffset: -8, yOffset: -16, width: 32, height: 32 },
+    { id: 2, xOffset: -12, yOffset: -24, width: 40, height: 40 },
+  ],
+  small: [
+    { id: 3, xOffset: 0, yOffset: 4, width: 16, height: 12 },
+    { id: 4, xOffset: 2, yOffset: 4, width: 12, height: 12 },
+    { id: 7, xOffset: 1, yOffset: 6, width: 14, height: 10 },
+    { id: 8, xOffset: 3, yOffset: 8, width: 10, height: 8 },
+    { id: 9, xOffset: 2, yOffset: 2, width: 12, height: 14 },
+  ],
+};
+
 // Factory (world-5) girders: own layout, acid pits and a riveted back wall.
 const TILES_FACTORY = {
   topLeft: 1,
@@ -551,22 +568,30 @@ export function buildLevel(input, seed) {
     }
   });
 
+  // Pits: spikes (desert), acid (factory), bottomless (graveyard) or water.
+  // Generated worlds choose with `style.pits` ("liquid" fills every pit).
+  const pitStyle =
+    (level.style && level.style.pits) ||
+    { 3: "spikes", 4: "void", 5: "acid" }[level.world] ||
+    "water";
+  const trapsOn = level.style ? !!level.style.traps : level.world === 3 || level.world === 5;
+
   // Water and death zones.
   const water = [];
   const death = [];
   pits.forEach((pit) => {
     const lower = Math.max(heights[pit.start - 1], heights[pit.end + 1]);
-    if (level.world === 3) {
+    if (pitStyle === "spikes") {
       for (let c = pit.start; c <= pit.end; c++) objectsMap[ROWS - 1][c] = [{ ...SPIKES.pit }];
-    } else if (level.world === 5) {
+    } else if (pitStyle === "acid") {
       // acid, a little below the lower rim
       const top = Math.max(lower + 1, 10);
       for (let c = pit.start; c <= pit.end; c++) {
         for (let r = top; r < ROWS; r++) areaMap[r][c] = r === top ? ACID.top : ACID.body;
       }
-    } else if (level.world === 4) {
+    } else if (pitStyle === "void") {
       // graveyard pits are bottomless
-    } else if (pit.water) {
+    } else if (pit.water || pitStyle === "liquid") {
       const top = Math.max(lower, 9);
       for (let c = pit.start - 1; c <= pit.end + 1; c++) {
         for (let t = top; t <= ROWS - 1; t += 0.5) water.push({ left: c, top: t });
@@ -582,7 +607,7 @@ export function buildLevel(input, seed) {
 
   // Desert ground spike traps: one tile to hop over, on enemy-free segments.
   const traps = [];
-  if ((level.world === 3 || level.world === 5) && !level.boss) {
+  if (trapsOn && !level.boss) {
     const trap = level.world === 5 ? SAW : SPIKES.trap;
     segments.forEach((seg, i) => {
       if (i === 0 || i === segments.length - 1 || traps.length >= level.difficulty - 1) return;
@@ -607,8 +632,16 @@ export function buildLevel(input, seed) {
   const enemies = [];
   // a boss arena has only its boss (and the minions it calls)
   const types = level.boss ? [] : level.enemyTypes || ENEMY_TYPES[level.world];
+  // generated worlds name their own enemy types: `enemyKinds` says how each moves
+  const kindOf = (t) =>
+    (level.enemyKinds && level.enemyKinds[t]) ||
+    (t === "bat" ? "flyer" : t === "spitter" ? "turret" : "walker");
   // a world can ask for no walkers at all (e.g. only spitters and bats)
-  const walkers = types.filter((t) => WALKERS.includes(t));
+  const walkers = types.filter((t) => kindOf(t) === "walker");
+  // (unique, and no rng call for a single kind: story levels stay the same)
+  const flyers = [...new Set(types.filter((t) => kindOf(t) === "flyer"))];
+  const turrets = [...new Set(types.filter((t) => kindOf(t) === "turret"))];
+  const one = (list) => (list.length === 1 ? list[0] : pick(rng, list));
   const scale = level.enemyScale ?? 1;
   const maxEnemies = Math.max(1, Math.round((1 + level.difficulty) * scale));
   const enemyId = () =>
@@ -653,7 +686,7 @@ export function buildLevel(input, seed) {
   });
 
   // Bats patrol the air over wide pits, above the coin arc.
-  if (types.includes("bat") && (level.difficulty >= 2 || !walkers.length)) {
+  if (flyers.length && (level.difficulty >= 2 || !walkers.length)) {
     pits.forEach((pit) => {
       const width = pit.end - pit.start + 1;
       if (width < 2 || enemies.length >= maxTotal + 1 || rng() < 0.35) return;
@@ -664,7 +697,7 @@ export function buildLevel(input, seed) {
       for (let c = s; c <= e; c++) if (areaMap[r][c] || areaMap[r + 1][c]) return;
       enemies.push({
         id: enemyId(),
-        type: "bat",
+        type: one(flyers),
         left: round((pit.start + pit.end + 1) / 2 - 0.55),
         top: r,
         sway: Math.max(8, Math.floor((width * TILE) / 2)),
@@ -674,7 +707,7 @@ export function buildLevel(input, seed) {
   }
 
   // One spitter on a mid-level ground segment, out of range of both edges.
-  if (types.includes("spitter") && level.difficulty >= 2 && rng() < 0.75) {
+  if (turrets.length && level.difficulty >= 2 && rng() < 0.75) {
     const spots = segments.filter((seg, i) => {
       if (i === 0 || i === segments.length - 1) return false;
       const c = Math.floor((seg.start + seg.end) / 2);
@@ -693,7 +726,7 @@ export function buildLevel(input, seed) {
       const c = Math.floor((seg.start + seg.end) / 2);
       enemies.push({
         id: enemyId(),
-        type: "spitter",
+        type: one(turrets),
         left: c,
         top: seg.height - 1,
         sway: 0,
@@ -705,20 +738,27 @@ export function buildLevel(input, seed) {
 
   // No walkers asked for: spitters guard the higher platforms instead (too
   // high to reach a player arriving through a portal).
-  if (types.includes("spitter") && !walkers.length) {
+  if (turrets.length && !walkers.length) {
     platforms
       .filter(([r, s, e]) => r <= 6 && e - s >= 1)
       .forEach(([r, s, e]) => {
         if (enemies.length >= maxTotal) return;
         const c = Math.floor((s + e) / 2);
         if (enemies.some((en) => en.top === r - 1 && Math.abs(en.left - c) < 2)) return;
-        enemies.push({ id: enemyId(), type: "spitter", left: c, top: r - 1, sway: 0, dir: -1 });
+        enemies.push({
+          id: enemyId(),
+          type: one(turrets),
+          left: c,
+          top: r - 1,
+          sway: 0,
+          dir: -1,
+        });
       });
   }
 
   // Mix it up: never a level of only one kind of walker when the world has more.
   const distinct = [...new Set(walkers)];
-  const walking = enemies.filter((en) => WALKERS.includes(en.type));
+  const walking = enemies.filter((en) => kindOf(en.type) === "walker");
   if (
     distinct.length > 1 &&
     walking.length > 1 &&
@@ -794,7 +834,7 @@ export function buildLevel(input, seed) {
   traps.forEach(({ row, col }) => addCoin(col + 0.25, row - 2.3));
 
   // Decorations.
-  const decor = DECOR[level.world];
+  const decor = DECOR[level.decorSet || level.world];
   const isFreeTop = (r, c) =>
     r >= 0 && !occupied[r][c] && areaMap[r][c] === 0 && heights[c] === r + 1;
   const addDecor = (r, c, obj) => {

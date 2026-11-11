@@ -1,46 +1,46 @@
 import Object from "./object";
 import Animator from "./animator";
 
+/**
+ * Water pits. `liquid` (optional, from a generated world's skin) is
+ * { surface: frames[], body: frames[] }: lava, acid, goo... The top cell of
+ * each column plays the surface frames, the cells below the body frames.
+ */
 export default class Water {
-  constructor(waterObjects = [], tileSize) {
+  constructor(waterObjects = [], tileSize, liquid = null) {
     this.items = [];
     this.loaded = false;
-
-    const keys = [{ id: "", count: 17 }];
-
     this.frameSets = {};
 
-    this.assetCount = 17;
-    this.loadCount = 0;
-    keys.forEach(({ count }) => {
-      for (let index = 1; index <= count; index++) {
+    if (liquid) {
+      this.assetCount = this.loadCount = 1;
+      this.loaded = true;
+      this.frameSets.water = liquid.surface;
+      this.frameSets.body = liquid.body;
+    } else {
+      this.assetCount = 17;
+      this.loadCount = 0;
+      this.frameSets.water = [];
+      for (let index = 1; index <= 17; index++) {
         const image = new Image();
         image.onload = image.onerror = () => {
           this.loadCount += 1;
-
-          if (count === this.loadCount) {
-            this.loaded = true;
-          }
+          if (this.loadCount === 17) this.loaded = true;
         };
         image.src = `./assets/sprites/water/image ${index}.webp`;
-
-        const addImage = (k, image) => {
-          if (!this.frameSets[k]) {
-            this.frameSets[k] = [];
-          }
-          this.frameSets[k].push(image);
-        };
-
-        addImage("water", image);
+        this.frameSets.water.push(image);
       }
-    });
+    }
 
+    const topOf = {};
+    waterObjects.forEach(({ left, top }) => {
+      topOf[left] = Math.min(topOf[left] ?? Infinity, top);
+    });
     for (let index = 0; index < waterObjects.length; index++) {
       const { left, top } = waterObjects[index];
-
-      this.items.push(
-        new WaterObject(left * tileSize, top * tileSize, this.frameSets["water"], tileSize),
-      );
+      const frames =
+        this.frameSets.body && top > topOf[left] ? this.frameSets.body : this.frameSets.water;
+      this.items.push(new WaterObject(left * tileSize, top * tileSize, frames, tileSize));
     }
   }
 
