@@ -301,8 +301,10 @@ window.addEventListener("load", function () {
   const COIN = '<span class="coin-icon" aria-hidden="true"></span>';
   const coinText = (n) => `${COIN}${n.toLocaleString("en-US")}`;
   const renderBalance = () => {
-    $("walletBalance").innerHTML = coinText(wallet.balance());
-    $("shopBalance").innerHTML = coinText(wallet.balance());
+    const balance = wallet.balance();
+    $("walletBalance").innerHTML = coinText(balance);
+    $("shopBtn").setAttribute("aria-label", `Shop, ${balance.toLocaleString("en-US")} coins`);
+    $("shopBalance").innerHTML = coinText(balance);
   };
 
   // The player's look (and last-online day) follows the account: written each time cloud save

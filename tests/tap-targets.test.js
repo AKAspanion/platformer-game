@@ -88,7 +88,14 @@ test("every kind of button in the markup is covered by that list", () => {
     if (!found) continue; // a bare button belongs to .segmented
     found[1].split(/\s+/).forEach((name) => classes.add(name));
   }
-  const modifiers = new Set(["active", "btn-primary", "btn-secondary", "btn-ghost", "btn-google"]);
+  const modifiers = new Set([
+    "active",
+    "btn-primary",
+    "btn-secondary",
+    "btn-ghost",
+    "btn-google",
+    "shop-btn", // the Shop .btn, which holds the coin balance
+  ]);
   for (const name of classes) {
     if (modifiers.has(name) || name.startsWith("btn-") || name === "lb-retry") continue;
     assert.ok(

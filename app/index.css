@@ -1718,6 +1718,22 @@ canvas {
   color: var(--ink);
   background: #eee4d3;
 }
+/* the home balance rides inside the Shop button */
+.shop-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.shop-coins {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.9em;
+  color: var(--gold);
+  background: rgba(29, 26, 36, 0.45);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-transform: none;
+}
 .wallet-row .btn-small {
   font-size: 15px;
   background: rgba(255, 255, 255, 0.14);
