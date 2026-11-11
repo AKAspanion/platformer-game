@@ -55,6 +55,7 @@ import {
   handleToggleLike,
   handlePickFeatured,
   handleWorldPage,
+  errorPage,
 } from "./src/community.js";
 import { sanitizeWorld } from "./shared/spec.js";
 import { worldLink } from "./shared/worlds/community.js";
@@ -433,7 +434,7 @@ export const worldPage = onRequest({ timeoutSeconds: 15 }, async (req, res) => {
       .send(page.body);
   } catch (error) {
     logger.error(error);
-    res.status(500).type("text").send("Something went wrong.");
+    res.status(500).set("Cache-Control", "no-store").type("html").send(errorPage(ORIGIN));
   }
 });
 

@@ -202,20 +202,57 @@ export function parseWorldPath(pathname) {
   return { id, thumb: match[2] === "/thumb.png" };
 }
 
-const STYLE =
-  "body{margin:0;min-height:100vh;display:grid;place-items:center;background:#1b2340;color:#fff;font:16px system-ui,sans-serif;text-align:center}a{color:#ffd24a}";
+// the game's look (app/pages/pages.css): ink background, red and gold, Grandstander
+const HEAD_STYLE =
+  `<link rel="preconnect" href="https://fonts.gstatic.com">` +
+  `<link href="https://fonts.googleapis.com/css2?family=Grandstander&display=swap" rel="stylesheet">` +
+  `<style>` +
+  "*{box-sizing:border-box}" +
+  "body{margin:0;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:24px 16px;" +
+  'font:16px/1.4 "Grandstander","Trebuchet MS",sans-serif;color:#fff7e8;text-align:center;' +
+  "background:radial-gradient(ellipse at 50% 0%,rgba(239,83,79,.22),transparent 60%),#1d1a24}" +
+  ".logo{font-size:32px;line-height:1;text-transform:uppercase;color:#fff;text-decoration:none;text-shadow:0 4px 0 #c63d3a}" +
+  ".logo span{display:block;color:#ffd84d;font-size:.7em;letter-spacing:4px}" +
+  "main{width:min(400px,100%);padding:24px;border-radius:20px;background:#2a2633;border:1px solid rgba(255,255,255,.08);box-shadow:0 20px 50px rgba(0,0,0,.45)}" +
+  "h1{margin:0;font-size:26px;font-weight:normal;text-transform:uppercase;color:#fff}" +
+  "p{margin:10px 0 0;opacity:.85;overflow-wrap:anywhere}" +
+  ".btn{display:inline-block;margin-top:20px;padding:12px 24px;border-radius:14px;color:#fff;text-decoration:none;text-transform:uppercase;letter-spacing:1px;" +
+  "background:linear-gradient(#ff6b66,#ef534f);box-shadow:0 5px 0 #c63d3a}" +
+  `</style>`;
+
+/** A small page in the game's look: the logo, a heading, a line and a link to play. */
+const shell = ({ title, head = "", heading, text, link, origin }) =>
+  `<!doctype html><html lang="en"><head><meta charset="utf-8">` +
+  `<meta name="viewport" content="width=device-width,initial-scale=1">` +
+  `<meta name="theme-color" content="#1d1a24">` +
+  `<title>${title}</title>${head}${HEAD_STYLE}` +
+  `<link rel="icon" href="${escapeHtml(origin)}/favicon.ico"></head>` +
+  `<body><a class="logo" href="${escapeHtml(origin)}/">Dino's <span>Adventure</span></a>` +
+  `<main><h1>${heading}</h1><p>${text}</p>` +
+  `<a class="btn" href="${link.href}">${link.label}</a></main></body></html>`;
+
+/** What /w/... answers when the server fails: the game's look, never a bare error. */
+export const errorPage = (origin) =>
+  shell({
+    title: "Something went wrong · Dino's Adventure",
+    heading: "Something went wrong",
+    text: "We couldn't open this world right now. Try again in a moment.",
+    link: { href: `${escapeHtml(origin)}/`, label: "Play Dino's Adventure" },
+    origin,
+  });
 
 /** The page a shared world link opens: previews for chats, then straight into the game. */
 export function renderWorldPage(world, { hasThumb, origin }) {
   if (!world || isBuiltIn(world.id)) {
     return {
       status: 404,
-      html:
-        `<!doctype html><html lang="en"><head><meta charset="utf-8">` +
-        `<meta name="viewport" content="width=device-width,initial-scale=1">` +
-        `<title>World not found · Dino's Adventure</title><style>${STYLE}</style></head>` +
-        `<body><main><h1>That world is gone</h1>` +
-        `<p><a href="${escapeHtml(origin)}/">Play Dino's Adventure</a></p></main></body></html>`,
+      html: shell({
+        title: "World not found · Dino's Adventure",
+        heading: "That world is gone",
+        text: "Its maker may have removed it, or the link is broken.",
+        link: { href: `${escapeHtml(origin)}/`, label: "Play Dino's Adventure" },
+        origin,
+      }),
     };
   }
   const title = escapeHtml(`${world.name} · Dino's Adventure`);
@@ -225,10 +262,7 @@ export function renderWorldPage(world, { hasThumb, origin }) {
   const url = `${origin}/w/${world.id}`;
   const image = hasThumb ? `${url}/thumb.png` : `${origin}/images/icons-512.png`;
   const target = `/?world=${world.id}`;
-  const html =
-    `<!doctype html><html lang="en"><head><meta charset="utf-8">` +
-    `<meta name="viewport" content="width=device-width,initial-scale=1">` +
-    `<title>${title}</title>` +
+  const head =
     `<meta name="description" content="${description}">` +
     `<link rel="canonical" href="${escapeHtml(url)}">` +
     `<meta property="og:type" content="website">` +
@@ -241,11 +275,16 @@ export function renderWorldPage(world, { hasThumb, origin }) {
     `<meta name="twitter:title" content="${title}">` +
     `<meta name="twitter:description" content="${description}">` +
     `<meta name="twitter:image" content="${escapeHtml(image)}">` +
-    `<style>${STYLE}</style>` +
     // players move on at once; link previews read the tags above and never run scripts
-    `<script>location.replace(${JSON.stringify(target)})</script></head>` +
-    `<body><main><h1>${escapeHtml(world.name)}</h1><p>${description}</p>` +
-    `<p><a href="${target}">Play it now</a></p></main></body></html>`;
+    `<script>location.replace(${JSON.stringify(target)})</script>`;
+  const html = shell({
+    title,
+    head,
+    heading: escapeHtml(world.name),
+    text: description,
+    link: { href: target, label: "Play it now" },
+    origin,
+  });
   return { status: 200, html };
 }
 

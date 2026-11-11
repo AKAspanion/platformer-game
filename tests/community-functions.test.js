@@ -9,6 +9,7 @@ import {
   checkThumb,
   parseWorldPath,
   handleWorldPage,
+  errorPage,
   SEEN_TTL_MS,
 } from "../functions/src/community.js";
 import { handlePublish, overLimit } from "../functions/src/handlers.js";
@@ -305,6 +306,23 @@ test("renderWorldPage: a missing or built-in world is a 404 that links to the ga
     assert.equal(page.status, 404);
     assert.ok(page.html.includes(`href="${origin}/"`));
   }
+});
+
+test("world pages and the server error page wear the game's look", () => {
+  const origin = "https://dino.spanion.in";
+  const pages = [
+    renderWorldPage(aWorld(), { hasThumb: true, origin }).html,
+    renderWorldPage(null, { hasThumb: false, origin }).html,
+    errorPage(origin),
+  ];
+  for (const html of pages) {
+    assert.ok(html.startsWith("<!doctype html>"));
+    assert.ok(html.includes("family=Grandstander"));
+    assert.ok(html.includes("#1d1a24"));
+    assert.ok(html.includes(`<a class="logo" href="${origin}/">Dino's <span>Adventure</span></a>`));
+    assert.ok(!/firebase/i.test(html));
+  }
+  assert.ok(errorPage(origin).includes("Something went wrong"));
 });
 
 test("parseWorldPath: /w/<id> and /w/<id>/thumb.png only", () => {

@@ -19,9 +19,13 @@ const projectId = firebaseEnv.FIREBASE_PROJECT_ID || "demo-project";
 // a function so the build knows its mode (`--mode production` drops dev-only values)
 module.exports = (env, argv = {}) => ({
   mode: argv.mode || "development",
-  entry: path.resolve(__dirname, "./app/index.js"),
+  entry: {
+    main: path.resolve(__dirname, "./app/index.js"),
+    // the page the account emails link to (/auth/action, app/pages/)
+    "auth-action": path.resolve(__dirname, "./app/pages/auth-action.js"),
+  },
   output: {
-    filename: "bundle.js",
+    filename: (pathData) => (pathData.chunk.name === "main" ? "bundle.js" : "[name].js"),
     // Firebase (sign-in, shared worlds) is a separate chunk, loaded on demand
     chunkFilename: "chunks/[name].[contenthash:8].js",
     publicPath: "auto",
@@ -63,6 +67,10 @@ module.exports = (env, argv = {}) => ({
         { from: path.resolve(__dirname, "app/favicon.ico"), to: "favicon.ico" },
         { from: path.resolve(__dirname, "app/manifest.json"), to: "manifest.json" },
         { from: path.resolve(__dirname, "app/assetlinks.json"), to: "assetlinks.json" },
+        // Hosting's 404 page and the account email page, in the game's look
+        { from: path.resolve(__dirname, "app/pages/404.html"), to: "404.html" },
+        { from: path.resolve(__dirname, "app/pages/auth-action.html"), to: "auth-action.html" },
+        { from: path.resolve(__dirname, "app/pages/pages.css"), to: "pages.css" },
         // Android app links for the Play Store app (TWA)
         {
           from: path.resolve(__dirname, "app/assetlinks.json"),
@@ -77,7 +85,10 @@ module.exports = (env, argv = {}) => ({
   devtool: "source-map",
   devServer: {
     static: path.resolve(__dirname, "./app"),
-    historyApiFallback: true,
+    // like Hosting (firebase.json): /auth/action is the account email page, the rest the game
+    historyApiFallback: {
+      rewrites: [{ from: /^\/auth\/action\/?$/, to: "/auth-action.html" }],
+    },
     host: "localhost",
     port: 2108,
     // ?emulators=1 talks to the Firebase emulators (pnpm emulators) through

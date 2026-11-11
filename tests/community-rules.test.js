@@ -193,6 +193,7 @@ test("firestore.indexes.json orders worldStats by trend; hosting rewrites /w/**"
   assert.ok(override.indexes.some((i) => i.order === "DESCENDING"));
   const firebase = JSON.parse(fs.readFileSync(path.join(root, "firebase.json"), "utf8"));
   assert.deepEqual(firebase.hosting.rewrites, [
+    { source: "/auth/action", destination: "/auth-action.html" },
     { source: "/w/**", function: { functionId: "worldPage", region: "asia-south1" } },
   ]);
 });
