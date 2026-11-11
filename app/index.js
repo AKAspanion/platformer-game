@@ -39,7 +39,10 @@ import { friendlyError } from "./firebase";
 import { firebaseAuthBackend } from "./firebase/auth";
 import { firestoreWorlds } from "./firebase/worlds";
 import { FirestoreRepository, mergeWorlds, starterWorlds } from "./worlds/repository";
-import { newWorld, matchWorlds, searchTerms, ANONYMOUS } from "./worlds/spec";
+import { newWorld, matchWorlds, searchTerms, sanitizeWorld, ANONYMOUS } from "./worlds/spec";
+import { community as social } from "./worlds/community-client";
+import { formatCount, weekNote, isBuiltIn, worldLink, linkedWorldId } from "./worlds/community";
+import { publishThumb } from "./worlds/thumb";
 import { previewImage } from "./gen";
 import { getSkin } from "./util/registry";
 import { createCampaign, starsFor, targetTime, starCount, STAR } from "./campaign";
@@ -542,7 +545,10 @@ window.addEventListener("load", function () {
     const inDaily = session.kind === "daily";
     let panelScore = `Score ${score}`;
     let panelBest = best;
-    if (session.kind === "custom") stats.finishWorld(session.world.id);
+    if (session.kind === "custom") {
+      stats.finishWorld(session.world.id);
+      social.recordPlay(session.world.id, "finish");
+    }
     if (session.kind === "secret") stats.markSecretBoss();
     if (session.kind === "bossrush") {
       const seconds = rush.seconds();
@@ -1276,6 +1282,7 @@ window.addEventListener("load", function () {
     }
     show(createScreen, false);
     track("mode_start", { mode: "custom" });
+    social.recordPlay(world.id, "play");
     loadWorld(session.startId, session.left, session.top);
   };
 
@@ -1321,11 +1328,11 @@ window.addEventListener("load", function () {
 
   // ------------------------------------------------------------------ home
 
-  // the world creator is the one mode that needs an account
+  // browsing, playing, liking and sharing worlds are free: only creating and remixing are premium
   const modes = {
     daily: startDaily,
     endless: startEndless,
-    create: () => requireLogin(() => openCreator(), "worlds"),
+    create: () => openCreator(),
   };
 
   const refreshHome = () => {
@@ -1466,8 +1473,6 @@ window.addEventListener("load", function () {
     card.onclick = () => {
       const mode = card.dataset.mode;
       if (mode === "levels") return openLevels();
-      // only the feature that uses AI (the world creator) is premium
-      if (mode === "create" && !isPremium()) return openPremium();
       modes[mode]();
     };
   });
@@ -1874,7 +1879,7 @@ window.addEventListener("load", function () {
     },
   };
   const loginIntents = {
-    worlds: () => isPremium() && openCreator(),
+    worlds: () => openCreator("create"),
     settings: () => {
       refreshSettings();
       show(settingsScreen, true);
@@ -2058,7 +2063,7 @@ window.addEventListener("load", function () {
     show(verifyScreen, false);
     show(createScreen, false);
     await auth.signOut().catch(() => {});
-    openLogin(() => isPremium() && openCreator(), "worlds");
+    openLogin(() => openCreator("create"), "worlds");
   };
   $("verifyCloseBtn").onclick = () => closeVerify(false);
   // verified in another tab or the mail app: notice it on coming back
@@ -2088,7 +2093,7 @@ window.addEventListener("load", function () {
         }
       });
     } else {
-      openLogin(() => isPremium() && openCreator(), "worlds");
+      openLogin(() => openCreator("create"), "worlds");
       loginMessage("Password changed. Sign in with your new password.", true);
     }
   }
@@ -2162,7 +2167,7 @@ window.addEventListener("load", function () {
     renderAccount();
     const real = auth.signedIn ? user : null;
     if (real && !loginName.value) loginName.value = real.displayName;
-    if (real && isPremium()) watchCommunity();
+    if (real) watchCommunity();
   });
 
   // ------------------------------------------------------------ repository
@@ -2187,6 +2192,71 @@ window.addEventListener("load", function () {
     });
   };
 
+  // Trending (the default list), the world of the week, and each world's counts and likes
+  let listMode = "trending"; // trending | new
+  const trending = { status: "loading", error: "", worlds: [] }; // status: loading | ok | error
+  let featuredWorld = null;
+  let linkedWorld = null; // the world a shared link opened, shown first
+  const statsMap = new Map(); // world id -> { plays, finishes, likes }
+  const likedSet = new Set();
+  const seenForStats = new Set();
+
+  /** Worlds by id: from the loaded lists first, the rest from the repository. */
+  const worldsById = async (ids) => {
+    const have = new Map([...community, ...trending.worlds].map((w) => [w.id, w]));
+    const missing = ids.filter((id) => !have.has(id));
+    if (missing.length) (await repo.byIds(missing)).forEach((w) => have.set(w.id, w));
+    return ids.map((id) => have.get(id)).filter(Boolean);
+  };
+
+  /** Counts and likes for the community worlds in `list`, once each. */
+  const hydrate = async (list) => {
+    const ids = list.map((w) => w.id).filter((id) => !isBuiltIn(id) && !seenForStats.has(id));
+    if (!ids.length) return;
+    ids.forEach((id) => seenForStats.add(id));
+    try {
+      const found = await social.stats(ids);
+      Object.entries(found).forEach(([id, counts]) => statsMap.set(id, counts));
+      (await social.liked(ids)).forEach((id) => likedSet.add(id));
+    } catch (error) {
+      // no counts this time: the cards show without them, and the next load asks again
+      ids.forEach((id) => seenForStats.delete(id));
+      return;
+    }
+    if (isVisible(createScreen)) renderCommunity();
+  };
+
+  let trendingRun = 0;
+  const loadTrending = async () => {
+    const run = ++trendingRun;
+    trending.status = "loading";
+    renderCommunity();
+    try {
+      const ids = await social.trending();
+      const found = await worldsById(ids);
+      if (run !== trendingRun) return;
+      trending.worlds = found;
+      trending.status = "ok";
+    } catch (error) {
+      if (run !== trendingRun) return;
+      trending.status = "error";
+      trending.error = error.message;
+    }
+    renderCommunity();
+    hydrate(trending.worlds);
+  };
+
+  const loadFeatured = async () => {
+    try {
+      const id = await social.featured();
+      const [found] = id ? await worldsById([id]) : [];
+      featuredWorld = found || null;
+    } catch (error) {
+      featuredWorld = null; // no banner when it can't be read
+    }
+    renderCommunity();
+  };
+
   const communityStatus = $("communityStatus");
   let connection = "loading"; // loading | live | local | stale | error
   let connectionError = "";
@@ -2202,14 +2272,21 @@ window.addEventListener("load", function () {
       }[searchState];
       return;
     }
-    const count = plural(community.length);
-    communityStatus.className = connection === "live" ? "live-status on" : "live-status";
+    const trendingShown = listMode === "trending" && trending.status !== "ok";
+    const state = trendingShown ? trending.status : connection;
+    const message = trendingShown ? trending.error : connectionError;
+    const count = plural(
+      trendingShown ? 0 : listMode === "trending" ? trending.worlds.length : community.length,
+    );
+    communityStatus.className =
+      state === "live" || state === "ok" ? "live-status on" : "live-status";
     communityStatus.textContent = {
       loading: "Loading worlds…",
+      ok: `Live · ${count}`,
       live: `Live · ${count}`,
       stale: `Offline · saved list · ${count}`,
-      error: `Offline (${connectionError}) · ${count}`,
-    }[connection];
+      error: `Offline (${message}) · ${count}`,
+    }[state];
   };
   const loadCommunity = async () => {
     connection = "loading";
@@ -2224,8 +2301,13 @@ window.addEventListener("load", function () {
     }
     if (searchHits) runSearch();
     else renderCommunity();
+    hydrate(community);
   };
-  $("communityRefresh").onclick = loadCommunity;
+  $("communityRefresh").onclick = () => {
+    loadCommunity();
+    loadTrending();
+    loadFeatured();
+  };
 
   // ---------------------------------------------------------------- search
 
@@ -2307,10 +2389,24 @@ window.addEventListener("load", function () {
     return `${Math.floor(s / 86400)} d ago`;
   };
 
-  const worldCard = (world, { fresh = false, onRemove = null } = {}) => {
+  const remixNames = new Map(); // world id -> name, "" when it can't be found
+  const remixName = async (id) => {
+    if (!remixNames.has(id)) {
+      const known = community.find((w) => w.id === id);
+      try {
+        remixNames.set(id, known ? known.name : (await repo.byIds([id]))[0]?.name || "");
+      } catch (error) {
+        return ""; // offline: asked again with the next card
+      }
+    }
+    return remixNames.get(id);
+  };
+
+  const worldCard = (world, { fresh = false, linked = false, onRemove = null } = {}) => {
     const { spec } = world;
+    const shareable = !isBuiltIn(world.id);
     const card = document.createElement("div");
-    card.className = `world-card${fresh ? " fresh" : ""}`;
+    card.className = `world-card${fresh ? " fresh" : ""}${linked ? " linked" : ""}`;
     const info = document.createElement("div");
     info.className = "world-info";
     const img = document.createElement("img");
@@ -2342,6 +2438,25 @@ window.addEventListener("load", function () {
       tagline.textContent = world.tagline;
       text.appendChild(tagline);
     }
+    if (world.remixOf) {
+      const remixed = document.createElement("div");
+      remixed.className = "world-remix";
+      remixed.hidden = true;
+      remixName(world.remixOf).then((original) => {
+        if (!original) return;
+        remixed.textContent = `Remix of ${original}`;
+        remixed.hidden = false;
+      });
+      text.appendChild(remixed);
+    }
+    const stat = document.createElement("div");
+    stat.className = "world-stats";
+    stat.hidden = true;
+    const week = document.createElement("div");
+    week.className = "world-week";
+    week.hidden = true;
+    week.dataset.world = world.id;
+    text.append(stat, week);
     info.append(img, text);
     const actions = document.createElement("div");
     actions.className = "world-actions";
@@ -2349,7 +2464,55 @@ window.addEventListener("load", function () {
     play.className = "btn btn-small";
     play.textContent = "Play";
     play.onclick = () => requireLogin(() => startCustom(world), "worlds");
-    actions.appendChild(play);
+    if (shareable) {
+      const heart = document.createElement("button");
+      heart.className = "like-btn";
+      heart.textContent = "❤";
+      const share = document.createElement("button");
+      share.className = "btn btn-small";
+      share.textContent = "Share";
+      const remix = document.createElement("button");
+      remix.className = "btn btn-small";
+      remix.textContent = "Remix";
+      const refresh = () => {
+        const counts = statsMap.get(world.id);
+        stat.hidden = !counts;
+        if (counts)
+          stat.textContent = `▶ ${formatCount(counts.plays)} · ❤ ${formatCount(counts.likes)}`;
+        const liked = likedSet.has(world.id);
+        heart.classList.toggle("liked", liked);
+        heart.setAttribute("aria-pressed", String(liked));
+        heart.setAttribute("aria-label", liked ? `Unlike ${world.name}` : `Like ${world.name}`);
+      };
+      refresh();
+      heart.onclick = async () => {
+        if (heart.disabled) return;
+        heart.disabled = true;
+        try {
+          const { liked, likes } = await social.toggleLike(world.id);
+          if (liked) likedSet.add(world.id);
+          else likedSet.delete(world.id);
+          const counts = statsMap.get(world.id) || { plays: 0, finishes: 0, likes: 0 };
+          statsMap.set(world.id, { ...counts, likes });
+          refresh();
+          track("world_like", { liked });
+        } catch (error) {
+          showToast(esc(error.message || "Couldn't like that world."));
+        } finally {
+          heart.disabled = false;
+        }
+      };
+      share.onclick = async () => {
+        const method = await shareRun(worldLink(world.id));
+        if (method === "failed") return showToast("Couldn't share. Try again.");
+        if (method === "copy") showToast("Link copied");
+        track("world_share", { method });
+      };
+      remix.onclick = () => startRemix(world);
+      actions.append(play, heart, share, remix);
+    } else {
+      actions.appendChild(play);
+    }
     if (onRemove) {
       const remove = document.createElement("button");
       remove.className = "delete-btn";
@@ -2372,21 +2535,63 @@ window.addEventListener("load", function () {
     renderStatus();
     const list = $("communityList");
     list.innerHTML = "";
-    const shown = searchHits || community;
-    if (!shown.length) {
+    renderBanner();
+    $("listTrendingBtn").classList.toggle("active", listMode === "trending");
+    $("listNewBtn").classList.toggle("active", listMode === "new");
+    $("communityLists").hidden = Boolean(searchHits);
+    const base = listMode === "trending" ? trending.worlds : community;
+    if (!searchHits && listMode === "trending" && trending.status !== "ok") {
+      if (trending.status === "error") {
+        const note = emptyNote("Couldn't load Trending.");
+        const retry = document.createElement("button");
+        retry.id = "trendingRetryBtn";
+        retry.className = "btn btn-small";
+        retry.textContent = "Try again";
+        retry.onclick = loadTrending;
+        note.appendChild(document.createElement("br"));
+        note.appendChild(retry);
+        list.appendChild(note);
+      } else list.appendChild(emptyNote("Loading worlds…"));
+      return;
+    }
+    if (linkedWorld && !searchHits) {
+      list.appendChild(worldCard(linkedWorld, { linked: true }));
+      hydrate([linkedWorld]);
+    }
+    const shown = searchHits || base.filter((w) => !linkedWorld || w.id !== linkedWorld.id);
+    if (!shown.length && !(linkedWorld && !searchHits)) {
       list.appendChild(
         emptyNote(
           searchHits
             ? searchState === "searching"
               ? "Searching…"
               : `No worlds match "${worldSearch.value.trim()}".`
-            : "No worlds yet. Make the first one in Create!",
+            : listMode === "trending"
+              ? "No world has been played lately. Look in New!"
+              : "No worlds yet. Make the first one in Create!",
         ),
       );
       return;
     }
     shown.forEach((world) => list.appendChild(worldCard(world, { fresh: freshIds.has(world.id) })));
+    if (searchHits) hydrate(shown);
   };
+
+  const renderBanner = () => {
+    const banner = $("featuredBanner");
+    banner.hidden = !featuredWorld;
+    if (!featuredWorld) return;
+    $("featuredText").textContent =
+      `★ World of the week: ${featuredWorld.name} by ${featuredWorld.author.name}`;
+    const world = featuredWorld;
+    $("featuredPlayBtn").onclick = () => requireLogin(() => startCustom(world), "worlds");
+  };
+  document.querySelectorAll("#communityLists .seg-btn").forEach((button) => {
+    button.onclick = () => {
+      listMode = button.dataset.list;
+      renderCommunity();
+    };
+  });
 
   const myWorlds = () => {
     const user = auth.currentUser;
@@ -2413,7 +2618,92 @@ window.addEventListener("load", function () {
         }),
       ),
     );
+    showWeekNotes(mine);
+    hydrate(mine);
   };
+
+  /** "120 plays · 37 beat the boss · 15 ❤ this week" under each of the player's published worlds. */
+  let weekRun = 0;
+  const showWeekNotes = async (mine) => {
+    const run = ++weekRun;
+    const ids = mine.map((w) => w.id).filter((id) => !isBuiltIn(id));
+    if (!ids.length) return;
+    try {
+      const { perWorld } = await social.myWeek(ids);
+      if (run !== weekRun) return;
+      document.querySelectorAll("#worldList .world-week").forEach((el) => {
+        const counts = perWorld[el.dataset.world];
+        if (!counts) return;
+        el.textContent = weekNote(counts);
+        el.hidden = false;
+      });
+    } catch (error) {
+      // no note this time
+    }
+  };
+
+  // ------------------------------------------------------ links and the week
+
+  /** A shared link (/w/<id> redirects to /?world=<id>): its world's card opens first in Community. */
+  const openLinkedWorld = async (id) => {
+    const rest = new URLSearchParams(location.search);
+    rest.delete("world");
+    const query = rest.toString();
+    history.replaceState(null, "", location.pathname + (query ? `?${query}` : "") + location.hash);
+    openCreator("community");
+    try {
+      const [found] = await worldsById([id]);
+      track("world_link_open", { found: Boolean(found) });
+      if (!found) return showToast("That world doesn't exist anymore.");
+      linkedWorld = found;
+      community = mergeWorlds(community, [found]);
+      renderCommunity();
+    } catch (error) {
+      // offline: the list shows its own error state
+      if (connection !== "live") {
+        connection = "error";
+        connectionError = error.message;
+      }
+      renderCommunity();
+    }
+  };
+
+  const isoWeek = (ms) => {
+    const day = new Date(ms);
+    const thursday = new Date(Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate()));
+    thursday.setUTCDate(thursday.getUTCDate() + 4 - (thursday.getUTCDay() || 7));
+    const first = Date.UTC(thursday.getUTCFullYear(), 0, 1);
+    const week = Math.ceil(((thursday - first) / 86400000 + 1) / 7);
+    return `${thursday.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
+  };
+
+  /** Once a week, how the player's worlds did: after the first input, when they had plays. */
+  const WEEK_KEY = "worlds_week_note";
+  const weeklyNote = async () => {
+    const week = isoWeek(Date.now());
+    try {
+      if (getData(WEEK_KEY) === week) return;
+      await auth.ready();
+      if (!auth.signedIn) return;
+      const uid = auth.currentUser.uid;
+      const ids = worlds
+        .list()
+        .filter((w) => w.author.uid === uid && !isBuiltIn(w.id))
+        .map((w) => w.id);
+      if (!ids.length) return;
+      const { plays, finishes } = await social.myWeek(ids);
+      if (!plays) return;
+      setData(WEEK_KEY, week);
+      showToast(`<b>🎉 Your worlds: ${plays} plays and ${finishes} boss wins this week</b>`, 6000);
+    } catch (error) {
+      // offline: try again next time the game opens
+    }
+  };
+  const weeklyOnInput = () => {
+    ["pointerdown", "keydown"].forEach((name) => window.removeEventListener(name, weeklyOnInput));
+    weeklyNote();
+  };
+  ["pointerdown", "keydown"].forEach((name) => window.addEventListener(name, weeklyOnInput));
 
   // --------------------------------------------------------------- tabs
 
@@ -2438,11 +2728,17 @@ window.addEventListener("load", function () {
     searchHits = null;
     renderAccount();
     watchCommunity();
+    linkedWorld = null;
     selectTab(tab);
     show(createScreen, true);
     loadCommunity();
+    loadTrending();
+    loadFeatured();
   };
   $("createCloseBtn").onclick = () => show(createScreen, false);
+
+  const linked = linkedWorldId(location);
+  if (linked) openLinkedWorld(linked);
 
   // --------------------------------------------------------------- create
 
@@ -2489,7 +2785,26 @@ window.addEventListener("load", function () {
       .forEach((chip) => (chip.disabled = busy));
   };
 
-  createBtn.onclick = () =>
+  // a remix: the world the next build is based on (cleared when the description is emptied)
+  let remixOf = null;
+  createPrompt.addEventListener("input", () => {
+    if (!createPrompt.value.trim()) remixOf = null;
+  });
+  const startRemix = (world) => {
+    if (!isPremium()) return openPremium();
+    requireLogin(() => {
+      remixOf = world.id;
+      createPrompt.value = `A remix of ${world.name}: ${world.tagline}`
+        .replace(/:\s*$/, "")
+        .slice(0, 400);
+      selectTab("create");
+      createPrompt.focus();
+      track("world_remix", {});
+    }, "worlds");
+  };
+
+  createBtn.onclick = () => {
+    if (!isPremium()) return openPremium();
     requireVerified(async () => {
       const prompt = createPrompt.value.trim();
       if (prompt.length < 3) {
@@ -2505,7 +2820,8 @@ window.addEventListener("load", function () {
         const { spec, source, error } = await requestSpec(prompt, (text) =>
           firestoreWorlds.design(text),
         );
-        const world = newWorld(spec, auth.currentUser);
+        const made = newWorld(spec, auth.currentUser);
+        const world = (remixOf && sanitizeWorld({ ...made, remixOf })) || made;
 
         setStep(1);
         await paint();
@@ -2519,7 +2835,8 @@ window.addEventListener("load", function () {
         let shared = "";
         let saved = world;
         try {
-          saved = await repo.publish(world);
+          saved = await repo.publish(world, { thumb: publishThumb(previewImage(world)) });
+          remixOf = null;
           shared = "Shared with everyone.";
           community = mergeWorlds(community, [saved]);
         } catch (publishError) {
@@ -2540,6 +2857,7 @@ window.addEventListener("load", function () {
         busyCreate(false);
       }
     });
+  };
 
   // ------------------------------------------------------ share and leaderboard
 

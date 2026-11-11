@@ -1802,3 +1802,88 @@ canvas {
   background: url("assets/sprites/coin/image%201.webp") center / contain no-repeat;
   image-rendering: pixelated;
 }
+
+/* ------------------------------------------------------------ community lists */
+
+.seg {
+  display: flex;
+  gap: 6px;
+}
+.seg-btn {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-family: var(--font);
+  font-size: 14px;
+  color: var(--ink);
+  background: #eee4d3;
+  cursor: pointer;
+}
+.seg-btn.active {
+  color: white;
+  background: var(--red);
+}
+.featured-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 2px solid #f0b429;
+  background: #fff6dc;
+}
+.featured-banner[hidden] {
+  display: none;
+}
+.featured-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 15px;
+}
+.featured-banner .btn {
+  flex-shrink: 0;
+}
+.world-card.linked {
+  border-color: #f0b429;
+}
+.world-stats,
+.world-week,
+.world-remix {
+  font-size: 13px;
+}
+.world-week,
+.world-remix {
+  opacity: 0.75;
+}
+.world-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.like-btn {
+  min-width: 34px;
+  height: 34px;
+  padding: 0 6px;
+  border-radius: 17px;
+  font-size: 18px;
+  line-height: 1;
+  color: #b9ad98;
+  background: #eee4d3;
+  cursor: pointer;
+}
+.like-btn.liked {
+  color: var(--red);
+}
+.like-btn:disabled {
+  opacity: 0.5;
+}
+.world-empty .btn {
+  margin-top: 8px;
+}
+@media (max-width: 560px) {
+  .world-card {
+    flex-wrap: wrap;
+  }
+  .world-actions {
+    width: 100%;
+  }
+}
