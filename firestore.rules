@@ -7,10 +7,20 @@ rules_version = '2';
 // them from a client: the publishWorld function validates each world with the
 // game's sanitizeWorld and stamps the author from the caller's ID token.
 //
+// daily/{seed}/scores/{uid}: one best score per player per day. Anyone can
+// read the board; nobody writes it from a client: the submitDaily function
+// checks the run (open day, possible score, plausible time) and writes it.
+//
 // limits/{uid}: per-user rate limit counters, functions only.
 service cloud.firestore {
   match /databases/{database}/documents {
     match /worlds/{worldId} {
+      allow get: if true;
+      allow list: if request.query.limit <= 100;
+      allow write: if false;
+    }
+
+    match /daily/{seed}/scores/{uid} {
       allow get: if true;
       allow list: if request.query.limit <= 100;
       allow write: if false;
