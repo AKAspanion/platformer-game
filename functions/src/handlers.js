@@ -104,8 +104,8 @@ export async function handleSearch({ auth, data }, { allWorlds }) {
 /**
  * Deletes the caller's account. Their worlds stay shared, credited to
  * "Anonymous" with no account behind them; their daily leaderboard scores are
- * deleted, and so is their cloud save; then their rate limits and the account itself go. `accounts`:
- * anonymizeWorlds(uid, author) -> count, deleteDailyScores(uid), deleteSave(uid), deleteData(uid),
+ * deleted, and so are their cloud save and reminders; then their rate limits and the account itself go. `accounts`:
+ * anonymizeWorlds(uid, author) -> count, deleteDailyScores(uid), deleteSave(uid), deleteReminders(uid), deleteData(uid),
  * deleteUser(uid).
  */
 export async function handleDeleteAccount({ auth }, { accounts }) {
@@ -113,6 +113,7 @@ export async function handleDeleteAccount({ auth }, { accounts }) {
   const worlds = await accounts.anonymizeWorlds(user.uid, { uid: "", name: ANONYMOUS });
   await accounts.deleteDailyScores(user.uid);
   await accounts.deleteSave(user.uid);
+  await accounts.deleteReminders(user.uid);
   await accounts.deleteData(user.uid);
   await accounts.deleteUser(user.uid);
   return { worlds };

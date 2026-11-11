@@ -60,3 +60,17 @@ firebase deploy --only functions
        --role=roles/$role
    done
    ```
+
+4. Scheduled functions (`pickWorldOfWeek` every Monday, `sendReminders` every hour)
+   run on Cloud Scheduler. Once, as a project owner, enable its API and let the CI
+   account create the jobs (it can only view APIs, not enable them):
+
+   ```bash
+   gcloud services enable cloudscheduler.googleapis.com --project dinos-adventure
+   gcloud projects add-iam-policy-binding dinos-adventure --condition=None \
+     --member=serviceAccount:github-action-334735458@dinos-adventure.iam.gserviceaccount.com \
+     --role=roles/cloudscheduler.admin
+   ```
+
+   The next deploy creates the jobs in `asia-south1`. Check them in the Cloud console
+   → Cloud Scheduler, and use Force run to send a test pass.
