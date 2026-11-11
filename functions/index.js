@@ -7,6 +7,10 @@
  *   searchWorlds({ query })  -> { worlds }  every shared world matching a search
  *   submitDailyScore({ seed, score, seconds })
  *                            -> { rank, total, best, improved }  the daily challenge's leaderboard
+ *   recordWorldPlay({ worldId, kind }) -> { counted }   a play or finish, once per account per day
+ *   toggleWorldLike({ worldId })       -> { liked, likes }
+ *   pickWorldOfWeek                    scheduled, Mondays 00:00 UTC
+ *   worldPage                          /w/<id> link previews and /w/<id>/thumb.png (HTTP)
  *   deleteAccount()          -> { worlds }  deletes the caller; their worlds become "Anonymous",
  *                                           their daily scores are deleted
  *
@@ -20,11 +24,12 @@
  *   WORLD_MODEL        optional, functions/.env  (default claude-haiku-5-5)
  */
 import { setGlobalOptions } from "firebase-functions";
-import { onCall, HttpsError } from "firebase-functions/https";
+import { onCall, onRequest, HttpsError } from "firebase-functions/https";
+import { onSchedule } from "firebase-functions/scheduler";
 import { defineSecret } from "firebase-functions/params";
 import * as logger from "firebase-functions/logger";
 import { initializeApp } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
+import { getFirestore, FieldPath } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
 import {
   ApiError,
@@ -34,6 +39,15 @@ import {
   handleDeleteAccount,
   overLimit,
 } from "./src/handlers.js";
+import {
+  handleRecordPlay,
+  handleToggleLike,
+  handlePickFeatured,
+  renderWorldPage,
+  parseWorldPath,
+} from "./src/community.js";
+import { sanitizeWorld } from "./shared/spec.js";
+import { worldLink } from "./shared/worlds/community.js";
 import { handleSubmitDaily, outranks } from "./src/daily.js";
 import { createDesigner, Anthropic } from "./src/designer.js";
 
@@ -62,9 +76,18 @@ const limiter = (uid, kind, max) =>
   });
 
 const store = {
-  async create(world) {
+  async create(world, thumb) {
     try {
-      await db.collection("worlds").doc(world.id).create(world);
+      // the world and its thumbnail land together or not at all
+      const batch = db.batch();
+      batch.create(db.collection("worlds").doc(world.id), world);
+      if (thumb) {
+        batch.create(db.collection("thumbs").doc(world.id), {
+          png: thumb.toString("base64"),
+          bytes: thumb.length,
+        });
+      }
+      await batch.commit();
     } catch (error) {
       if (error.code === 6) throw new ApiError("already-exists", "That world is already shared.");
       throw error;
@@ -112,7 +135,7 @@ export const designWorld = callable(
 );
 
 export const publishWorld = callable({ timeoutSeconds: 20 }, (request) =>
-  handlePublish(request, { store, limiter }),
+  handlePublish(request, { store, limiter, log: (message) => logger.info(message) }),
 );
 
 // Firestore can't search text, so search reads every world, at most once per
@@ -201,4 +224,104 @@ export const deleteAccount = callable({ timeoutSeconds: 60 }, async (request) =>
   const result = await handleDeleteAccount(request, { accounts });
   logger.info(`account deleted, ${result.worlds} worlds now anonymous`, { uid: request.auth.uid });
   return result;
+});
+
+// ---------------------------------------------------------------- community
+
+/** Firestore transaction adapter: paths like "worldStats/<id>/days/<day>". */
+const stats = {
+  transaction: (fn) =>
+    db.runTransaction((transaction) =>
+      fn({
+        get: async (path) => {
+          const snap = await transaction.get(db.doc(path));
+          return snap.exists ? snap.data() : null;
+        },
+        set: (path, data) => transaction.set(db.doc(path), data),
+        delete: (path) => transaction.delete(db.doc(path)),
+      }),
+    ),
+  // the busiest worlds by trend, with when each was made
+  async top(limit) {
+    const snap = await db.collection("worldStats").orderBy("trend", "desc").limit(limit).get();
+    if (snap.empty) return [];
+    const worlds = await db.getAll(
+      ...snap.docs.map((d) => db.collection("worlds").doc(d.id)),
+      { fieldMask: ["createdAt"] },
+    );
+    return worlds.filter((w) => w.exists).map((w) => ({ id: w.id, createdAt: w.get("createdAt") }));
+  },
+  async daysOf(id, sinceDay) {
+    const snap = await db
+      .collection("worldStats")
+      .doc(id)
+      .collection("days")
+      .where(FieldPath.documentId(), ">=", sinceDay)
+      .get();
+    return snap.docs.map((d) => ({ day: d.id, ...d.data() }));
+  },
+};
+
+const worlds = {
+  async exists(id) {
+    return (await db.collection("worlds").doc(id).get()).exists;
+  },
+};
+
+export const recordWorldPlay = callable({ timeoutSeconds: 15 }, (request) =>
+  handleRecordPlay(request, { stats, limiter }),
+);
+
+export const toggleWorldLike = callable({ timeoutSeconds: 15 }, (request) =>
+  handleToggleLike(request, { stats, worlds, limiter }),
+);
+
+const featuredDoc = db.collection("config").doc("featured");
+
+export const pickWorldOfWeek = onSchedule(
+  { schedule: "every monday 00:00", timeZone: "UTC", timeoutSeconds: 300 },
+  async () => {
+    const config = {
+      get: async () => {
+        const snap = await featuredDoc.get();
+        return snap.exists ? snap.data() : null;
+      },
+      // merge: keeps the hand-set worldId
+      set: (patch) => featuredDoc.set(patch, { merge: true }),
+    };
+    const picked = await handlePickFeatured({ stats, config });
+    logger.info(`world of the week: ${picked}`);
+  },
+);
+
+const ORIGIN = new URL(worldLink("x")).origin;
+
+/** /w/<id> (link previews, then into the game) and /w/<id>/thumb.png. */
+export const worldPage = onRequest({ timeoutSeconds: 15 }, async (req, res) => {
+  const notFound = () => {
+    const page = renderWorldPage(null, { hasThumb: false, origin: ORIGIN });
+    res.status(page.status).set("Cache-Control", "public, max-age=60").type("html").send(page.html);
+  };
+  const route = req.method === "GET" || req.method === "HEAD" ? parseWorldPath(req.path) : null;
+  if (!route) return notFound();
+  try {
+    if (route.thumb) {
+      const snap = await db.collection("thumbs").doc(route.id).get();
+      const png = snap.exists ? Buffer.from(String(snap.get("png")), "base64") : null;
+      if (!png || !png.length) return notFound();
+      res.set("Cache-Control", "public, max-age=3600").type("png").send(png);
+      return;
+    }
+    const [worldSnap, thumbSnap] = await Promise.all([
+      db.collection("worlds").doc(route.id).get(),
+      db.collection("thumbs").doc(route.id).select("bytes").get(),
+    ]);
+    const world = worldSnap.exists ? sanitizeWorld(worldSnap.data()) : null;
+    const page = renderWorldPage(world, { hasThumb: thumbSnap.exists, origin: ORIGIN });
+    if (page.status !== 200) return notFound();
+    res.set("Cache-Control", "public, max-age=300").type("html").send(page.html);
+  } catch (error) {
+    logger.error(error);
+    res.status(500).type("text").send("Something went wrong.");
+  }
 });

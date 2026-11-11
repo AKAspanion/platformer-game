@@ -104,6 +104,23 @@ test("publishWorld: validates, stamps author and time, refuses duplicates", asyn
   assert.equal(authorName({ uid: "x", token: {} }), "Someone");
 });
 
+test("publishWorld: passes a valid PNG thumbnail to the store, drops anything else", async () => {
+  const created = [];
+  const store = { create: async (world, thumb) => created.push(thumb) };
+  const png = Buffer.alloc(2048);
+  Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(png);
+  png.write("IHDR", 12);
+  png.writeUInt32BE(480, 16);
+  png.writeUInt32BE(270, 20);
+  const world = () => newWorld(specFromPrompt("ice caves"), { uid: "x", displayName: "X" });
+  const publish = (thumb) =>
+    handlePublish({ auth: user(), data: { world: world(), thumb } }, { store, limiter: open });
+  await publish(png.toString("base64"));
+  await publish(Buffer.from("just text, not a picture at all").toString("base64"));
+  await publish();
+  assert.deepEqual(created, [png, null, null]);
+});
+
 test("rate limit: a sliding hour per user and kind", async () => {
   const docs = {};
   const tx = {
