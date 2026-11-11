@@ -1011,9 +1011,11 @@ canvas {
 }
 .tabs {
   display: flex;
+  align-items: flex-end;
   gap: 6px;
   width: 100%;
-  padding: 2px 0 6px;
+  /* the tabs sit on the line, no gap */
+  padding: 2px 0 0;
   border-bottom: 2px solid #eee4d3;
 }
 .tab {
@@ -1734,8 +1736,14 @@ canvas {
   white-space: nowrap;
   text-transform: none;
 }
+/* one height on every screen: this beats the short-screen .btn and .btn-small rules */
 .wallet-row .btn-small {
-  font-size: 15px;
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  min-height: 0;
+  padding: 0 14px;
+  font-size: 14px;
   background: rgba(255, 255, 255, 0.14);
 }
 .setting-note {

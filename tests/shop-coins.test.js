@@ -37,3 +37,23 @@ test("the Shop button's label carries the balance for screen readers", () => {
 test("the balance inside Shop is a small gold pill", () => {
   assert.match(css, /\.shop-coins\s*\{[^}]*color:\s*var\(--gold\)/);
 });
+
+/** Every rule (any media block) whose selector list holds `selector`, in file order. */
+const rulesOf = (selector) =>
+  [...css.matchAll(/([^{}@]+)\{([^{}]*)\}/g)]
+    .filter(([, selectors]) => selectors.split(",").some((s) => s.trim() === selector))
+    .map(([, , body]) => body);
+
+test("Shop and Achievements keep one fixed height whatever the screen height", () => {
+  const rules = rulesOf(".wallet-row .btn-small");
+  assert.equal(rules.length, 1, "one rule sizes them, outside any media block");
+  assert.match(rules[0], /height:\s*36px/);
+  assert.match(rules[0], /padding:\s*0 14px/);
+  assert.match(rules[0], /font-size:\s*14px/);
+});
+
+test("the tabs sit on their line with no gap", () => {
+  const tabs = rulesOf(".tabs").join(";");
+  assert.match(tabs, /padding:\s*2px 0 0/);
+  assert.match(tabs, /align-items:\s*flex-end/);
+});
