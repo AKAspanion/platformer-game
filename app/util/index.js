@@ -3,11 +3,21 @@ export const uid = () => {
 };
 
 export const setData = (key, value) => {
-  return localStorage.setItem(key, JSON.stringify(value));
+  try {
+    return localStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    // storage full or blocked (private mode): the game goes on without saving
+    return undefined;
+  }
 };
 
+/** The stored value, or null when missing, corrupt or storage is blocked. */
 export const getData = (key) => {
-  return JSON.parse(localStorage.getItem(key));
+  try {
+    return JSON.parse(localStorage.getItem(key));
+  } catch (error) {
+    return null;
+  }
 };
 
 export const preLoadAndFetch = () => {

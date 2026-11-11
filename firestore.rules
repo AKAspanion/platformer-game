@@ -31,6 +31,8 @@ rules_version = '2';
 // pushSubs/{uid}: an account's reminder devices and time zone, functions only.
 //
 // limits/{uid}: per-user rate limit counters, functions only.
+//
+// runs/{ticket}: ranked run tickets (startRun), functions only.
 service cloud.firestore {
   match /databases/{database}/documents {
     match /worlds/{worldId} {
@@ -89,6 +91,11 @@ service cloud.firestore {
 
     // pushSubs/{uid}: device tokens, written and read by the functions only.
     match /pushSubs/{uid} {
+      allow read, write: if false;
+    }
+
+    // runs/{ticket}: run tickets, written and read by the functions only.
+    match /runs/{ticket} {
       allow read, write: if false;
     }
 

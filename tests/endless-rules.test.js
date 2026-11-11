@@ -162,8 +162,11 @@ test("the board ranks entries, clamps the limit and sends no name", async () => 
   assert.deepEqual(calls[1], ["list", 50]);
   assert.equal(await board.mine("zz"), null);
   assert.equal((await board.mine("a")).level, 9);
-  await board.submit({ seed: 1, level: 2, score: 3, seconds: 9, name: "Hacker" });
-  assert.deepEqual(calls[2], ["submitEndlessScore", { seed: 1, level: 2, score: 3, seconds: 9 }]);
+  await board.submit({ seed: 1, level: 2, score: 3, seconds: 9, ticket: "t1", name: "Hacker" });
+  assert.deepEqual(calls[2], [
+    "submitEndlessScore",
+    { seed: 1, level: 2, score: 3, seconds: 9, ticket: "t1" },
+  ]);
 });
 
 test("firestore.rules: endless/{uid} is public to read with a limit and closed to writes", () => {

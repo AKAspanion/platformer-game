@@ -2,7 +2,7 @@
  * The daily leaderboard's server logic, free of Firebase so it can be tested
  * on its own (tests/daily-submit.test.js). index.js wires it to Firestore.
  *
- *   handleSubmitDaily({ auth, data: { seed, score, seconds } }, { scores, limiter, now })
+ *   handleSubmitDaily({ auth, data: { seed, score, seconds, ticket } }, { scores, tickets, limiter, now })
  *     -> { rank, total, best: { score, seconds }, improved }
  *
  * `scores` (Firestore: daily/{seed}/scores/{uid}):
@@ -10,7 +10,8 @@
  *   rankOf(seed, entry) -> 1-based rank   count(seed) -> entries that day
  *
  * Everything in the request is untrusted: the seed must be an open day, the
- * score a possible one, the time a plausible one, and the name is never read
+ * score a possible one, the time a plausible one, the run must have started on
+ * the server (its ticket, functions/src/runs.js), and the name is never read
  * from the request (it comes from the caller's ID token).
  */
 import {
@@ -21,6 +22,7 @@ import {
   MAX_SECONDS,
 } from "../shared/daily/rules.js";
 import { ApiError, authorName } from "./handlers.js";
+import { withTicket } from "./runs.js";
 
 /** Submissions per player per hour. */
 export const DAILY_LIMIT = 30;
@@ -43,7 +45,10 @@ export const boardName = (auth) => (isAnonymous(auth) ? generatedName(auth.uid) 
 
 const cantRank = () => new ApiError("invalid-argument", "That run can't be ranked.");
 
-export async function handleSubmitDaily({ auth, data }, { scores, limiter, now = Date.now }) {
+export async function handleSubmitDaily(
+  { auth, data },
+  { scores, tickets, limiter, now = Date.now },
+) {
   if (!auth || typeof auth.uid !== "string" || !auth.uid) {
     throw new ApiError("unauthenticated", "Sign in to submit a score.");
   }
@@ -60,19 +65,25 @@ export async function handleSubmitDaily({ auth, data }, { scores, limiter, now =
   }
 
   const run = { score, seconds };
-  const stored = await scores.get(seed, auth.uid);
-  const improved = !stored || outranks(run, stored);
-  const best = improved ? run : { score: stored.score, seconds: stored.seconds };
-  if (improved) {
-    // uid, name and time come from the server, never from the request
-    await scores.set(seed, auth.uid, {
-      uid: auth.uid,
-      name: boardName(auth),
-      score,
-      seconds,
-      updatedAt: now(),
-    });
-  }
+  const ticketed = { uid: auth.uid, mode: "daily", seed, seconds, now: now() };
+  const { improved, best } = await withTicket(tickets, body.ticket, ticketed, async () => {
+    const stored = await scores.get(seed, auth.uid);
+    const better = !stored || outranks(run, stored);
+    if (better) {
+      // uid, name and time come from the server, never from the request
+      await scores.set(seed, auth.uid, {
+        uid: auth.uid,
+        name: boardName(auth),
+        score,
+        seconds,
+        updatedAt: now(),
+      });
+    }
+    return {
+      improved: better,
+      best: better ? run : { score: stored.score, seconds: stored.seconds },
+    };
+  });
   const [rank, total] = await Promise.all([scores.rankOf(seed, best), scores.count(seed)]);
   return { rank, total, best: { score: best.score, seconds: best.seconds }, improved };
 }

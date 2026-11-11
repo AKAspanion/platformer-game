@@ -208,7 +208,7 @@ test("leaderboard.top ranks the backend's entries in order and asks for 50 by de
   assert.deepEqual(asked[1], [20261111, 100]);
 });
 
-test("leaderboard.submit sends only seed, score and seconds", async () => {
+test("leaderboard.submit sends only seed, score, seconds and the run's ticket", async () => {
   const sent = [];
   const board = createLeaderboard({
     call: async (name, data) => {
@@ -218,8 +218,16 @@ test("leaderboard.submit sends only seed, score and seconds", async () => {
     list: async () => [],
     get: async () => null,
   });
-  const out = await board.submit({ seed: 20261111, score: 10, seconds: 40, name: "Hacker" });
-  assert.deepEqual(sent, [["submitDailyScore", { seed: 20261111, score: 10, seconds: 40 }]]);
+  const out = await board.submit({
+    seed: 20261111,
+    score: 10,
+    seconds: 40,
+    ticket: "t1",
+    name: "Hacker",
+  });
+  assert.deepEqual(sent, [
+    ["submitDailyScore", { seed: 20261111, score: 10, seconds: 40, ticket: "t1" }],
+  ]);
   assert.equal(out.rank, 1);
 });
 

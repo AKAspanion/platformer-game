@@ -13,6 +13,7 @@ import {
   FirestoreRepository,
   mergeWorlds,
   starterWorlds,
+  WATCH_RETRY_MS,
 } from "../app/worlds/repository";
 import { buildEnemy, buildBossFrames, enemySize } from "../app/gen/creatures";
 import { buildTiles, buildBackground, buildObjects, buildLiquid } from "../app/gen/scenery";
@@ -487,4 +488,29 @@ test("firestore repository: lists, publishes, delivers new worlds once, works of
     mergeWorlds([made], [other, made]).map((w) => w.id),
     [other.id, made.id],
   );
+});
+
+test("firestore repository: a live watch that fails starts again later", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const watches = [];
+  const adapter = {
+    watch(count, onAdded, onError) {
+      const watch = { onAdded, onError, stopped: false };
+      watches.push(watch);
+      return () => (watch.stopped = true);
+    },
+  };
+  const repo = new FirestoreRepository(adapter);
+  const got = [];
+  const unsubscribe = repo.subscribe((w) => got.push(w.id));
+  assert.equal(watches.length, 1);
+  watches[0].onError(new Error("No connection."));
+  assert.equal(watches[0].stopped, true);
+  t.mock.timers.tick(WATCH_RETRY_MS);
+  assert.equal(watches.length, 2, "watching again after the wait");
+  unsubscribe();
+  assert.equal(watches[1].stopped, true);
+  watches[1].onError(new Error("late error"));
+  t.mock.timers.tick(WATCH_RETRY_MS);
+  assert.equal(watches.length, 2, "no retry once nobody listens");
 });

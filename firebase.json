@@ -6,11 +6,47 @@
     "cleanUrls": false,
     "rewrites": [
       {
+        "source": "/auth/action",
+        "destination": "/auth-action.html"
+      },
+      {
         "source": "/w/**",
-        "function": { "functionId": "worldPage", "region": "asia-south1" }
+        "function": {
+          "functionId": "worldPage",
+          "region": "asia-south1"
+        }
       }
     ],
     "headers": [
+      {
+        "source": "**",
+        "headers": [
+          {
+            "key": "X-Content-Type-Options",
+            "value": "nosniff"
+          },
+          {
+            "key": "Referrer-Policy",
+            "value": "strict-origin-when-cross-origin"
+          },
+          {
+            "key": "X-Frame-Options",
+            "value": "SAMEORIGIN"
+          },
+          {
+            "key": "Content-Security-Policy",
+            "value": "frame-ancestors 'self'; object-src 'none'; base-uri 'self'"
+          },
+          {
+            "key": "Permissions-Policy",
+            "value": "camera=(), microphone=(), geolocation=(), payment=()"
+          },
+          {
+            "key": "Cross-Origin-Opener-Policy",
+            "value": "same-origin-allow-popups"
+          }
+        ]
+      },
       {
         "source": "/",
         "headers": [
@@ -21,7 +57,7 @@
         ]
       },
       {
-        "source": "/@(index.html|sw.js|bundle.js|manifest.json|assetlinks.json)",
+        "source": "/@(index.html|sw.js|bundle.js|manifest.json|assetlinks.json|404.html|auth-action.html|auth-action.js|pages.css)",
         "headers": [
           {
             "key": "Cache-Control",

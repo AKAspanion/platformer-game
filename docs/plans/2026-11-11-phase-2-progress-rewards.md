@@ -37,6 +37,7 @@ None (`run.checkpoints: none`). The run goes through all five tasks and stops be
 ### Task 1: Progress model, wallet, catalogue and unlock rules
 
 **Files:**
+
 - Create: `app/progress/save.js`
 - Create: `app/progress/wallet.js`
 - Create: `app/progress/stats.js`
@@ -47,6 +48,7 @@ None (`run.checkpoints: none`). The run goes through all five tasks and stops be
 - Test: `tests/progress-unlocks.test.js`
 
 **Interfaces:**
+
 - Consumes: existing `LEVELS` from `app/util/index.js`; existing `starCount`, `STAR` from `app/campaign/index.js`; existing `getData`/`setData` from `app/util/index.js`.
 - Produces (used by Tasks 2, 3, 4 and 5):
 
@@ -110,6 +112,7 @@ export function itemOf(slot: Slot, id: string): { id, name, price } | null;
 The catalogue's ids, names and prices are exactly the table in spec §2.
 
 **Spec:**
+
 - §1: "Progress is merged, never overwritten: levels reached are the union, stars per level are combined, the best time per level is the lower, each record and the high score are the higher, achievements are the union with the earliest date, owned cosmetics are the union, coins and lifetime stats are counted per device and summed, the streak with the later day wins (on the same day, the longer one), and worn cosmetics come from the save changed last."
 - §2: "Each device counts the coins it earned under its own random device ID, so two devices never overwrite each other's coins."
 - §2: "The balance is coins earned, plus achievement rewards, minus the prices of the items owned."
@@ -126,6 +129,7 @@ The catalogue's ids, names and prices are exactly the table in spec §2.
 **Knowledge:** none (this project has no knowledge base)
 
 **Acceptance:**
+
 - Given a device with campaign, records, high score and streak saved under the existing keys, when `readLocal` runs, then the Progress carries all of them unchanged; `writeLocal` of that Progress leaves those keys byte-identical.
 - Given blocked storage (getItem throws), when `readLocal` runs, then it returns `emptyProgress()` and does not throw.
 - Given A reached [1,2,7] with stars {1: 0b011} and best {1: 40} and B reached [1,3] with stars {1: 0b100} and best {1: 35}, when merged, then reached is [1,2,3,7], stars {1: 0b111}, best {1: 35}.
@@ -174,6 +178,7 @@ git commit -m "feat(progress): progress model, wallet, catalogue and unlock rule
 ### Task 2: Cloud save
 
 **Files:**
+
 - Create: `app/progress/cloud.js`
 - Create: `app/firebase/saves.js`
 - Modify: `firestore.rules` (`saves/{uid}`)
@@ -183,6 +188,7 @@ git commit -m "feat(progress): progress model, wallet, catalogue and unlock rule
 - Test: `tests/functions.test.js` (delete-account case)
 
 **Interfaces:**
+
 - Consumes: `readLocal`, `writeLocal`, `mergeProgress`, `saveBytes`, `MAX_SAVE_BYTES`, `SAVE_VERSION` (Task 1); existing `loadFirebase()`.
 - Produces (used by Task 5):
 
@@ -208,6 +214,7 @@ export const firestoreSaves: { get(uid), set(uid, doc) };
 Firestore: `saves/{uid}` = `{ v: number, updatedAt: number, data: map }`; read and write only when `request.auth.uid == uid`; writes only with exactly the keys `v`, `updatedAt`, `data`.
 
 **Spec:**
+
 - §1: "Cloud save runs only for a player who already has an account, anonymous or signed in. It never creates an account and never loads Firebase before the player's first input."
 - §1: "Each account has one save document, `saves/{uid}`, which only that account can read or write."
 - §1: "A save is at most 100 KB; a larger one is not sent, and the game keeps playing from the device copy."
@@ -223,6 +230,7 @@ Firestore: `saves/{uid}` = `{ v: number, updatedAt: number, data: map }`; read a
 **Knowledge:** none (this project has no knowledge base)
 
 **Acceptance:**
+
 - Given no remote save, when `start("u1")` runs, then the local Progress is pushed once and `status()` is "saved".
 - Given a remote save with stars this device lacks, when `start` runs, then the local copy gains them (written through `local.write`) and the merged save is pushed.
 - Given remote equals the merge, when `start` runs, then nothing is pushed.
@@ -266,6 +274,7 @@ git commit -m "feat(progress): cloud save that merges instead of overwriting"
 ### Task 3: Cosmetics in the game
 
 **Files:**
+
 - Create: `app/game/cosmetics.js`
 - Modify: `app/game/player.js` (`setLook`, tinted frame sets, hat)
 - Modify: `app/game/fireballs.js` (`setColour`)
@@ -276,6 +285,7 @@ git commit -m "feat(progress): cloud save that merges instead of overwriting"
 - Test: `tests/cosmetics.test.js`
 
 **Interfaces:**
+
 - Consumes: `CATALOG`, `FREE`, `Slot` from `app/shop/catalog.js` (Task 1).
 - Produces (used by Task 5):
 
@@ -298,6 +308,7 @@ fireballs.setColour(id: string): void;
 ```
 
 **Spec:**
+
 - §2: "Cosmetics change looks only: no item changes speed, jumps, hearts, damage or score."
 - §2: "Skins and fireball colours are palette shifts of the existing sprites, made when the game loads. Hats are pixel sprites drawn on the dino's head, made by `scripts/generate-sprites.py`."
 - §2: "The look shows wherever the dino plays: campaign, daily, endless, worlds, the secret world and boss rush."
@@ -307,6 +318,7 @@ fireballs.setColour(id: string): void;
 **Knowledge:** none (this project has no knowledge base)
 
 **Acceptance:**
+
 - Given every skin and fireball id in `CATALOG`, when the palettes are read, then each has one (classic may be empty).
 - Given pixels [10,20,30,255, 1,2,3,255] and a palette mapping (10,20,30)→(200,100,50), when `shiftPixels` runs, then they become [200,100,50,255, 1,2,3,255]; alpha is never changed and fully transparent pixels stay untouched.
 - Given skin "classic", when `tintFrames` runs, then it returns the same frame objects (no copies).
@@ -351,6 +363,7 @@ git commit -m "feat(shop): dino skins, hats and fireball colours in the game"
 ### Task 4: Secret world, boss rush and achievements
 
 **Files:**
+
 - Create: `app/modes/secret.js`
 - Create: `app/modes/bossrush.js`
 - Create: `app/achievements/catalog.js`
@@ -359,6 +372,7 @@ git commit -m "feat(shop): dino skins, hats and fireball colours in the game"
 - Test: `tests/achievements.test.js`
 
 **Interfaces:**
+
 - Consumes: `Progress`, `campaignStars`, `bossesBeaten` (Task 1); existing `createCustomSession`, `FINISH` from `app/modes/index.js`; existing `specFromPrompt`, `newWorld`, `sanitizeWorld` from `app/worlds/spec.js`; existing `LEVELS`, `areas`.
 - Produces (used by Task 5):
 
@@ -388,6 +402,7 @@ export function progressToward(id: string, progress: Progress, levels?): { have:
 Boss rush registers copies of the five boss arenas at `BOSS_RUSH_BASE + i`; each copy's forward exit leads to the next copy and the last one's to `FINISH`; its back exit leads nowhere.
 
 **Spec:**
+
 - §3: "Starfall Peaks is built into the game: 5 levels and a boss arena made from a fixed world spec, with no AI and no network."
 - §3: "It plays like a shared world (its own tiles, music, enemies and boss), and its best score is kept as a record."
 - §4: "Boss rush starts with 3 hearts, carries hearts from fight to fight, and gives back one heart (up to 3) after each boss."
@@ -400,6 +415,7 @@ Boss rush registers copies of the five boss arenas at `BOSS_RUSH_BASE + i`; each
 **Knowledge:** none (this project has no knowledge base)
 
 **Acceptance:**
+
 - Given `starfallWorld()` called twice, when compared, then the records are deeply equal, have 6 levels with the last a boss arena, and pass `sanitizeWorld` unchanged.
 - Given the module, when `createSecretSession()` runs with the network unavailable (no `fetch`), then it succeeds; its kind is "secret" and its world id `starfall-peaks`.
 - Given `LEVELS`, when `bossLevels` runs, then it returns the five entries with `boss: true`, Grassland 6 first and the last world's boss last.
@@ -445,6 +461,7 @@ git commit -m "feat(modes): Starfall Peaks, boss rush and achievement rules"
 ### Task 5: Shop, achievements, unlocks and cloud save on screen
 
 **Files:**
+
 - Modify: `app/index.js`
 - Modify: `app/index.html`
 - Modify: `app/index.css`
@@ -452,6 +469,7 @@ git commit -m "feat(modes): Starfall Peaks, boss rush and achievement rules"
 - Test: `tests/progress-earn.test.js`
 
 **Interfaces:**
+
 - Consumes: `createWallet`, `createStats`, `readLocal`, `writeLocal`, `secretWorldOpen`, `bossRushOpen`, `bossesBeaten`, `campaignStars`, `SECRET_STARS`, `CATALOG`, `itemOf` (Task 1); `createCloudSave`, `firestoreSaves` (Task 2); `player.setLook`, `fireballs.setColour`, `tintFrames`, `hatImage` (Task 3); `createSecretSession`, `createBossRushSession`, `ACHIEVEMENTS`, `newlyEarned`, `progressToward` (Task 4); existing `track`, `auth`, `campaign`, `showPanel`.
 - Produces:
 
@@ -463,25 +481,26 @@ export function createEarnings(): { tick(world: { id, totalCoins: number, totalE
 
 Screens and states:
 
-| Screen | State | Shows |
-|---|---|---|
-| Home | always | gold coin sprite + "1,240" with Shop and Achievements buttons |
-| Shop | item owned and worn | "Worn" |
-| Shop | item owned | Wear button |
-| Shop | affordable | "Buy · 300" |
-| Shop | not affordable | "Need 60 more" (does nothing) |
-| Shop | preview | the dino with the selected skin, hat and fireball, updated at once |
-| Achievements | unlocked | name, how, "+coins", date |
-| Achievements | locked with a number | name, how, "640 / 1,000" |
-| Achievements | locked | name, how, greyed |
-| Toast | unlocked | "🏆 First Steps · +50 coins", 3 s, one after another |
-| Level select | Starfall Peaks locked | "Starfall Peaks · ★ 75 to open (you have 61)" |
-| Level select | Starfall Peaks open | a card that starts the secret world |
-| Level select | Boss Rush locked | "Boss Rush · beat all 5 bosses to open (3/5)" |
-| Level select | Boss Rush open | a card with "Best 4:12" once finished |
-| Settings | account row | "Progress saved to your account" / "Progress saved on this device" |
+| Screen       | State                 | Shows                                                              |
+| ------------ | --------------------- | ------------------------------------------------------------------ |
+| Home         | always                | gold coin sprite + "1,240" with Shop and Achievements buttons      |
+| Shop         | item owned and worn   | "Worn"                                                             |
+| Shop         | item owned            | Wear button                                                        |
+| Shop         | affordable            | "Buy · 300"                                                        |
+| Shop         | not affordable        | "Need 60 more" (does nothing)                                      |
+| Shop         | preview               | the dino with the selected skin, hat and fireball, updated at once |
+| Achievements | unlocked              | name, how, "+coins", date                                          |
+| Achievements | locked with a number  | name, how, "640 / 1,000"                                           |
+| Achievements | locked                | name, how, greyed                                                  |
+| Toast        | unlocked              | "🏆 First Steps · +50 coins", 3 s, one after another               |
+| Level select | Starfall Peaks locked | "Starfall Peaks · ★ 75 to open (you have 61)"                      |
+| Level select | Starfall Peaks open   | a card that starts the secret world                                |
+| Level select | Boss Rush locked      | "Boss Rush · beat all 5 bosses to open (3/5)"                      |
+| Level select | Boss Rush open        | a card with "Best 4:12" once finished                              |
+| Settings     | account row           | "Progress saved to your account" / "Progress saved on this device" |
 
 **Spec:**
+
 - §1: "The game pulls and merges the account's save when it starts with an account, right after signing in, and right after an anonymous account is created."
 - §1: "After any change, the save is sent 5 seconds later (changes in those 5 seconds go together), and when the page is hidden."
 - §1: Settings shows the save state under the account row: "Progress saved to your account" once a save has been sent, "Progress saved on this device" with no account.
@@ -499,6 +518,7 @@ Screens and states:
 **Knowledge:** none (this project has no knowledge base)
 
 **Acceptance:**
+
 - Given a world whose totalCoins goes 0 → 3 → 5 within one level, when `tick` runs each time, then it yields 3 then 2 coins; when the world is set up again (new level, retry or death), counting starts from that world's own count, never giving negative or repeated coins.
 - Given kills going 0 → 2, when `tick` runs, then it yields 2 kills.
 - Given a player collects 5 coins and dies, when the game-over panel shows, then the wallet has 5 more coins.
@@ -554,6 +574,7 @@ git commit -m "feat(progress): shop, achievements, unlocks and cloud save on scr
 Added after the developer's choice: "Reset device and account".
 
 **Files:**
+
 - Modify: `app/progress/save.js` (`resetAt`, `resetLocal`, the merge rule)
 - Modify: `app/progress/cloud.js` (`reset()`)
 - Modify: `app/index.js` (the Reset progress button)
@@ -561,6 +582,7 @@ Added after the developer's choice: "Reset device and account".
 - Test: `tests/progress-cloud.test.js`
 
 **Interfaces:**
+
 - Consumes: `Progress`, `readLocal`, `writeLocal`, `mergeProgress`, `emptyProgress` (Task 1); `createCloudSave` (Task 2); the reset button handler, `refreshHome`, `checkAchievements` and the worn look in `app/index.js` (Task 5).
 - Produces:
 
@@ -578,6 +600,7 @@ cloud.reset(): Promise<void>;
 Merge rule: when `a.resetAt !== b.resetAt`, the result is the side with the later `resetAt`, unchanged; the other side is dropped. When they are equal, the merge is as before.
 
 **Spec:**
+
 - §1: "Reset progress in Settings erases everything cloud save carries (campaign progress, records, the high score, the streak, the wallet with its owned and worn cosmetics, achievements and stats) on this device and, with an account, in the account."
 - §1: "A reset is final on every device: each save remembers when it was last reset, and when two saves meet, one reset before the other's latest reset is dropped instead of merged."
 - §1: "With an account, the reset is sent at once (not 5 seconds later). If it can't be sent, the device stays reset and sends it with the next sync."
@@ -588,6 +611,7 @@ Merge rule: when `a.resetAt !== b.resetAt`, the result is the side with the late
 **Knowledge:** none (this project has no knowledge base)
 
 **Acceptance:**
+
 - Given a device with campaign, records, high score, streak, wallet (earned, owned crown, worn crown), achievements and stats, when `resetLocal(storage, 5000)` runs, then `readLocal` returns `emptyProgress()` with `resetAt` 5000, the free items worn, and `device_id` unchanged.
 - Given A with resetAt 5000 and no stars, and B with resetAt 0 and 61 stars, when merged either way, then the result is A unchanged.
 - Given A and B both with resetAt 5000, when merged, then the normal merge applies (union of reached levels and so on).

@@ -2,6 +2,7 @@
 # channel (the URL is posted on the PR). Previews use the live Firestore and
 # functions; Google sign-in only works on authorized domains, so test it on
 # the live site or add the preview domain in Firebase Authentication.
+# Pull requests from forks get no secrets, so they get no preview (CI still runs).
 name: Deploy to Firebase Hosting on PR
 
 on: pull_request
@@ -11,23 +12,44 @@ permissions:
   contents: read
   pull-requests: write
 
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   build_and_preview:
     if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
 
       - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: pnpm
 
-      - run: pnpm install --frozen-lockfile && pnpm build
+      - name: Install
+        run: pnpm install --frozen-lockfile
 
-      - uses: FirebaseExtended/action-hosting-deploy@v0
+      - name: Write .env
+        env:
+          APP_ENV: ${{ secrets.APP_ENV }}
+        run: |
+          if [ -n "$APP_ENV" ]; then
+            printf '%s\n' "$APP_ENV" > .env
+          else
+            echo "::warning::APP_ENV secret not set: the preview plays offline."
+          fi
+
+      - name: Build
+        run: pnpm build
+
+      - uses: FirebaseExtended/action-hosting-deploy@500ac625ca2dd40cbd15f7659af953801858032a # v0.11.0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DINOS_ADVENTURE }}
