@@ -15,6 +15,8 @@ import Boss, { bossAssets, bossImages, BOSSES } from "./boss";
 import { POWERUP_TICKS } from "./player";
 import AudioController from "../controller/audio";
 import { getSkin, audioSrc, hasAudio } from "../util/registry";
+import areas from "../areas";
+import { preloadArea } from "./preload";
 import sfx, { ENEMY_SFX, BOSS_MOVE_SFX } from "../controller/sfx";
 
 // particles when a projectile breaks, by kind
@@ -69,6 +71,22 @@ const needsOf = (area) => {
   return { types, boss, minions: boss ? bossMinions(boss) : [], seed: turret || !!boss };
 };
 
+/**
+ * What an area needs downloaded: { images, audio } urls. Sprites for the
+ * enemy kinds in it (and the boss, its minions, the seed sprites for what
+ * spits or lobs), and the area's music. Sound effects load on first play.
+ */
+export const assetsOf = (area) => {
+  const { types, minions, boss, seed } = needsOf(area);
+  const images = [
+    ...enemyImages([...types, ...minions]),
+    ...(boss ? bossImages(boss) : []),
+    ...(seed ? SEED_IMAGES : []),
+  ];
+  const tracks = [area.theme, boss && `boss-${boss}`].filter((track) => track && !hasAudio(track));
+  return { images, audio: tracks.map((track) => audioSrc(track, "mp3")) };
+};
+
 export default class World {
   constructor(friction = 0.87, gravity = 2) {
     this.friction = friction;
@@ -103,22 +121,17 @@ export default class World {
     this.music = { assetCount: 0, loadCount: 0 };
   }
 
-  /**
-   * What an area needs downloaded: { images, audio } urls. Sprites for the
-   * enemy kinds in it (and the boss, its minions, the seed sprites for what
-   * spits or lobs), and the area's music. Sound effects load on first play.
-   */
+  /** What an area needs downloaded: { images, audio } urls (see assetsOf). */
   assetsFor(area) {
-    const { types, minions, boss, seed } = needsOf(area);
-    const images = [
-      ...enemyImages([...types, ...minions]),
-      ...(boss ? bossImages(boss) : []),
-      ...(seed ? SEED_IMAGES : []),
-    ];
-    const tracks = [area.theme, boss && `boss-${boss}`].filter(
-      (track) => track && !hasAudio(track),
-    );
-    return { images, audio: tracks.map((track) => audioSrc(track, "mp3")) };
+    return assetsOf(area);
+  }
+
+  /** Once this level has loaded, start fetching the level its forward portal leads to. */
+  preloadNext() {
+    if (this.preloadStarted) return;
+    this.preloadStarted = true;
+    const forward = this.portals.find((p) => p.direction > 0 && p.destinationArea != null);
+    if (forward) preloadArea(areas[forward.destinationArea]);
   }
 
   /** Download a track (once) and note when it is in. */
@@ -147,6 +160,7 @@ export default class World {
     this.musicSwap = 0;
     // music starts from update() once the level has loaded, never before
     this.playedThemeMusic = false;
+    this.preloadStarted = false;
     if (this.theme !== track && track) {
       this.stopThemeMusic();
       this.theme = track;
@@ -826,6 +840,7 @@ export default class World {
         this.playedThemeMusic = true;
       }
     }
+    if (!this.preloadStarted && this.isLoaded()) this.preloadNext();
 
     // hit-stop: freeze the world for a couple of ticks when something is hit
     if (this.effects.freeze > 0) {

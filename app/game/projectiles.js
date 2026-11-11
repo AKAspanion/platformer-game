@@ -1,5 +1,6 @@
 import Object from "./object";
 import Animator from "./animator";
+import { requestImage } from "./preload";
 
 /**
  * Enemy projectiles. `kind` picks the look: seed (spitter, default), sand,
@@ -21,13 +22,7 @@ export const loadFrames = () => {
   if (frames) return frames;
   frames = [];
   SEED_IMAGES.forEach((src) => {
-    const image = new Image();
-    image.onload = image.onerror = () => {
-      loader.loadCount += 1;
-    };
-    image.src = src;
-    frames.push(image);
-    loader.assetCount += 1;
+    frames.push(requestImage(src, loader));
   });
   return frames;
 };

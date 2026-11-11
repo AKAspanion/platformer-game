@@ -65,3 +65,17 @@ export default class TileSet {
     this.tileBackground.onerror = onImgLoad;
   }
 }
+
+const cache = new Map(); // world -> its tile set
+const skinned = new WeakMap(); // generated skin -> its tile set
+
+/** The tile set for a world (or a generated skin), made once and reused. */
+export function tileSetFor(tileSize, columns, world, skin = null) {
+  if (skin) {
+    if (!skinned.has(skin)) skinned.set(skin, new TileSet(tileSize, columns, world, skin));
+    return skinned.get(skin);
+  }
+  const key = `${world}:${tileSize}:${columns}`;
+  if (!cache.has(key)) cache.set(key, new TileSet(tileSize, columns, world));
+  return cache.get(key);
+}

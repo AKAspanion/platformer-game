@@ -1,5 +1,6 @@
 import Object from "./object";
 import Animator from "./animator";
+import { requestImage } from "./preload";
 import { SHOOT_MIN, SHOOT_MAX, SHOOT_HEIGHT, SHOOT_EVERY } from "../pcg/generator";
 
 /**
@@ -78,13 +79,8 @@ export const enemyImages = (types) =>
 export const loadEnemyKind = (id) => {
   if (!enemyTypes[id] || generated.has(id) || sharedFrames[`${id}Left`]) return;
   kindFiles(id).forEach(([key, src]) => {
-    const image = new Image();
-    image.onload = image.onerror = () => {
-      loader.loadCount += 1;
-    };
-    image.src = src;
+    const image = requestImage(src, loader);
     (sharedFrames[key] = sharedFrames[key] || []).push(image);
-    loader.assetCount += 1;
   });
 };
 

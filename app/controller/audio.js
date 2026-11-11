@@ -1,5 +1,6 @@
 import { getData } from "../util/";
 import { audioSrc } from "../util/registry";
+import { requestTrack } from "../game/preload";
 const oneShots = {}; // url -> the element downloaded the first time it played
 
 export default class AudioController {
@@ -61,11 +62,10 @@ export default class AudioController {
     };
 
     filteredAudios.forEach(({ file, ext = "mp3" }) => {
-      this.audios[file] = new Audio();
-      this.audios[file].addEventListener("canplaythrough", onload, { once: true });
-      this.audios[file].addEventListener("error", onload, { once: true });
-      this.audios[file].src = audioSrc(file, ext);
-      this.audios[file].volume = 0.5;
+      // a track the preloader already has counts as in once it is
+      const track = requestTrack(audioSrc(file, ext));
+      this.audios[file] = track.audio;
+      track.whenDone(onload);
     });
   }
 

@@ -1,5 +1,6 @@
 import Object from "./object";
 import Animator from "./animator";
+import { requestImage } from "./preload";
 
 /**
  * World bosses (level 6 of every world). Each is a big crowned version of one
@@ -117,13 +118,8 @@ const load = (kind) => {
   if (frames[kind]) return frames[kind];
   const set = (frames[kind] = {});
   bossFiles(kind).forEach(([key, src]) => {
-    const image = new Image();
-    image.onload = image.onerror = () => {
-      loader.loadCount += 1;
-    };
-    image.src = src;
+    const image = requestImage(src, loader);
     (set[key] = set[key] || []).push(image);
-    loader.assetCount += 1;
   });
   return set;
 };
