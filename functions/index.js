@@ -17,8 +17,8 @@
  *                            -> { on, devices }  turns the daily reminder on or off for a device
  *   sendReminders            scheduled hourly; sends the 18:00 local reminder
  *   deleteAccount()          -> { worlds }  deletes the caller; their worlds become "Anonymous",
- *                                           their daily scores, endless entry, save and
- *                                           reminders are deleted
+ *                                           their daily scores, endless entry, save,
+ *                                           leaderboard profile and reminders are deleted
  *
  * All are callable functions: the Firebase SDK in the game sends the
  * player's ID token, so request.auth is the verified user (or null).
@@ -255,6 +255,9 @@ const accounts = {
   },
   async deleteSave(uid) {
     await db.collection("saves").doc(uid).delete();
+  },
+  async deleteProfile(uid) {
+    await db.collection("players").doc(uid).delete();
   },
   async deleteReminders(uid) {
     await db.collection("pushSubs").doc(uid).delete();

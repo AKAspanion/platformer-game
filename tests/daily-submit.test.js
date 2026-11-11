@@ -230,12 +230,13 @@ test("deleteAccount removes the caller's scores from every day before the accoun
     },
     deleteEndless: async () => calls.push("endless"),
     deleteSave: async () => calls.push("save"),
+    deleteProfile: async () => calls.push("profile"),
     deleteReminders: async () => calls.push("reminders"),
     deleteData: async () => calls.push("data"),
     deleteUser: async () => calls.push("user"),
   };
   await handleDeleteAccount({ auth: user("u9") }, { accounts });
-  assert.deepEqual(calls, ["scores", "endless", "save", "reminders", "data", "user"]);
+  assert.deepEqual(calls, ["scores", "endless", "save", "profile", "reminders", "data", "user"]);
   assert.equal(await scores.get(20261110, "u9"), null);
   assert.equal(await scores.get(20261111, "u9"), null);
   assert.ok(await scores.get(20261110, "other"));

@@ -233,6 +233,7 @@ test("deleteAccount: worlds become Anonymous, then data and account go", async (
     deleteDailyScores: async (uid) => calls.push(["scores", uid]),
     deleteEndless: async (uid) => calls.push(["endless", uid]),
     deleteSave: async (uid) => calls.push(["save", uid]),
+    deleteProfile: async (uid) => calls.push(["profile", uid]),
     deleteReminders: async (uid) => calls.push(["reminders", uid]),
     deleteData: async (uid) => calls.push(["data", uid]),
     deleteUser: async (uid) => calls.push(["user", uid]),
@@ -249,6 +250,7 @@ test("deleteAccount: worlds become Anonymous, then data and account go", async (
     ["scores", "u9"],
     ["endless", "u9"],
     ["save", "u9"],
+    ["profile", "u9"],
     ["reminders", "u9"],
     ["data", "u9"],
     ["user", "u9"],
@@ -261,4 +263,37 @@ test("deleteAccount: worlds become Anonymous, then data and account go", async (
   };
   await assert.rejects(handleDeleteAccount({ auth: user("u9") }, { accounts }), /firestore down/);
   assert.deepEqual(calls, []);
+});
+
+test("deleteAccount: a failing profile delete stops before the account goes", async () => {
+  const calls = [];
+  const accounts = {};
+  for (const name of [
+    "deleteDailyScores",
+    "deleteEndless",
+    "deleteSave",
+    "deleteReminders",
+    "deleteData",
+    "deleteUser",
+  ]) {
+    accounts[name] = async (uid) => calls.push([name, uid]);
+  }
+  accounts.anonymizeWorlds = async () => 0;
+  accounts.deleteProfile = async () => {
+    throw new Error("profile delete failed");
+  };
+  await assert.rejects(
+    handleDeleteAccount({ auth: user("u9") }, { accounts }),
+    /profile delete failed/,
+  );
+  assert.ok(!calls.some(([name]) => name === "deleteUser"));
+  assert.ok(!calls.some(([name]) => name === "deleteReminders"));
+});
+
+test("deleteAccount: the adapter deletes only the caller's players doc", () => {
+  const src = fs.readFileSync("functions/index.js", "utf8");
+  assert.match(
+    src,
+    /async deleteProfile\(uid\) \{\s*await db\.collection\("players"\)\.doc\(uid\)\.delete\(\);\s*\}/,
+  );
 });

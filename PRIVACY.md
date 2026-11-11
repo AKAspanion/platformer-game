@@ -20,6 +20,19 @@ Signing in is optional and only needed for the Worlds feature (creating and shar
 
 You can sign out at any time in Settings, and delete your account there too: your account and its sign-in details are deleted, and the worlds you shared stay public but are credited to "Anonymous" with no account identifier. To remove a world you shared, contact us at the address below.
 
+### Leaderboard Profile
+
+Every player with an account, anonymous accounts included, has a small public profile, stored in Cloud Firestore (Google) so other players can see it on the leaderboards. It holds:
+
+- Your worn skin, hat and companion.
+- The UTC day you last opened the Game (a date only, never a time).
+
+It holds nothing else: no name, email address or time of day. The profile is public: it is shown to every player on the leaderboards, next to your display name.
+
+To hide when you were last online, open Settings in the Game and switch off "Show when I was last online": the day is then deleted and none is stored until you switch it on again. Your worn skin, hat and companion stay shown.
+
+Deleting your account in Settings deletes your profile too.
+
 ### Anonymous Usage Statistics
 
 The Game sends anonymous usage events to Google Analytics (through Firebase Analytics, by Google). The events carry no name, email address or account identifier. The events are:
@@ -60,7 +73,7 @@ We will retain your information for as long as necessary to fulfill the purposes
 
 ### Your Choices
 
-You can choose to opt-out of certain data collection and use by adjusting your device settings or by contacting us directly. However, please note that opting out may impact your ability to use certain features of the Game.
+You can choose to opt-out of certain data collection and use by adjusting your device settings or by contacting us directly. In the Game's Settings you can switch off "Show when I was last online" (your leaderboard profile then shows no day) and "Share anonymous usage stats". However, please note that opting out may impact your ability to use certain features of the Game.
 
 ### Children's Privacy
 
