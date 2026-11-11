@@ -152,6 +152,13 @@ export const bossAssets = {
   },
 };
 
+/** The shield: 3 hits within 2 s raise it (after a 0.5 s glow) for 3 s, then 4 s of cooldown. */
+export const SHIELD_HITS = 3;
+export const SHIELD_WINDOW = 60;
+export const SHIELD_GLOW = 15;
+export const SHIELD_TICKS = 90;
+export const SHIELD_COOLDOWN = 120;
+
 const ease = (value, target, rate) => value + (target - value) * rate;
 
 export default class Boss extends Object {
@@ -187,6 +194,11 @@ export default class Boss extends Object {
     this.dying = false;
     this.dead = false;
     this.split = false;
+    this.shield = "none"; // none | glow | up | cooldown
+    this.shieldTimer = 0;
+    this.bounces = 0; // fireballs bounced off the shield this fight
+    this.ticks = 0; // fight clock, for the hit window
+    this.recentHits = []; // ticks of the latest hits, for the shield
     this.performed = new Set(); // moves used so far (tests, debugging)
     this.crown = config.crown ?? (config.height * CROWN) / BASE_HEIGHT[config.base];
 
@@ -259,14 +271,22 @@ export default class Boss extends Object {
     return this.y + this.height >= this.arena.groundY - 0.5;
   }
 
-  /** A fireball hit. Returns "hit", "dead" or null. One damage per fireball. */
+  /** A fireball hit. Returns "hit", "dead", "bounced" (shield up) or null. One damage per fireball. */
   hit() {
     if (!this.hittable) return null;
+    if (this.shield === "up") {
+      this.bounces += 1;
+      return "bounced";
+    }
     this.hp -= 1;
     this.flash = 6;
     this.scaleX = 1.1;
     this.scaleY = 0.9;
-    if (this.hp > 0) return "hit";
+    if (this.hp > 0) {
+      this.countHit();
+      return "hit";
+    }
+    this.shield = "none";
     this.dying = true;
     this.state = "dying";
     this.alpha = 1;
@@ -274,6 +294,34 @@ export default class Boss extends Object {
     const side = this.direction < 0 ? "left" : "right";
     this.animator.changeFrameSet(this.frames[`dead-${side}`], 3);
     return "dead";
+  }
+
+  /** Note a hit that did damage; the third within the window starts the glow. */
+  countHit() {
+    if (this.shield !== "none") return; // glowing: it's coming anyway; cooldown: doesn't count
+    this.recentHits.push(this.ticks);
+    if (this.recentHits.length > SHIELD_HITS) this.recentHits.shift();
+    if (this.recentHits.length === SHIELD_HITS && this.ticks - this.recentHits[0] < SHIELD_WINDOW) {
+      this.shield = "glow";
+      this.shieldTimer = SHIELD_GLOW;
+      this.recentHits = [];
+    }
+  }
+
+  updateShield() {
+    if (this.shield === "none" || this.shield === undefined) return;
+    this.shieldTimer -= 1;
+    if (this.shieldTimer > 0) return;
+    if (this.shield === "glow") {
+      this.shield = "up";
+      this.shieldTimer = SHIELD_TICKS;
+    } else if (this.shield === "up") {
+      this.shield = "cooldown";
+      this.shieldTimer = SHIELD_COOLDOWN;
+    } else {
+      this.shield = "none";
+      this.recentHits = [];
+    }
   }
 
   clampX() {
@@ -317,6 +365,8 @@ export default class Boss extends Object {
     this.trail.forEach((t) => (t.life -= 1));
     this.trail = this.trail.filter((t) => t.life > 0);
     if (this.dying) return;
+    this.ticks += 1;
+    this.updateShield();
     this.phase += 0.08;
     if (this.timer > 0) this.timer -= 1;
 

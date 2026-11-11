@@ -75,7 +75,7 @@ export function buildWorld(world, { audio = true } = {}) {
     const { config, frames } = buildEnemy(design, seed + i * 101);
     registerEnemyType(
       type,
-      { ...config, name: design.name },
+      { ...config, name: design.name, colors: [design.color, design.accent] },
       {
         left: frameSet(frames.left),
         right: frameSet(frames.right),

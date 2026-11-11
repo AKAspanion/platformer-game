@@ -956,13 +956,44 @@ window.addEventListener("load", function () {
       ctx.fillRect(feetX - boss.width, feetY - boss.height * 1.6, boss.width * 2, boss.height * 2);
     }
 
+    // the shield: a ring pulsing round the boss while it is up
+    const centreY = feetY - boss.height / 2;
+    if (boss.shield === "up") {
+      const pulse = 0.5 + Math.sin(Date.now() / 90) * 0.5;
+      const radius = Math.max(boss.width, boss.height) * 0.75 + pulse * 3;
+      const fade = boss.shieldTimer < 15 && Math.floor(Date.now() / 60) % 2 === 0 ? 0.5 : 1;
+      ctx.save();
+      ctx.globalAlpha = fade * (0.7 + pulse * 0.3);
+      ctx.fillStyle = "rgba(124, 200, 245, 0.18)";
+      ctx.strokeStyle = "#bfe8ff";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(feetX, centreY, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+
     ctx.save();
     ctx.globalAlpha = boss.alpha * (boss.flash > 0 && boss.flash % 2 === 0 ? 0.45 : 1);
     ctx.translate(feetX, feetY);
     ctx.rotate(boss.tilt);
     ctx.scale(boss.scaleX, boss.scaleY);
+    // glowing before the shield rises: flickers between the sprite and a bright tint
+    const glowing = boss.shield === "glow" && boss.shieldTimer % 4 < 2;
+    if (glowing) ctx.filter = "brightness(2.2) saturate(0.6)";
     ctx.drawImage(boss.animator.frameValue, -rect.width / 2, -rect.height, rect.width, rect.height);
     ctx.restore();
+    if (boss.shield === "glow") {
+      ctx.save();
+      ctx.globalAlpha = 0.35 * (1 - boss.shieldTimer / 15);
+      ctx.strokeStyle = "#bfe8ff";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(feetX, centreY, Math.max(boss.width, boss.height) * 0.75, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
   };
 
   const drawProjectile = (ctx, p) => {
@@ -1013,6 +1044,55 @@ window.addEventListener("load", function () {
         ctx.fillRect(-4, -2.5, 8, 5);
         ctx.fillStyle = "#e8344a";
         ctx.fillRect(3, -2.5, 2, 5);
+        ctx.restore();
+        return;
+      }
+      case "mud":
+        ctx.fillStyle = "#4a3220";
+        ctx.beginPath();
+        ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#8f6a42";
+        ctx.fillRect(cx - 2.5, cy - 2.5, 2, 2);
+        ctx.fillRect(cx + 1, cy + 0.5, 1.5, 1.5);
+        return;
+      case "glob": {
+        // a wobbling blob, in its creature's colours when it has them
+        const [body = "#6fcf5f", edge = "#3f9a3a"] = p.colors || [];
+        const wobble = Math.sin(Date.now() / 70) * 0.8;
+        ctx.fillStyle = edge;
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, 4.2 + wobble, 3.6 - wobble, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = body;
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, 3 + wobble * 0.6, 2.4 - wobble * 0.6, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(cx - 1.5, cy - 1.5, 1.2, 1.2);
+        return;
+      }
+      case "spit": {
+        // a fast streak of acid with a trail
+        const dir = Math.sign(p.vx) || 1;
+        ctx.fillStyle = "rgba(216, 240, 122, 0.4)";
+        ctx.fillRect(dir > 0 ? cx - 9 : cx + 1, cy - 1, 8, 2);
+        ctx.fillStyle = "#d8f07a";
+        ctx.beginPath();
+        ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#f4ffb0";
+        ctx.fillRect(cx - 1, cy - 1, 1.5, 1.5);
+        return;
+      }
+      case "pebble": {
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(p.life * 0.4);
+        ctx.fillStyle = "#8a847a";
+        ctx.fillRect(-3, -3, 6, 6);
+        ctx.fillStyle = "#c4beb2";
+        ctx.fillRect(-3, -3, 3, 3);
         ctx.restore();
         return;
       }

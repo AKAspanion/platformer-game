@@ -9,6 +9,7 @@ import Collider from "./collider";
 import Effects from "./effects";
 import Fireballs from "./fireballs";
 import Projectiles, { SEED_IMAGES } from "./projectiles";
+import { walkerShoots, storyDifficulty } from "../pcg/generator";
 import Boss, { bossAssets, bossImages, BOSSES } from "./boss";
 import { POWERUP_TICKS } from "./player";
 import AudioController from "../controller/audio";
@@ -22,6 +23,16 @@ const PROJECTILE_BREAK = {
   shard: { count: 5, colors: ["#e6f6ff", "#9fd8ff"], speed: 1.4, life: 7 },
   icicle: { count: 9, colors: ["#ffffff", "#bfe8ff", "#7cc8f5"], speed: 2, life: 9, gravity: 0.2 },
   orb: { count: 5, colors: ["#e0c8ff", "#a070e0"], speed: 1.2, life: 7, gravity: 0 },
+  mud: { count: 5, colors: ["#6b4a2b", "#8f6a42", "#4a3220"], speed: 1.1, life: 6, gravity: 0.1 },
+  glob: { count: 6, colors: ["#8be07a", "#c8f5a8", "#4fb04a"], speed: 1.3, life: 7, gravity: 0.08 },
+  spit: { count: 5, colors: ["#d8f07a", "#f4ffb0", "#9ac83a"], speed: 1.2, life: 6, gravity: 0.04 },
+  pebble: {
+    count: 5,
+    colors: ["#b8b2a8", "#8a847a", "#e0dcd0"],
+    speed: 1.2,
+    life: 6,
+    gravity: 0.12,
+  },
   missile: {
     count: 14,
     colors: ["#ffffff", "#ffd84d", "#ff7a2a", "#5a5560"],
@@ -29,6 +40,14 @@ const PROJECTILE_BREAK = {
     life: 11,
     gravity: 0.1,
   },
+};
+
+// the sound of a walker throwing its shot, by projectile kind
+const THROW_SFX = {
+  mud: "mud-throw",
+  glob: "glob-throw",
+  spit: "spit-throw",
+  pebble: "pebble-throw",
 };
 
 const POWERUP_TEXT = { heart: "+1 HEART", shield: "SHIELD", triple: "TRIPLE FIRE", wings: "WINGS" };
@@ -150,7 +169,15 @@ export default class World {
 
     this.deathAreas = data.death.map(({ x, y, height, width }) => new Object(x, y, width, height));
 
-    this.enemies = new Enemies(data.enemies, this.tileSize, this.killedEnemies);
+    // a story area's walkers shoot by where they stand and how hard the level is;
+    // generated areas (community worlds) say so per entry
+    const difficulty = storyDifficulty(data.id);
+    const entries = data.enemies?.map((entry) =>
+      entry.shoots === undefined && enemyTypes[entry.type]?.kind === "walker"
+        ? { ...entry, shoots: walkerShoots(entry.left, difficulty) }
+        : entry,
+    );
+    this.enemies = new Enemies(entries, this.tileSize, this.killedEnemies);
 
     this.coins = new Coins(data.coins, this.tileSize, this.collectedCoins);
 
@@ -159,6 +186,7 @@ export default class World {
     // level 6 of each world: a boss, unless already beaten in this run
     this.boss = null;
     this.bossState = null;
+    this.shieldSeen = "none";
     this.bossArea = !!data.boss;
     // arena gates: 0 = open, 1 = shut. They start open and slam shut as the
     // fight begins; they lift again once the boss is beaten.
@@ -674,6 +702,19 @@ export default class World {
       this.effects.hitStop(1);
       this.emit("kill");
       sfx((boss.config.sounds && boss.config.sounds.hit) || "boss-hit");
+    } else if (result === "bounced") {
+      // the shield throws the fireball back the way it came
+      const tip = { x: boss.getCenterX() - direction * (boss.width / 2 + 4), y };
+      this.effects.burst(tip.x, tip.y, {
+        count: 8,
+        colors: ["#ffffff", "#cfe8ff", "#7cc8f5"],
+        speed: 2.8,
+        life: 8,
+        gravity: 0,
+        direction: -direction * 2,
+      });
+      this.emit("shield-bounce");
+      sfx("shield-clang");
     } else if (result === "dead") {
       this.killedEnemies += `${boss.id},`;
       this.totalEnemies += 1;
@@ -827,6 +868,7 @@ export default class World {
         this.fireballs.remove(fireball);
       } else if (seed) {
         this.projectiles.remove(seed);
+        this.emit("burn");
         this.effects.fireImpact(tip.x, tip.y, fireball.direction);
         this.fireballs.remove(fireball);
       } else if (this.isWallAt(tip.x, tip.y)) {
@@ -873,6 +915,13 @@ export default class World {
         if (BOSS_MOVE_SFX[boss.state]) sfx(BOSS_MOVE_SFX[boss.state]);
       }
       boss.updateAnimation();
+      if (boss.shield !== this.shieldSeen) {
+        this.shieldSeen = boss.shield;
+        if (boss.shield === "up") {
+          this.emit("shield-up");
+          sfx("shield-up");
+        }
+      }
       if (!this.isPlayerDead && !boss.dying && this.checkCollision(player, boss, -5, -5)) {
         this.hurtPlayer(boss.getCenterX(), onGameOver);
       }
@@ -894,7 +943,10 @@ export default class World {
     this.updateGates();
     this.updateHazards(onGameOver);
 
-    const spit = (x, y, direction) => this.projectiles.add(x, y, direction);
+    const spit = (x, y, direction, options) => {
+      this.projectiles.add(x, y, direction, options);
+      if (options && THROW_SFX[options.kind]) sfx(THROW_SFX[options.kind]);
+    };
     this.enemies.update(this.isPlayerDead ? null : player, spit);
     this.enemies.updateAnimation();
     // enemy cries: a walker winding up, a bat diving, a spitter spitting

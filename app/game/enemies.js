@@ -1,5 +1,6 @@
 import Object from "./object";
 import Animator from "./animator";
+import { SHOOT_MIN, SHOOT_MAX, SHOOT_HEIGHT, SHOOT_EVERY } from "../pcg/generator";
 
 /**
  * Enemy types. `kind` picks the behaviour:
@@ -37,6 +38,7 @@ const LUNGE = 10;
 const RECOVER = 24;
 const LUNGE_SPEED = 2.6;
 const SIGHT_X = 52; // how close (px, in front) before a walker attacks
+const AIM = 15; // a shooting walker's crouch and flash before it fires (0.5 s)
 const SPIT_EVERY = 80;
 const SPIT_RANGE = 88; // the generator keeps spitters this far from portal arrivals
 
@@ -122,8 +124,8 @@ export default class Enemies {
     loadEnemyKind(type);
   }
 
-  /** Add an enemy from an area entry { id, type, left, top, sway, dir }. */
-  add({ id, type, left, top, sway, dir }) {
+  /** Add an enemy from an area entry { id, type, left, top, sway, dir, shoots }. */
+  add({ id, type, left, top, sway, dir, shoots }) {
     if (!enemyTypes[type]) return null;
     this.load(type);
     const f = this.frameSets;
@@ -138,6 +140,7 @@ export default class Enemies {
       deathFrames: [f[`${type}DeadLeft`], f[`${type}DeadRight`]],
       sway,
       direction: dir,
+      shoots: !!shoots,
     });
     this.items.push(enemy);
     return enemy;
@@ -193,6 +196,7 @@ export class Enemy extends Object {
     deathFrames = [],
     sway = 24,
     direction = 1,
+    shoots = false,
   }) {
     const config = enemyTypes[type] || enemyTypes.pig;
     const { width, height, delay = 2, maxV = 0, minV = 0, kind, hp = 1 } = config;
@@ -219,7 +223,9 @@ export class Enemy extends Object {
     this.direction = direction < 0 ? -1 : 1;
     this.velocity = Math.random() * (maxV - minV) + minV;
 
-    this.state = "patrol"; // patrol | windup | lunge | recover | spit
+    this.state = "patrol"; // patrol | windup | lunge | recover | spit | aim
+    this.shoots = shoots && kind === "walker"; // aims and fires at medium range
+    this.shotTimer = 0; // ticks until it may shoot again
     this.stateTimer = 0;
     this.phase = Math.random() * Math.PI * 2;
     this.spitTimer = SPIT_EVERY / 2 + Math.floor(Math.random() * SPIT_EVERY);
@@ -252,7 +258,7 @@ export class Enemy extends Object {
   setState(state, ticks) {
     this.state = state;
     this.stateTimer = ticks;
-    if (state === "windup" || state === "spit") {
+    if (state === "windup" || state === "spit" || state === "aim") {
       // 4 frames over wind-up + lunge: crouch, flash, lunge, bite
       this.animator.changeFrameSet(this.attackFrames(), 3);
     } else if (state === "patrol" || state === "recover") {
@@ -300,7 +306,9 @@ export class Enemy extends Object {
     if (direction === this.direction) return;
     this.direction = direction;
     const frames =
-      this.state === "windup" || this.state === "spit" ? this.attackFrames() : this.walkFrames();
+      this.state === "windup" || this.state === "spit" || this.state === "aim"
+        ? this.attackFrames()
+        : this.walkFrames();
     this.animator.changeFrameSet(frames, this.delay);
   }
 
@@ -315,7 +323,7 @@ export class Enemy extends Object {
 
     if (this.kind === "turret") return this.updateTurret(player, spit);
     if (this.kind === "flyer") return this.updateFlyer(player);
-    return this.updateWalker(player);
+    return this.updateWalker(player, spit);
   }
 
   // keep inside the patrol range (+ a little extra while lunging)
@@ -326,10 +334,68 @@ export class Enemy extends Object {
     if (this.x > max) this.x = max;
   }
 
-  updateWalker(player) {
+  /** What this walker throws: [kind, options] (see Projectiles). */
+  shot() {
+    const d = this.direction;
+    switch (this.type) {
+      case "pig":
+        return { kind: "mud", vx: 2.4 * d, vy: -0.3, gravity: 0.03 };
+      case "chameleon":
+        return { kind: "spit", vx: 3.4 * d, vy: 0, gravity: 0 };
+      case "beetle":
+        return { kind: "pebble", vx: 2.8 * d, vy: -0.5, gravity: 0.05 };
+      default:
+        // slime, and a community walker (in its creature's colours): a short arc
+        return {
+          kind: "glob",
+          vx: 2.6 * d,
+          vy: -1.5,
+          gravity: 0.09,
+          colors: enemyTypes[this.type]?.colors,
+        };
+    }
+  }
+
+  /** In front of the player, SHOOT_MIN to SHOOT_MAX px away, at about the same height? */
+  canShoot(player) {
+    if (!this.shoots || this.shotTimer > 0 || !player || player.deadTimer > 0) return false;
+    const dx = player.getCenterX() - this.getCenterX();
+    const dy = player.getCenterY() - this.getCenterY();
+    const away = Math.abs(dx);
+    return (
+      Math.sign(dx || 1) === this.direction &&
+      away >= SHOOT_MIN &&
+      away <= SHOOT_MAX &&
+      Math.abs(dy) <= SHOOT_HEIGHT
+    );
+  }
+
+  updateWalker(player, spit) {
     if (this.stateTimer > 0) this.stateTimer -= 1;
+    if (this.shotTimer > 0) this.shotTimer -= 1;
 
     switch (this.state) {
+      case "aim":
+        // crouch and flash, then one shot
+        this.flash = this.stateTimer % 4 < 2 ? 2 : 0;
+        if (this.stateTimer <= 0) {
+          this.flash = 0;
+          this.shotTimer = SHOOT_EVERY;
+          if (spit) {
+            const { kind, ...options } = this.shot();
+            spit(
+              this.getCenterX() + this.direction * 8,
+              this.y + this.height * 0.45,
+              this.direction,
+              {
+                kind,
+                ...options,
+              },
+            );
+          }
+          this.setState("recover", 6);
+        }
+        return;
       case "windup":
         if (this.stateTimer <= 0) this.setState("lunge", LUNGE);
         return;
@@ -350,6 +416,10 @@ export class Enemy extends Object {
 
     if (this.sees(player, SIGHT_X)) {
       this.setState("windup", WINDUP);
+      return;
+    }
+    if (this.canShoot(player)) {
+      this.setState("aim", AIM);
       return;
     }
 
@@ -432,7 +502,10 @@ export class Enemy extends Object {
     }
     // attack poses play once and hold
     this.animator.animate(
-      this.state === "windup" || this.state === "lunge" || this.state === "spit",
+      this.state === "windup" ||
+        this.state === "lunge" ||
+        this.state === "spit" ||
+        this.state === "aim",
     );
   }
 
