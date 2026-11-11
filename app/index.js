@@ -83,6 +83,7 @@ import { readLocal, writeLocal, resetLocal } from "./progress/save";
 import { createCloudSave } from "./progress/cloud";
 import { firestoreSaves } from "./firebase/saves";
 import { profiles } from "./profiles";
+import { createProfileGate } from "./profiles/gate";
 import { avatarCanvas, rowLooks, loadProfiles } from "./profiles/avatar";
 import { dayNumber } from "./profiles/rules";
 import {
@@ -290,8 +291,18 @@ window.addEventListener("load", function () {
     $("shopBalance").innerHTML = coinText(wallet.balance());
   };
 
+  // The player's look (and last-online day) follows the account: written once cloud save has
+  // merged the account's save, then after wearing an item and when the switch changes. No
+  // account, no profile, and nothing loads. Never shows an error.
+  const profileGate = createProfileGate({
+    sync: profiles.sync,
+    read: () => ({ worn: wallet.worn(), showLastSeen: lastSeen.on() }),
+  });
+  const syncProfile = () => profileGate.changed();
+
   // The account's save is merged in, then kept in step; it never shows an error.
   const cloud = createCloudSave({
+    onMerge: (uid) => profileGate.merged(uid),
     backend: firestoreSaves,
     local: {
       read: () => readLocal(),
@@ -2522,23 +2533,18 @@ window.addEventListener("load", function () {
   // for any player with an account: signed in or anonymous. Signing out only stops it.
   let cloudUid = null;
   let playerActed = false;
-  // The player's public look (and last-online day) follows the account: written when cloud save
-  // starts, after wearing an item and when the switch changes. No account, no profile, and
-  // nothing loads. Never shows an error.
-  function syncProfile() {
-    if (!cloudUid) return;
-    profiles.sync(cloudUid, wallet.worn(), { showLastSeen: lastSeen.on() });
-  }
   const syncCloud = () => {
     if (!playerActed) return;
     const user = auth.currentUser;
     if (user && user.uid !== cloudUid) {
       cloudUid = user.uid;
-      // the account's save may bring stars or a streak that earn something
+      // the profile waits for this account's save to merge (onMerge), so it carries the
+      // account's look and switch, not this device's; the save may also earn something
+      profileGate.start(user.uid);
       cloud.start(user.uid).then(checkAchievements);
-      syncProfile();
     } else if (!user && cloudUid) {
       cloudUid = null;
+      profileGate.stop();
       cloud.stop();
     }
   };

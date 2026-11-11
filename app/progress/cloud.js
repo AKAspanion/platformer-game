@@ -6,6 +6,10 @@
  *
  * Callers create it only for a player who already has an account; this module
  * never creates one and loads nothing itself (the backend loads Firebase).
+ *
+ * onMerge(uid), optional, runs after each pull that merged the account's save
+ * into this device (or found none), never after a failed pull or for an
+ * account that has since been replaced: the profile waits for it.
  */
 import { mergeProgress, emptyProgress, saveBytes, MAX_SAVE_BYTES, SAVE_VERSION } from "./save";
 
@@ -15,7 +19,7 @@ export const SAVE_DELAY = 5000;
 const fingerprint = (progress) =>
   JSON.stringify({ ...mergeProgress(progress, emptyProgress()), updatedAt: 0 });
 
-export function createCloudSave({ backend, local, timers, now = Date.now }) {
+export function createCloudSave({ backend, local, timers, now = Date.now, onMerge }) {
   const clock = timers || {
     setTimeout: (fn, ms) => setTimeout(fn, ms),
     clearTimeout: (id) => clearTimeout(id),
@@ -64,6 +68,13 @@ export function createCloudSave({ backend, local, timers, now = Date.now }) {
     if (fingerprint(merged) !== fingerprint(device)) local.write(merged);
     pulled = true;
     dirty = false;
+    if (onMerge) {
+      try {
+        onMerge(mine);
+      } catch (error) {
+        console.warn("Cloud save: after-merge step failed:", error && error.name);
+      }
+    }
     if (theirs && fingerprint(merged) === fingerprint(theirs)) return;
     if (!(await send(mine, { ...merged, updatedAt: now() })) && id === run) dirty = true;
   }
