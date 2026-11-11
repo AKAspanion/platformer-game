@@ -28,7 +28,8 @@ export const firebaseConfig = {
   measurementId: "G-8CE4091V3T",
   // The web push key (Firebase console > Project settings > Cloud Messaging > Web Push
   // certificates). Web reminders are off while it is empty.
-  vapidKey: "",
+  vapidKey:
+    "BAQ6qTnn-8ILnGGRbFrEUjra8MFmWUsE3We7syap-8EZ23u6SseFH4_eskxz3tCZOrj0YcjtFMcMNcindexNUgI",
 };
 
 /** Where the world creator's functions run (next to the Firestore database). */
