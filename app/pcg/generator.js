@@ -524,13 +524,35 @@ function placeSkyPlatforms(rng, level, heights, platforms) {
   return added;
 }
 
+/**
+ * Builds a level. A platform the dino can't stand on from the entry (see
+ * unreachablePlatforms) is repaired before the level is used: the build is
+ * redone without that platform, which also drops anything that sat on it.
+ */
 export function buildLevel(input, seed) {
+  const dropped = new Set();
+  let result = buildLevelOnce(input, seed, dropped);
+  for (let pass = 0; pass < 8; pass++) {
+    const bad = unreachablePlatformIndexes(result);
+    if (!bad.length) break;
+    bad.forEach((i) => dropped.add(result.platforms[i].join(",")));
+    result = buildLevelOnce(input, seed, dropped);
+  }
+  return result;
+}
+
+function buildLevelOnce(input, seed, dropped) {
   const level = { ...input, world: input.world || THEMES[input.theme] || 1 };
   const T = TILESETS[level.world] || TILES_A;
   const rng = mulberry32(seed);
   const { heights, segments, pits } = buildProfile(rng, level);
   const platforms = placePlatforms(rng, level, heights, segments, pits);
   if (!level.boss) placeSkyPlatforms(mulberry32(seed * 31 + 7), level, heights, platforms);
+  if (dropped.size) {
+    const kept = platforms.filter((pl) => !dropped.has(pl.join(",")));
+    platforms.length = 0;
+    platforms.push(...kept);
+  }
 
   const areaMap = emptyGrid(0);
   const collisonMap = emptyGrid("");
@@ -984,6 +1006,54 @@ function reachable(surf, from) {
   return seen;
 }
 
+/** Platforms (as surface indexes) the dino can't stand on from the entry, using the normal jump model. */
+export function unreachablePlatforms({ heights, platforms, traps = [] }) {
+  const surf = surfaces(heights, platforms, traps);
+  const entry = surf.findIndex((s) => s.col === 0 && s.row === heights[0]);
+  if (entry < 0) return [];
+  const seen = reachable(surf, entry);
+  const first = surf.length - platforms.reduce((n, [, s, e]) => n + e - s + 1, 0);
+  const bad = [];
+  for (let i = first; i < surf.length; i++) if (!seen.has(i)) bad.push(i);
+  return bad;
+}
+
+/**
+ * The same check on finished area data (hand-made or generated): the standable
+ * tiles ("t" collision) that the dino can't reach from the ground at the left
+ * edge. Returns [{row, col}]. Traps are not in the data, so they are ignored.
+ */
+export function unreachableInArea(data) {
+  const grid = data.collisonMap;
+  const surf = [];
+  grid.forEach((row, r) =>
+    row.forEach(
+      (v, c) => typeof v === "string" && v.includes("t") && surf.push({ row: r, col: c }),
+    ),
+  );
+  const grounded = (s) => s.row + 1 >= ROWS || data.areaMap[s.row + 1][s.col] !== 0;
+  let entry = -1;
+  for (let c = 0; c < COLS && entry < 0; c++) {
+    entry = surf.findIndex((s) => s.col === c && grounded(s));
+  }
+  if (entry < 0) return surf;
+  const seen = reachable(surf, entry);
+  return surf.filter((s, i) => !seen.has(i));
+}
+
+/** Indexes (into `platforms`) of platforms with no standable tile from the entry. */
+function unreachablePlatformIndexes(level) {
+  const bad = new Set(unreachablePlatforms(level));
+  const surf = surfaces(level.heights, level.platforms, level.traps);
+  let at = surf.length - level.platforms.reduce((n, [, s, e]) => n + e - s + 1, 0);
+  const out = [];
+  level.platforms.forEach(([, s, e], i) => {
+    if (bad.has(at)) out.push(i);
+    at += e - s + 1;
+  });
+  return out;
+}
+
 export function validate({ heights, platforms, traps, data }) {
   const surf = surfaces(heights, platforms, traps);
   const entry = surf.findIndex((s) => s.col === 0 && s.row === heights[0]);
@@ -992,7 +1062,12 @@ export function validate({ heights, platforms, traps, data }) {
   if (!reachable(surf, entry).has(exit)) return "exit unreachable from entry";
   if (!reachable(surf, exit).has(entry)) return "entry unreachable from exit";
 
-  // No column of solid wall taller than a jump next to the start/end spawn.
+  const stranded = unreachablePlatforms({ heights, platforms, traps });
+  if (stranded.length) {
+    const s = surf[stranded[0]];
+    return `platform ${s.col},${s.row} unreachable`;
+  }
+
   const fromEntry = reachable(surf, entry);
   for (const coin of [...data.coins, ...(data.powerups || [])]) {
     const ok = [...fromEntry].some((i) => {
