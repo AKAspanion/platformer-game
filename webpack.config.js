@@ -67,7 +67,7 @@ module.exports = {
     historyApiFallback: true,
     host: "localhost",
     port: 2108,
-    // ?emulators=1 talks to the Firebase emulators (yarn emulators) through
+    // ?emulators=1 talks to the Firebase emulators (pnpm emulators) through
     // this server, so the game, Auth, Firestore and Functions share one origin.
     proxy: [
       {

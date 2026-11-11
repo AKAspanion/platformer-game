@@ -6,7 +6,7 @@ water, tiles, decor, coins, power-ups, enemies and the player at the start.
     python3 scripts/generate-thumbnails.py          # every level in the level select
     python3 scripts/generate-thumbnails.py 1 7      # specific area ids
 
-`yarn levels` runs it after regenerating. Needs Pillow.
+`pnpm levels` runs it after regenerating. Needs Pillow.
 """
 
 import json

@@ -34,19 +34,19 @@
   "screenshots": [
     {
       "src": "images/ss/feature-1.png",
-      "sizes": "2110x1206",
+      "sizes": "1280x720",
       "type": "image/png",
       "form_factor": "narrow"
     },
     {
       "src": "images/ss/feature-2.png",
-      "sizes": "2110x1206",
+      "sizes": "1280x720",
       "type": "image/png",
       "form_factor": "narrow"
     },
     {
       "src": "images/ss/feature-3.png",
-      "sizes": "2110x1206",
+      "sizes": "1280x720",
       "type": "image/png",
       "form_factor": "narrow"
     }

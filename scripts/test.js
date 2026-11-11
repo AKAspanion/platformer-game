@@ -1,7 +1,7 @@
 /**
  * Runs the headless game tests in tests/*.test.js.
  *
- *   yarn test
+ *   pnpm test
  *
  * The game code is browser ES modules with extensionless and JSON imports, so
  * each test file is bundled with esbuild first and then run with `node --test`.

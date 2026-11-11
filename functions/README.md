@@ -28,7 +28,7 @@ kept in `limits/{uid}` (functions only).
 
 ## Run locally
 
-From the repo root: `yarn emulators`, then `yarn dev` and open
+From the repo root: `pnpm emulators`, then `pnpm dev` and open
 `http://localhost:2108/?emulators=1`. For the AI designer, put
 `ANTHROPIC_API_KEY=...` in `functions/.secret.local` (git-ignored).
 

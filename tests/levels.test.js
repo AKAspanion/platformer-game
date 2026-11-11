@@ -138,7 +138,7 @@ test("ids are unique within each level", () => {
 test("generated levels are up to date and pass the reachability check", () => {
   const results = generator.buildAll();
   for (const [id, { data }] of Object.entries(results)) {
-    assert.deepEqual(areas[id], data, `area-${id}.json is stale: run yarn levels`);
+    assert.deepEqual(areas[id], data, `area-${id}.json is stale: run pnpm levels`);
   }
 });
 

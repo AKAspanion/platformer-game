@@ -1,0 +1,8 @@
+# The functions are their own pnpm project (Cloud Build installs them from
+# this folder alone with pnpm-lock.yaml), not part of the game's install.
+# Dependency install scripts pnpm may run (all others are blocked).
+allowBuilds:
+  "@firebase/util": false
+  protobufjs: false
+minimumReleaseAgeExclude:
+  - "@anthropic-ai/sdk@1.8.0"

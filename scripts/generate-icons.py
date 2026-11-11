@@ -2,7 +2,7 @@
 Menu icon buttons in the style of the existing red ones (help_btn.webp, ...):
 a red squircle with white, bold, rounded glyphs.
 
-    python3 scripts/generate-icons.py      (also run by `yarn sprites`)
+    python3 scripts/generate-icons.py      (also run by `pnpm sprites`)
 
 The blank button is the existing pause button with its glyph painted out, so
 the shape and shading match exactly. Glyphs are drawn at 4x and scaled down

@@ -8,7 +8,7 @@ Generates the game's procedural pixel art (needs Pillow):
 
     python3 scripts/generate-sprites.py && python3 scripts/generate-enemy-death.py
 
-(`yarn sprites` runs both.) Art is drawn at 1 art pixel = 1 world pixel and
+(`pnpm sprites` runs both.) Art is drawn at 1 art pixel = 1 world pixel and
 saved at 2x, like the existing enemy sprites. Output is deterministic.
 """
 
