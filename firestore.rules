@@ -11,6 +11,9 @@ rules_version = '2';
 // read the board; nobody writes it from a client: the submitDaily function
 // checks the run (open day, possible score, plausible time) and writes it.
 //
+// saves/{uid}: one cloud save per account. Only that account reads or writes
+// it, and a write carries exactly v, updatedAt and data.
+//
 // limits/{uid}: per-user rate limit counters, functions only.
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -24,6 +27,17 @@ service cloud.firestore {
       allow get: if true;
       allow list: if request.query.limit <= 100;
       allow write: if false;
+    }
+
+    match /saves/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['v', 'updatedAt', 'data'])
+        && request.resource.data.keys().hasAll(['v', 'updatedAt', 'data'])
+        && request.resource.data.v is number
+        && request.resource.data.updatedAt is number
+        && request.resource.data.data is map;
+      allow delete: if false;
     }
 
     match /{document=**} {
