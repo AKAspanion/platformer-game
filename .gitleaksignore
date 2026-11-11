@@ -1,0 +1,4 @@
+# The Firebase web API key that used to live in app/firebase/config.js (now .env).
+# It identifies the project and is public by design (it ships in every web build);
+# access is controlled by Firestore rules, Auth and the API key's restrictions.
+122e80f028eb216286625fa98910a1d97343b0bf:app/firebase/config.js:gcp-api-key:7
