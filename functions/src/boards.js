@@ -23,6 +23,10 @@
  * open day's (yesterday, today or tomorrow by UTC, as submitDailyScore takes);
  * endless reads nothing from it. Stored entries are checked too: one that
  * isn't a board entry is left out and logged.
+ *
+ * The top is kept for BOARD_CACHE_MS per board (`cache`, one per instance), so
+ * polling a board can't time a top player's improvement more finely than that;
+ * the caller's own entry is read fresh whenever the top comes from the cache.
  */
 import { seedIsOpen } from "../shared/daily/rules.js";
 import { compareRuns } from "../shared/modes/endless-rules.js";
@@ -34,6 +38,37 @@ export const BOARD_TOP = 50;
 /** The stored fields a board reads (the uid is the document id). */
 export const DAILY_FIELDS = ["name", "score", "seconds"];
 export const ENDLESS_FIELDS = ["name", "level", "score", "seconds"];
+/** How long a board's top is kept before it is read again. */
+export const BOARD_CACHE_MS = 60000;
+
+/**
+ * A small per-instance cache of board tops: `get(key, nowMs, load)` hands back
+ * the top loaded less than `ttlMs` ago, or loads it. Calls at the same moment
+ * share one load; a failed load is dropped, never kept. Holds `max` boards at
+ * most and drops the oldest first. Resolves to { value, fresh }.
+ */
+export function createBoardCache({ ttlMs = BOARD_CACHE_MS, max = 8 } = {}) {
+  const boards = new Map(); // key -> { at, promise }
+  return {
+    async get(key, nowMs, load) {
+      const kept = boards.get(key);
+      if (kept && nowMs - kept.at < ttlMs) return { value: await kept.promise, fresh: false };
+      const promise = Promise.resolve().then(load);
+      boards.delete(key);
+      boards.set(key, { at: nowMs, promise });
+      while (boards.size > max) boards.delete(boards.keys().next().value);
+      try {
+        return { value: await promise, fresh: true };
+      } catch (error) {
+        if (boards.get(key) && boards.get(key).promise === promise) boards.delete(key);
+        throw error;
+      }
+    },
+  };
+}
+
+/** No cache: every call loads (tests, and callers that pass none). */
+const noCache = { get: async (key, nowMs, load) => ({ value: await load(), fresh: true }) };
 
 const callerUid = (auth) =>
   auth && typeof auth.uid === "string" && auth.uid.length > 0 ? auth.uid : null;
@@ -65,28 +100,30 @@ function endlessEntry(row) {
  * limits; sorting again (stable, so the store's tie order holds) keeps a board
  * in order whatever it hands back.
  */
-async function readBoard({ uid, kind, toEntry, better, top, get, log }) {
+async function readBoard({ uid, kind, toEntry, better, top, get, log, cache, key, nowMs }) {
   const shown = (row) => {
     const entry = toEntry(row);
     // no uid or name in the log: only the board and that an entry was dropped
     if (!entry && row) log(`${kind} board: a stored entry isn't a board entry, left out`);
     return entry;
   };
-  const rows = (await top(BOARD_TOP)) || [];
-  const entries = rows
-    .map(shown)
-    .filter(Boolean)
-    .sort((a, b) => (better(a, b) ? -1 : better(b, a) ? 1 : 0))
-    .slice(0, BOARD_TOP);
+  const load = async () =>
+    ((await top(BOARD_TOP)) || [])
+      .map(shown)
+      .filter(Boolean)
+      .sort((a, b) => (better(a, b) ? -1 : better(b, a) ? 1 : 0))
+      .slice(0, BOARD_TOP);
+  const { value: entries, fresh } = await (cache || noCache).get(key, nowMs, load);
   if (!uid) return { top: entries, me: null };
-  const inTop = entries.find((entry) => entry.uid === uid);
+  // a top just read is current; a kept one may be older than the caller's last run
+  const inTop = fresh && entries.find((entry) => entry.uid === uid);
   if (inTop) return { top: entries, me: inTop };
   const own = await get(uid);
   const me = own && own.uid === uid ? shown(own) : null;
   return { top: entries, me };
 }
 
-export async function handleGetDailyBoard({ auth, data }, { scores, log, now = Date.now }) {
+export async function handleGetDailyBoard({ auth, data }, { scores, log, cache, now = Date.now }) {
   // only the request's own seed: never an inherited one, never anything else
   const seed = data && typeof data === "object" && Object.hasOwn(data, "seed") ? data.seed : null;
   if (!Number.isInteger(seed) || !seedIsOpen(seed, now())) {
@@ -100,10 +137,13 @@ export async function handleGetDailyBoard({ auth, data }, { scores, log, now = D
     top: (count) => scores.top(seed, count),
     get: (uid) => scores.get(seed, uid),
     log,
+    cache,
+    key: `daily:${seed}`,
+    nowMs: now(),
   });
 }
 
-export async function handleGetEndlessBoard({ auth }, { board, log }) {
+export async function handleGetEndlessBoard({ auth }, { board, log, cache, now = Date.now }) {
   return readBoard({
     uid: callerUid(auth),
     kind: "endless",
@@ -112,5 +152,8 @@ export async function handleGetEndlessBoard({ auth }, { board, log }) {
     top: (count) => board.top(count),
     get: (uid) => board.get(uid),
     log,
+    cache,
+    key: "endless",
+    nowMs: now(),
   });
 }
