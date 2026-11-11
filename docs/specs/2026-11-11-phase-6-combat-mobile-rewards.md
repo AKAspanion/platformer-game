@@ -149,7 +149,7 @@ Eggs:
 Hatching:
 
 - "An egg hatches 24 hours after it was found, by the device's clock, whether or not the game is open."
-- "The home screen shows the nest: each egg with the time left ("Hatches in 5h"), or "Ready!"."
+- "The nest shows each egg with the time left ("Hatches in 5h"), or "Ready!"." The Nest card lives in the Quests panel (see 3.3).
 - "When the home screen opens and an egg is due, a card shows "Your egg hatched! Meet <name>." with Wear and Later buttons. Several due eggs hatch one after another."
 - "An egg hatches into one of 8 companions: 6 common and 2 rare. Each hatch has a 10% chance of a rare one. A companion the player already owns pays 100 coins instead."
 
@@ -176,7 +176,9 @@ Quests:
 - Mode quests: "Finish today's daily challenge", "Reach endless level 5", "Finish a community world level", "Finish a story level", "Finish boss rush".
 - "A quest pays its coins once, when it is finished, with a toast "✅ <quest> · +<coins>"."
 - "Quests count in every mode except where a quest names its mode."
-- The home screen has a Quests card: three rows with progress bars ("5 / 8") and the coins each pays.
+- The Quests card has three rows with progress bars ("5 / 8") and the coins each pays. It and the Nest card live in a "Quests" panel, opened from a Quests icon in the home footer, right after the Leaderboards icon. The home screen itself shows neither card; the hatch card still shows there.
+- The Quests icon carries a badge with the number of today's quests not yet finished (3, 2, 1); with all three done there is no badge. Its label says the count ("Quests, 2 to do"). The badge updates when the home screen shows, when the panel closes, and at local midnight (3 again).
+- Changed after the build, at the developer's request: the cards were first on the home screen.
 
 Weekly chest:
 

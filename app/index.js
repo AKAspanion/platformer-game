@@ -75,6 +75,7 @@ import {
   createQuests,
   claimChest,
   payFinished,
+  questsLabel,
   metEnemies,
   unlockedModes,
   CHEST_KEYS,
@@ -1902,6 +1903,15 @@ window.addEventListener("load", function () {
     $("questKeys").textContent = `🔑 ${quests.keys()} / ${CHEST_KEYS}`;
   };
 
+  /** The badge on the Quests icon: today's quests still to do, none shown when all are done. */
+  const renderQuestsBadge = () => {
+    const left = quests.remaining();
+    const badge = $("questsBadge");
+    badge.textContent = String(left);
+    badge.hidden = left <= 0;
+    $("questsBtn").setAttribute("aria-label", questsLabel(left));
+  };
+
   // ---------------------------------------------------- the hatch card
 
   const hatchScreen = $("hatchScreen");
@@ -1951,6 +1961,7 @@ window.addEventListener("load", function () {
     renderBalance();
     renderNest();
     renderQuests();
+    renderQuestsBadge();
     const premium = isPremium();
     document.querySelectorAll(".mode-card.premium").forEach((card) => {
       card.classList.toggle("locked", !premium);
@@ -3802,6 +3813,15 @@ window.addEventListener("load", function () {
     show(leaderboardScreen, true);
     selectBoard("today");
   };
+  $("questsBtn").onclick = () => {
+    renderNest();
+    renderQuests();
+    show($("questsScreen"), true);
+  };
+  $("questsCloseBtn").onclick = () => {
+    show($("questsScreen"), false);
+    renderQuestsBadge();
+  };
   board.retry.onclick = loadLeaderboard;
   $("leaderboardCloseBtn").onclick = () => {
     board.load += 1;
@@ -3826,6 +3846,7 @@ window.addEventListener("load", function () {
       verifyScreen,
       deleteScreen,
       leaderboardScreen,
+      $("questsScreen"),
     ].some(isVisible);
 
   const keyDownUp = (event) => {

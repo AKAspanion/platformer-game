@@ -222,6 +222,11 @@ const chestOf = (state) =>
     : null;
 
 /** Pays each finished quest through the wallet; returns the ones that paid (a paid reward id pays nothing). */
+/** The button's accessible name: how many of today's quests are left. */
+export function questsLabel(left) {
+  return left > 0 ? `Quests, ${left} to do` : "Quests";
+}
+
 export function payFinished(finished, wallet) {
   return finished.filter(({ pick, rewardId }) => wallet.reward(rewardId, pick.coins));
 }
@@ -297,6 +302,9 @@ export function createQuests(
 
   return {
     today: () => view(current()),
+
+    /** How many of today's three quests are not finished yet. */
+    remaining: () => view(current()).filter((quest) => !quest.done).length,
 
     record(feat, mode) {
       const state = current();

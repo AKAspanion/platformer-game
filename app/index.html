@@ -119,19 +119,12 @@
           <button id="achievementsBtn" class="btn btn-small">Achievements</button>
         </div>
       </div>
-      <div class="home-cards">
-        <section id="questCard" class="home-card" aria-label="Quests">
-          <div class="card-title">Quests <span id="questKeys" class="quest-keys"></span></div>
-          <div id="questList" class="quest-list"></div>
-        </section>
-        <section id="nestCard" class="home-card" aria-label="Nest">
-          <div class="card-title">Nest</div>
-          <div id="nestList" class="nest-list"></div>
-        </section>
-      </div>
       <div class="home-footer">
         <div class="icon-row">
           <div id="leaderboardsBtn" role="button" aria-label="Leaderboards"></div>
+          <div id="questsBtn" role="button" aria-label="Quests">
+            <span id="questsBadge" class="badge" aria-hidden="true" hidden></span>
+          </div>
           <div id="settingsBtn" role="button" aria-label="Settings"></div>
           <div id="helpBtn" role="button" aria-label="Help"></div>
           <div id="infoBtn" role="button" aria-label="Info"></div>
@@ -181,6 +174,25 @@
           <div id="leaderboardStatus" class="lb-status" role="status"></div>
           <button id="leaderboardRetryBtn" class="btn btn-secondary lb-retry">Try again</button>
           <ol id="leaderboardList" class="lb-list"></ol>
+        </div>
+      </div>
+    </div>
+
+    <div id="questsScreen" class="flex-item modal-screen">
+      <div class="flex-item modal-container modal-narrow">
+        <div class="flex-item modal-header">
+          <div class="modal-title">Quests</div>
+          <div id="questsCloseBtn" class="close-btn" role="button" aria-label="Close"></div>
+        </div>
+        <div class="modal-content-wrapper quests-body">
+          <section id="questCard" class="home-card" aria-label="Quests">
+            <div class="card-title">Quests <span id="questKeys" class="quest-keys"></span></div>
+            <div id="questList" class="quest-list"></div>
+          </section>
+          <section id="nestCard" class="home-card" aria-label="Nest">
+            <div class="card-title">Nest</div>
+            <div id="nestList" class="nest-list"></div>
+          </section>
         </div>
       </div>
     </div>
