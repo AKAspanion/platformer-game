@@ -158,6 +158,77 @@ canvas {
   opacity: 1;
 }
 
+/* the layout editor (Settings -> Customize layout): a light scrim over the game, five handles to drag */
+#layoutEditor {
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+  visibility: hidden;
+  font-family: var(--font);
+  color: var(--ink);
+  background: rgba(255, 247, 232, 0.55);
+}
+.layout-bar {
+  position: absolute;
+  top: calc(var(--sat) + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  max-width: 94%;
+  padding: 8px 12px;
+  border-radius: 14px;
+  background: rgba(255, 247, 232, 0.92);
+  box-shadow: 0 2px 8px rgba(29, 26, 36, 0.25);
+}
+.layout-hint {
+  font-size: 15px;
+  text-align: center;
+}
+.layout-buttons {
+  display: flex;
+  gap: 8px;
+}
+.layout-bar button {
+  min-width: 88px;
+  min-height: 44px;
+}
+.layout-handle {
+  position: fixed;
+  opacity: 1;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  border-radius: 100%;
+  outline: 2px dashed rgba(29, 26, 36, 0.55);
+  outline-offset: 2px;
+}
+.layout-handle.dragging {
+  cursor: grabbing;
+  transform: scale(1.06);
+}
+.layout-handle[data-id="leftBtn"] {
+  background: url(images/left_btn.webp) center center / 100% no-repeat;
+}
+.layout-handle[data-id="rightBtn"] {
+  background: url(images/right_btn.webp) center center / 100% no-repeat;
+}
+.layout-handle[data-id="jumpBtn"] {
+  background: url(images/up_btn.webp) center center / 100% no-repeat;
+}
+.layout-handle[data-id="fireBtn"] {
+  background: url(images/small_btn.webp) center center / 100% no-repeat;
+}
+.layout-handle[data-id="pauseBtn"] {
+  background: url(images/pause_btn.webp) center center / 100% no-repeat;
+}
+/* the layout can only be changed on a touch device */
+.no-touch #layoutRow {
+  display: none;
+}
+
 /* ------------------------------------------------------------------- buttons */
 
 .btn {

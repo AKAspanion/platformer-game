@@ -5,6 +5,8 @@ import GameEngine from "./engine";
 import Controller from "./controller";
 import MouseInput from "./controller/mouse-input";
 import { controlOpacity } from "./controller/opacity";
+import { normalizeLayout } from "./controller/layout";
+import { applyControlLayout, mountLayoutEditor } from "./controller/layout-ui";
 import { MAX_HEARTS, POWERUP_TICKS } from "./game/player";
 import { loadIcons } from "./game/powerups";
 
@@ -196,6 +198,14 @@ const safeArea = () => {
     bottom: parseFloat(s.paddingBottom) || 0,
     left: parseFloat(s.paddingLeft) || 0,
   };
+};
+
+/** The custom touch-button layout from Settings (touch devices only), or the CSS default. */
+const applyLayout = () => {
+  applyControlLayout(
+    isTouchesEnabled ? normalizeLayout(settings.get("controlLayout")) : null,
+    safeArea(),
+  );
 };
 
 /** Landscape lock: the manifest asks for it; fullscreen + lock helps in a browser. */
@@ -889,6 +899,7 @@ window.addEventListener("load", function () {
 
   const resize = () => {
     sizeControls();
+    applyLayout();
     const inset = safeArea();
     const width = document.documentElement.clientWidth - inset.left - inset.right;
     const height = document.documentElement.clientHeight - inset.top - inset.bottom;
@@ -2230,6 +2241,20 @@ window.addEventListener("load", function () {
       refreshSettings();
     };
   });
+  const layoutEditor = mountLayoutEditor({
+    root: $("layoutEditor"),
+    getLayout: () => normalizeLayout(settings.get("controlLayout")),
+    safeArea,
+    onSave: (layout) => {
+      settings.set("controlLayout", layout);
+      applyLayout();
+    },
+    onClose: () => show(settingsScreen, true),
+  });
+  $("customizeLayoutBtn").onclick = () => {
+    show(settingsScreen, false);
+    layoutEditor.open();
+  };
   setOpacity.querySelectorAll("button").forEach((b) => {
     b.onclick = () => {
       settings.set("controlOpacity", b.dataset.value);
@@ -3839,6 +3864,7 @@ window.addEventListener("load", function () {
       shopScreen,
       $("achievementsScreen"),
       settingsScreen,
+      $("layoutEditor"),
       premiumScreen,
       world1Screen,
       createScreen,

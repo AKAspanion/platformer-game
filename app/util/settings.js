@@ -11,6 +11,7 @@ const DEFAULTS = {
   analytics: true, // anonymous usage stats (Google Analytics); see PRIVACY.md
   controlSize: "auto", // auto | s | m | l
   controlOpacity: "medium", // low | medium | high: how see-through the touch buttons are
+  controlLayout: null, // where each touch button sits (app/controller/layout.js); this device only, never in cloud save
   worldApiUrl: "", // prompt-to-world server (see server/README.md)
 };
 
