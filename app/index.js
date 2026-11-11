@@ -1,4 +1,5 @@
 import Game from "./game";
+import { HAT_ANCHOR } from "./game/cosmetics";
 import Screen from "./screen";
 import GameEngine from "./engine";
 import Controller from "./controller";
@@ -585,6 +586,14 @@ window.addEventListener("load", function () {
     ctx.translate(feetX, feetY);
     ctx.scale(player.scaleX, player.scaleY);
     ctx.drawImage(frame, -6 + xOffset, -35, 60, 40);
+    const hat = dead ? null : player.hatImage;
+    if (hat && hat.width) {
+      const anchor = HAT_ANCHOR[player.direction < 0 ? "left" : "right"];
+      // hats are drawn facing right: mirror them when the dino faces left
+      ctx.translate(anchor.x - 6 + (player.direction < 0 ? 12 : 0), anchor.y - 12);
+      if (player.direction < 0) ctx.scale(-1, 1);
+      ctx.drawImage(hat, 0, 0, 12, 12);
+    }
     ctx.restore();
 
     if (player.shield && !dead) {

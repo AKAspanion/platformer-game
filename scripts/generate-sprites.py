@@ -5,6 +5,7 @@ Generates the game's procedural pixel art (needs Pillow):
     (4 idle + 3 spit frames), and the spitter's seed
   - attack frames (crouch, flash, lunge, bite) for every walking enemy
   - power-up icons (heart, shield, triple fire, wings) and HUD hearts
+  - the shop's hats (cap, party, viking, wizard, crown), 12x12 at 1x
 
     python3 scripts/generate-sprites.py && python3 scripts/generate-enemy-death.py
 
@@ -322,6 +323,73 @@ def bosses():
                     frame.save(os.path.join(folder, f"image_part_0{i}.png"), optimize=True)
 
 
+# ------------------------------------------------------------------------ hats
+
+HATS = os.path.join(ROOT, "hats")
+
+
+def hat_cap():
+    img, d = canvas(12, 12)
+    d.pieslice((1, 3, 9, 14), 180, 360, fill=(222, 62, 62, 255))
+    d.rectangle((1, 9, 9, 9), fill=(170, 40, 46, 255))
+    d.rectangle((9, 9, 10, 10), fill=(170, 40, 46, 255))  # peak, facing right
+    d.point((4, 5), fill=(255, 150, 150, 255))
+    d.point((5, 3), fill=(255, 255, 255, 255))
+    return outline(img)
+
+
+def hat_party():
+    img, d = canvas(12, 12)
+    d.polygon([(2, 10), (9, 10), (5, 2)], fill=(120, 80, 220, 255))
+    d.polygon([(4, 6), (7, 6), (8, 8), (3, 8)], fill=(255, 205, 60, 255))
+    d.rectangle((2, 10, 9, 10), fill=(80, 50, 170, 255))
+    d.rectangle((4, 1, 6, 2), fill=(255, 120, 170, 255))  # pompom
+    return outline(img)
+
+
+def hat_viking():
+    img, d = canvas(12, 12)
+    horn, helm = (250, 240, 215, 255), (150, 155, 170, 255)
+    d.polygon([(0, 2), (2, 4), (3, 6), (1, 6), (0, 4)], fill=horn)
+    d.polygon([(11, 2), (9, 4), (8, 6), (10, 6), (11, 4)], fill=horn)
+    d.pieslice((2, 3, 9, 14), 180, 360, fill=helm)
+    d.rectangle((2, 8, 9, 9), fill=(100, 105, 120, 255))
+    d.point((4, 5), fill=(215, 220, 230, 255))
+    return outline(img)
+
+
+def hat_wizard():
+    img, d = canvas(12, 12)
+    d.polygon([(3, 9), (8, 9), (6, 1), (5, 1)], fill=(70, 60, 170, 255))
+    d.polygon([(5, 4), (6, 4), (7, 8), (4, 8)], fill=(100, 90, 205, 255))
+    d.rectangle((0, 9, 10, 10), fill=(50, 42, 130, 255))  # brim
+    d.point((5, 6), fill=(255, 215, 80, 255))  # star
+    d.point((6, 7), fill=(255, 215, 80, 255))
+    return outline(img)
+
+
+def hat_crown():
+    img, d = canvas(12, 12)
+    gold, shade, gem = (255, 205, 60, 255), (210, 150, 30, 255), (230, 40, 70, 255)
+    d.polygon([(1, 9), (1, 3), (3, 6), (5, 2), (7, 6), (9, 3), (9, 9)], fill=gold)
+    d.rectangle((1, 8, 9, 9), fill=shade)
+    d.point((5, 6), fill=gem)
+    return outline(img)
+
+
+def hats():
+    """12x12 pixel hats facing right, at 1x: the game mirrors them for left."""
+    os.makedirs(HATS, exist_ok=True)
+    for name, art in (
+        ("cap", hat_cap),
+        ("party", hat_party),
+        ("viking", hat_viking),
+        ("wizard", hat_wizard),
+        ("crown", hat_crown),
+    ):
+        art().save(os.path.join(HATS, f"{name}.webp"), lossless=True)
+
+
 def main():
     save_sides([bat(-1), bat(0), bat(1), bat(0)], "bat")
     save_sides([beetle(0), beetle(1), beetle(0), beetle(1)], "beetle")
@@ -346,6 +414,7 @@ def main():
     save(heart_icon(), os.path.join(ITEMS, "hud-heart.png"))
     save(heart_icon((70, 60, 80, 255), (100, 90, 110, 255)), os.path.join(ITEMS, "hud-heart-empty.png"))
     bosses()
+    hats()
     print("sprites written")
 
 
