@@ -35,7 +35,7 @@ more.
 
 ## 4. Settings
 
-- "Settings has a switch "Daily reminder at 18:00"."
+- "Settings has a switch "Daily reminder". (It still sends at 18:00 local time.)"
 - "If the browser or phone has blocked notifications for the game, the switch is off and disabled, with "Notifications are blocked in your browser settings.""
 - "If the browser can't do push at all, the switch is off and disabled, with "Reminders aren't available in this browser.""
 - "If turning reminders on fails (offline, server error), the switch goes back to off and the game says "Couldn't turn on reminders. Try again later.""

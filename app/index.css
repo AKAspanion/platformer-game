@@ -342,10 +342,6 @@ canvas {
   width: min(720px, 100%);
   align-items: center;
 }
-#highScore {
-  color: var(--gold);
-  font-size: 18px;
-}
 .icon-row {
   grid-column: 2;
   display: flex;
@@ -512,6 +508,7 @@ canvas {
   z-index: 12;
 }
 #premiumScreen,
+#world1Screen,
 #loginScreen,
 #deleteScreen,
 #leaderboardScreen {
@@ -646,10 +643,7 @@ canvas {
   cursor: pointer;
 }
 #leaderboardsBtn {
-  background:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23f6c453' stroke='%231d1a24' stroke-width='1.6' stroke-linejoin='round' d='M7 4h10v5a5 5 0 0 1-10 0zM7 6H4c0 3 1 4.5 3 5M17 6h3c0 3-1 4.5-3 5M12 14v3M8 20h8M9.5 17h5v3h-5z'/%3E%3C/svg%3E")
-      center center / 56% no-repeat,
-    url(images/small_btn.webp) center center / var(--small-btn-size) no-repeat;
+  background: url(images/leaderboards_btn.webp) center center / var(--small-btn-size) no-repeat;
 }
 #settingsBtn {
   background: url(images/settings_btn.webp) center center / var(--small-btn-size) no-repeat;
@@ -1889,6 +1883,14 @@ canvas {
 .world-card.linked {
   border-color: #f0b429;
 }
+/* a community world this device has played */
+.world-card.played {
+  border-color: #3a8fd9;
+  background: rgba(58, 143, 217, 0.08);
+}
+.world-badge.played-badge {
+  background: #3a8fd9;
+}
 .world-stats,
 .world-week,
 .world-remix {
@@ -1928,5 +1930,72 @@ canvas {
   }
   .world-actions {
     width: 100%;
+  }
+}
+
+/* ------------------------------------------------- first-open hint, world 1 card */
+
+.hint {
+  position: fixed;
+  z-index: 9;
+  bottom: calc(var(--sab) + 12px);
+  left: 50%;
+  max-width: min(520px, calc(100vw - 32px));
+  padding: 8px 16px;
+  border-radius: 14px;
+  color: white;
+  font-family: var(--font);
+  font-size: 15px;
+  text-align: center;
+  text-transform: none;
+  background: rgba(29, 26, 36, 0.78);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateX(-50%);
+  transition: opacity 0.6s ease;
+}
+.hint.show {
+  opacity: 1;
+}
+
+.world1-container {
+  gap: 12px;
+  text-align: center;
+  align-items: center;
+  justify-content: center;
+}
+.world1-text {
+  font-size: 18px;
+}
+.world1-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  margin-top: 8px;
+}
+@media (max-height: 480px) {
+  .world1-container {
+    gap: 6px;
+    padding: 12px 16px;
+  }
+  .world1-text {
+    font-size: 15px;
+  }
+  .world1-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 4px;
+  }
+  .world1-actions .btn {
+    flex: 0 1 auto;
+    padding: 8px 12px;
+    font-size: 15px;
+  }
+  .hint {
+    max-width: 44vw;
+    font-size: 13px;
+    padding: 6px 12px;
   }
 }

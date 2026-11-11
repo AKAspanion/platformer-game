@@ -120,7 +120,6 @@
         </div>
       </div>
       <div class="home-footer">
-        <div id="highScore"></div>
         <div class="icon-row">
           <div id="leaderboardsBtn" role="button" aria-label="Leaderboards"></div>
           <div id="settingsBtn" role="button" aria-label="Settings"></div>
@@ -163,8 +162,9 @@
           <div id="leaderboardCloseBtn" class="close-btn" role="button" aria-label="Close"></div>
         </div>
         <div class="tabs lb-tabs" id="leaderboardTabs" role="tablist">
-          <button class="tab active" data-board="today" role="tab" aria-selected="true">Today</button>
-          <button class="tab" data-board="yesterday" role="tab" aria-selected="false">Yesterday</button>
+          <button class="tab active" data-board="today" role="tab" aria-selected="true">
+            Daily
+          </button>
           <button class="tab" data-board="endless" role="tab" aria-selected="false">Endless</button>
         </div>
         <div class="modal-content-wrapper lb-body">
@@ -191,13 +191,15 @@
           <label class="setting-row" id="vibrationRow"
             ><span>Vibration</span><input type="checkbox" id="setVibration" class="switch"
           /></label>
+          <label class="setting-row" id="ghostRow"
+            ><span>Show ghost</span><input type="checkbox" id="setGhost" class="switch"
+          /></label>
           <label class="setting-row"
             ><span>Share anonymous usage stats</span
             ><input type="checkbox" id="setAnalytics" class="switch"
           /></label>
           <label class="setting-row" id="reminderRow"
-            ><span>Daily reminder at 18:00</span
-            ><input type="checkbox" id="setReminder" class="switch"
+            ><span>Daily reminder</span><input type="checkbox" id="setReminder" class="switch"
           /></label>
           <div class="setting-row setting-note" id="reminderNoteRow" hidden>
             <span id="reminderStatus" role="status"></span>
@@ -453,6 +455,20 @@
         </div>
       </div>
     </div>
+
+    <div id="world1Screen" class="flex-item modal-screen">
+      <div class="flex-item modal-container modal-narrow world1-container">
+        <div class="modal-title" id="world1Title">You beat World 1!</div>
+        <div class="world1-text">Play worlds made by other players, or make your own.</div>
+        <div class="world1-actions">
+          <button id="world1CommunityBtn" class="btn btn-primary">Play community worlds</button>
+          <button id="world1CreateBtn" class="btn btn-secondary">Make my own</button>
+          <button id="world1LaterBtn" class="btn btn-secondary">Later</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="hint" class="hint" role="status" aria-live="polite"></div>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
 

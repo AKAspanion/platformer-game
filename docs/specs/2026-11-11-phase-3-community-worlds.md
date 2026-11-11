@@ -23,6 +23,7 @@ see that people play what they made.
 - "An account can like or unlike at most 60 times an hour; past that the game says "Slow down a little, try again in a minute.""
 - "A world's card shows its plays and likes, for example "▶ 1.2k · ❤ 37", with numbers of 1,000 or more shortened to one decimal and "k"."
 - "The ❤ button is filled when the player has liked the world."
+- "A community world this device has started is highlighted in the lists, with a "PLAYED" badge on its card."
 
 ## 3. Trending
 
