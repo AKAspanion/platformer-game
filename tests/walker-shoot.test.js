@@ -203,3 +203,21 @@ test("a ghost replay changes nothing in a level with shooters", async () => {
   });
   assert.equal(after, before);
 });
+
+test("every walker shot reaches a player standing 52-120 px away on flat ground", () => {
+  for (const type of ["pig", "chameleon", "beetle", "slime"]) {
+    for (const dx of [53, 70, 90, 105, 120]) {
+      const { world } = setup({ type, dx });
+      const took = tickUntil(world, () => shots(world).length > 0, 40);
+      assert.notEqual(took, -1, `${type} at ${dx} px fires`);
+      const shot = shots(world)[0];
+      const hearts = world.player.hearts;
+      // the shot is in the air above the floor when it gets to the player's x
+      for (let i = 0; i < 80 && world.player.hearts === hearts; i++) {
+        tick(world, 1);
+        assert.ok(shot.getBottom() <= GROUND * TILE, `${type} at ${dx} px sank into the floor`);
+      }
+      assert.equal(world.player.hearts, hearts - 1, `${type} at ${dx} px hits the player`);
+    }
+  }
+});

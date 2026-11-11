@@ -339,18 +339,18 @@ export class Enemy extends Object {
     const d = this.direction;
     switch (this.type) {
       case "pig":
-        return { kind: "mud", vx: 2.4 * d, vy: -0.3, gravity: 0.03 };
+        return { kind: "mud", vx: 2.4 * d, vy: -0.2, gravity: 0.012 };
       case "chameleon":
         return { kind: "spit", vx: 3.4 * d, vy: 0, gravity: 0 };
       case "beetle":
-        return { kind: "pebble", vx: 2.8 * d, vy: -0.5, gravity: 0.05 };
+        return { kind: "pebble", vx: 2.8 * d, vy: -0.45, gravity: 0.025 };
       default:
         // slime, and a community walker (in its creature's colours): a short arc
         return {
           kind: "glob",
           vx: 2.6 * d,
-          vy: -1.5,
-          gravity: 0.09,
+          vy: -0.3,
+          gravity: 0.02,
           colors: enemyTypes[this.type]?.colors,
         };
     }
