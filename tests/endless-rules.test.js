@@ -169,12 +169,12 @@ test("the board ranks entries, clamps the limit and sends no name", async () => 
   ]);
 });
 
-test("firestore.rules: endless/{uid} is public to read with a limit and closed to writes", () => {
+test("firestore.rules: endless/{uid} is closed to client reads and writes (getEndlessBoard reads it)", () => {
   const rules = fs.readFileSync(path.join(root, "firestore.rules"), "utf8");
   const block = rules.match(/match \/endless\/\{uid\} \{([^}]*)\}/);
   assert.ok(block, "an endless/{uid} match exists");
-  assert.match(block[1], /allow get: if true;/);
-  assert.match(block[1], /allow list: if request\.query\.limit <= 100;/);
+  assert.match(block[1], /allow read: if false;/);
+  assert.doesNotMatch(block[1], /allow (get|list)/);
   assert.match(block[1], /allow write: if false;/);
   assert.ok(rules.indexOf("match /endless/") < rules.indexOf("match /{document=**}"));
   assert.match(rules, /match \/worlds\/\{worldId\}/);

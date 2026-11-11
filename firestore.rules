@@ -7,13 +7,18 @@ rules_version = '2';
 // them from a client: the publishWorld function validates each world with the
 // game's sanitizeWorld and stamps the author from the caller's ID token.
 //
-// daily/{seed}/scores/{uid}: one best score per player per day. Anyone can
-// read the board; nobody writes it from a client: the submitDaily function
-// checks the run (open day, possible score, plausible time) and writes it.
+// daily/{seed}/scores/{uid}: one best score per player per day. Nobody writes
+// it from a client: the submitDailyScore function checks the run (open day,
+// possible score, plausible time) and writes it. No client reads or lists it,
+// the owner included: Firestore hands every reader a document's create and
+// update times, which would show when each improving run happened. Boards ask
+// the getDailyBoard function, which returns the top 50 and the caller's own
+// entry, each only uid, name, score and seconds (functions/src/boards.js).
 //
 // endless/{uid}: one best endless run per player (highest level, then score,
-// then the shorter time). Anyone can read the board; nobody writes it from a
-// client: the submitEndlessScore function checks the run and writes it.
+// then the shorter time). Written only by the submitEndlessScore function and,
+// like the daily board, never read by a client: the getEndlessBoard function
+// returns uid, name, level, score and seconds.
 //
 // saves/{uid}: one cloud save per account. Only that account reads or writes
 // it, and a write carries exactly v, updatedAt and data.
@@ -51,15 +56,14 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // no client get or list: boards come from getDailyBoard / getEndlessBoard
     match /daily/{seed}/scores/{uid} {
-      allow get: if true;
-      allow list: if request.query.limit <= 100;
+      allow read: if false;
       allow write: if false;
     }
 
     match /endless/{uid} {
-      allow get: if true;
-      allow list: if request.query.limit <= 100;
+      allow read: if false;
       allow write: if false;
     }
 
