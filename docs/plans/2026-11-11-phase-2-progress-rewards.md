@@ -546,3 +546,79 @@ Expected: no errors
 git add app/index.js app/index.html app/index.css app/progress/earn.js tests/progress-earn.test.js
 git commit -m "feat(progress): shop, achievements, unlocks and cloud save on screen"
 ```
+
+---
+
+### Task 6: Reset progress on the device and the account
+
+Added after the developer's choice: "Reset device and account".
+
+**Files:**
+- Modify: `app/progress/save.js` (`resetAt`, `resetLocal`, the merge rule)
+- Modify: `app/progress/cloud.js` (`reset()`)
+- Modify: `app/index.js` (the Reset progress button)
+- Test: `tests/progress-save.test.js`
+- Test: `tests/progress-cloud.test.js`
+
+**Interfaces:**
+- Consumes: `Progress`, `readLocal`, `writeLocal`, `mergeProgress`, `emptyProgress` (Task 1); `createCloudSave` (Task 2); the reset button handler, `refreshHome`, `checkAchievements` and the worn look in `app/index.js` (Task 5).
+- Produces:
+
+```js
+// app/progress/save.js
+// Progress gains: resetAt: number  (ms of the latest reset; 0 = never), kept in storage key "progress_reset_at"
+/** Erases every key cloud save carries, keeps device_id, and stamps resetAt = now. Returns the empty Progress. */
+export function resetLocal(storage?: Storage, now?: number): Progress;
+
+// app/progress/cloud.js
+/** Pushes the device's (reset) progress at once, replacing the account's save; keeps it pending on failure. */
+cloud.reset(): Promise<void>;
+```
+
+Merge rule: when `a.resetAt !== b.resetAt`, the result is the side with the later `resetAt`, unchanged; the other side is dropped. When they are equal, the merge is as before.
+
+**Spec:**
+- §1: "Reset progress in Settings erases everything cloud save carries (campaign progress, records, the high score, the streak, the wallet with its owned and worn cosmetics, achievements and stats) on this device and, with an account, in the account."
+- §1: "A reset is final on every device: each save remembers when it was last reset, and when two saves meet, one reset before the other's latest reset is dropped instead of merged."
+- §1: "With an account, the reset is sent at once (not 5 seconds later). If it can't be sent, the device stays reset and sends it with the next sync."
+- §1: The button keeps its two taps: "Reset progress", then "Tap again to erase", then "Progress erased".
+
+**Tags:** `security`, `failure-paths`
+
+**Knowledge:** none (this project has no knowledge base)
+
+**Acceptance:**
+- Given a device with campaign, records, high score, streak, wallet (earned, owned crown, worn crown), achievements and stats, when `resetLocal(storage, 5000)` runs, then `readLocal` returns `emptyProgress()` with `resetAt` 5000, the free items worn, and `device_id` unchanged.
+- Given A with resetAt 5000 and no stars, and B with resetAt 0 and 61 stars, when merged either way, then the result is A unchanged.
+- Given A and B both with resetAt 5000, when merged, then the normal merge applies (union of reached levels and so on).
+- Given an empty account save and a fresh merge after a reset, when the merged result is merged with either input again, then nothing changes.
+- Given an account with stars and a device that resets, when `cloud.reset()` runs, then `backend.set` is called at once (no 5 s wait) with the empty progress and its `resetAt`, and `status()` becomes "saved".
+- Given `backend.set` rejects during `reset()`, when it settles, then nothing throws, local progress stays reset, `status()` is "pending", and the next `changed()` or `start()` sends the reset (the account's older save is dropped, not merged back).
+- Given a second device that last synced before the reset, when it calls `start(uid)`, then its local progress is replaced by the account's reset save and nothing from it comes back.
+- Given the button pressed twice within 3 s, when the second tap lands, then the device is reset, the dino wears the free look, the home balance shows "🪙 0", the label reads "Progress erased", and created worlds (`my_worlds`) are cleared as before.
+
+- [ ] **Step 1: Write the failing tests** for the save and cloud cases in `tests/progress-save.test.js` and `tests/progress-cloud.test.js`
+
+- [ ] **Step 2: Run them to verify they fail**
+
+Run: `pnpm test progress-save progress-cloud`
+Expected: FAIL on the assertions
+
+- [ ] **Step 3: Write the minimal implementation** to the Interfaces, then the button in `app/index.js`
+
+- [ ] **Step 4: Run them to verify they pass**
+
+Run: `pnpm test`
+Expected: PASS
+
+- [ ] **Step 5: Run lint**
+
+Run: `pnpm lint`
+Expected: no errors
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add app/progress/save.js app/progress/cloud.js app/index.js tests/progress-save.test.js tests/progress-cloud.test.js
+git commit -m "feat(progress): reset erases progress on the device and the account"
+```

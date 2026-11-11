@@ -21,6 +21,10 @@ campaign still have goals to chase.
 - "Signing in to an existing account merges this device's progress into that account."
 - "Signing out keeps the progress on this device."
 - "Deleting an account also deletes its save."
+- "Reset progress in Settings erases everything cloud save carries (campaign progress, records, the high score, the streak, the wallet with its owned and worn cosmetics, achievements and stats) on this device and, with an account, in the account."
+- "A reset is final on every device: each save remembers when it was last reset, and when two saves meet, one reset before the other's latest reset is dropped instead of merged."
+- "With an account, the reset is sent at once (not 5 seconds later). If it can't be sent, the device stays reset and sends it with the next sync."
+- The button keeps its two taps: "Reset progress", then "Tap again to erase", then "Progress erased".
 - Settings shows the save state under the account row: "Progress saved to your account" once a save has been sent, "Progress saved on this device" with no account.
 
 ## 2. Wallet and shop
