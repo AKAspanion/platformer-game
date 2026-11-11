@@ -234,7 +234,8 @@
       "left": 10.35,
       "top": 8,
       "sway": 20,
-      "dir": 1
+      "dir": 1,
+      "shoots": true
     },
     {
       "id": "A21E02",
@@ -242,7 +243,8 @@
       "left": 8.35,
       "top": 5,
       "sway": 20,
-      "dir": 1
+      "dir": 1,
+      "shoots": true
     },
     {
       "id": "A21E03",
@@ -266,7 +268,8 @@
       "left": 11.85,
       "top": 2,
       "sway": 12,
-      "dir": 1
+      "dir": 1,
+      "shoots": true
     },
     {
       "id": "A21E06",

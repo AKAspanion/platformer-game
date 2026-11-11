@@ -242,7 +242,8 @@
       "left": 10.35,
       "top": 8,
       "sway": 4,
-      "dir": -1
+      "dir": -1,
+      "shoots": true
     },
     {
       "id": "A09E02",
@@ -250,7 +251,8 @@
       "left": 12.35,
       "top": 9,
       "sway": 4,
-      "dir": -1
+      "dir": -1,
+      "shoots": true
     },
     {
       "id": "A09E03",

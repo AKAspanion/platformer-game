@@ -191,6 +191,27 @@ export const ENEMY_TYPES = {
   4: ["slime", "bat", "beetle", "chameleon", "bat", "spitter"],
   5: ["beetle", "pig", "spitter", "beetle", "slime", "bat"],
 };
+/** Shooting walkers (phase 6a): how a walker's shot is placed and paced. */
+export const SHOOT_MIN = 52; // px: closer than this, a walker lunges instead
+export const SHOOT_MAX = 120; // px
+export const SHOOT_HEIGHT = 24; // px: the player's centre within this of the walker's
+export const SHOOT_EVERY = 90; // ticks between shots (3 s)
+/** Area x (px) of the two portal arrival spots a level is entered at. */
+export const ARRIVALS = [16, 330];
+/** Half a walker's width in px: its patrol centre is `left` tiles plus this. */
+const WALKER_HALF = 10;
+/** Whether a walker standing at `left` (tiles) in a level of `difficulty` may shoot. */
+export function walkerShoots(left, difficulty) {
+  if (difficulty < 2) return false;
+  const centre = left * TILE + WALKER_HALF;
+  // like spitters: out of range of both portal arrival spots
+  return ARRIVALS.every((x) => Math.abs(centre - x) > SHOOT_MAX);
+}
+/** A story level's difficulty from LEVELS, or 1 for a hand-made level LEVELS doesn't list. */
+export function storyDifficulty(areaId) {
+  return LEVELS.find((l) => l.id === areaId)?.difficulty ?? 1;
+}
+
 export const WALKERS = ["pig", "slime", "chameleon", "beetle"];
 export const ALL_ENEMIES = [...WALKERS, "bat", "spitter"];
 export const POWERUPS = ["heart", "shield", "triple", "wings"];
@@ -791,6 +812,11 @@ function buildLevelOnce(input, seed, dropped) {
     walking[Math.floor(rng() * walking.length)].type = pick(rng, others);
     if (walking.length > 3) walking[0].type = pick(rng, others);
   }
+
+  // Walkers far enough from the portals may shoot (a flag: no random numbers drawn).
+  enemies.forEach((en) => {
+    if (kindOf(en.type) === "walker" && walkerShoots(en.left, level.difficulty)) en.shoots = true;
+  });
 
   // Power-ups on top of floating platforms with no enemy on them.
   const powerups = [];

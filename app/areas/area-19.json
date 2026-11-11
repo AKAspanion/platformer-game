@@ -196,7 +196,8 @@
       "left": 10.85,
       "top": 6,
       "sway": 12,
-      "dir": 1
+      "dir": 1,
+      "shoots": true
     },
     {
       "id": "A19E02",

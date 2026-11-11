@@ -17,6 +17,8 @@ export const COIN_SCORE = 20;
 export const ENEMY_MAX_SCORE = 200;
 /** A heart picked up at full health gives this bonus (app/game/world.js): the most a power-up gives. */
 export const FULL_HEART_BONUS = 100;
+/** The highest score multiplier the combo meter reaches (spec 1.3). */
+export const COMBO_MAX = 4;
 /** Area ids the ceiling's levels are generated under; any base gives the same counts. */
 const CEILING_ID_BASE = 3000;
 const DAY_MS = 86400000;
@@ -31,17 +33,17 @@ export function dailyLevels(seed) {
 }
 
 /**
- * The highest score the seed's levels can give: 20 per coin plus the highest
- * enemy score per enemy, plus the full-health heart bonus per power-up (a
- * player may bank it). The daily levels have no boss arena.
+ * The highest score the seed's levels can give: COMBO_MAX times (20 per coin
+ * plus the highest enemy score per enemy), plus the full-health heart bonus
+ * per power-up (a player may bank it; the combo doesn't multiply it). The
+ * daily levels have no boss arena.
  */
 export function dailyScoreCeiling(seed) {
   const areas = generateSequence({ idBase: CEILING_ID_BASE, seed, levels: dailyLevels(seed) });
   return areas.reduce(
     (sum, area) =>
       sum +
-      area.coins.length * COIN_SCORE +
-      area.enemies.length * ENEMY_MAX_SCORE +
+      COMBO_MAX * (area.coins.length * COIN_SCORE + area.enemies.length * ENEMY_MAX_SCORE) +
       (area.powerups || []).length * FULL_HEART_BONUS,
     0,
   );

@@ -217,7 +217,8 @@
       "left": 11.85,
       "top": 5,
       "sway": 12,
-      "dir": 1
+      "dir": 1,
+      "shoots": true
     },
     {
       "id": "A22E03",
@@ -233,7 +234,8 @@
       "left": 11.85,
       "top": 2,
       "sway": 12,
-      "dir": 1
+      "dir": 1,
+      "shoots": true
     },
     {
       "id": "A22E05",

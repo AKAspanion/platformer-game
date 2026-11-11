@@ -7,7 +7,7 @@
  * Copied to functions/shared/ by scripts/sync-functions-shared.js.
  */
 import { generateEndlessLevel } from "../pcg/generator.js";
-import { COIN_SCORE, ENEMY_MAX_SCORE, FULL_HEART_BONUS } from "../daily/rules.js";
+import { COIN_SCORE, COMBO_MAX, ENEMY_MAX_SCORE, FULL_HEART_BONUS } from "../daily/rules.js";
 
 /** The lowest level a run is ranked at (reaching level 1 is just starting). */
 export const MIN_LEVEL = 2;
@@ -26,8 +26,8 @@ const LEVEL_SEED_STEP = 7919;
 /**
  * The most a run can score through levels 1..level of this endless seed: it
  * regenerates the levels the way createEndlessSession builds them (each
- * level's entry height follows the previous exit), then counts 20 per coin,
- * the highest enemy score per enemy and the full-health heart bonus per
+ * level's entry height follows the previous exit), then counts COMBO_MAX times (20 per coin
+ * plus the highest enemy score per enemy) and the full-health heart bonus per
  * power-up.
  */
 export function endlessScoreCeiling(seed, level) {
@@ -42,8 +42,7 @@ export function endlessScoreCeiling(seed, level) {
     });
     prevExit = exit;
     total +=
-      data.coins.length * COIN_SCORE +
-      data.enemies.length * ENEMY_MAX_SCORE +
+      COMBO_MAX * (data.coins.length * COIN_SCORE + data.enemies.length * ENEMY_MAX_SCORE) +
       (data.powerups || []).length * FULL_HEART_BONUS;
   }
   return total;
