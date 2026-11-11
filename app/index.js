@@ -1592,7 +1592,10 @@ window.addEventListener("load", function () {
   const previewCanvas = $("shopPreview");
   let shopSlot = "skin";
   let shopPick = { ...FREE }; // the item of each slot the preview shows
-  const preview = { dino: null, fire: null, tinted: new Map() };
+  const preview = { dino: [], fire: null, tinted: new Map(), index: 0, timer: null };
+  const IDLE_FRAMES = 10;
+  // the game's idle delay is 4 ticks (a frame every 5 ticks of 1/30 s)
+  const IDLE_MS = (5 * 1000) / 30;
   const num = (n) => n.toLocaleString("en-US");
 
   const loadSprite = (src) => {
@@ -1602,12 +1605,17 @@ window.addEventListener("load", function () {
     return image;
   };
 
-  // a sprite in its colours, once it has loaded
+  // a sprite in its colours, once it has loaded (tinted once per colour, then kept)
+  const spriteReady = (image) => image && image.complete && image.naturalWidth;
   const tinted = (image, key, palette) => {
-    if (!image || !image.complete || !image.naturalWidth) return null;
+    if (!spriteReady(image)) return null;
     if (!palette || !palette.length) return image;
     if (!preview.tinted.has(key)) preview.tinted.set(key, tintFrames([image], palette)[0]);
     return preview.tinted.get(key);
+  };
+  const idleFrame = (skin) => {
+    const image = preview.dino[preview.index % IDLE_FRAMES];
+    return tinted(image, `skin:${skin}:${preview.index % IDLE_FRAMES}`, SKIN_PALETTES[skin]);
   };
 
   /** The dino with the picked skin, hat and fireball: drawn like the game draws it. */
@@ -1615,7 +1623,7 @@ window.addEventListener("load", function () {
     const ctx = previewCanvas.getContext("2d");
     ctx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
     ctx.imageSmoothingEnabled = false;
-    const dino = tinted(preview.dino, `skin:${shopPick.skin}`, SKIN_PALETTES[shopPick.skin]);
+    const dino = idleFrame(shopPick.skin);
     const fire = tinted(
       preview.fire,
       `fireball:${shopPick.fireball}`,
@@ -1628,8 +1636,7 @@ window.addEventListener("load", function () {
     ctx.scale(2.8, 2.8);
     if (dino) ctx.drawImage(dino, -18, -35, 60, 40);
     const hat = hatImage(shopPick.hat);
-    if (hat && !hat.complete) hat.addEventListener("load", drawPreview, { once: true });
-    else if (hat && hat.naturalWidth) drawHat(ctx, hat, 1, dino);
+    if (hat && hat.naturalWidth) drawHat(ctx, hat, 1, dino);
     if (fire) {
       const ratio = (fire.naturalWidth || fire.width) / (fire.naturalHeight || fire.height) || 1;
       ctx.drawImage(fire, 8, -20, 14 * ratio, 14); // its visible tip just past the snout
@@ -1706,16 +1713,26 @@ window.addEventListener("load", function () {
     };
   });
   const openShop = () => {
-    if (!preview.dino) {
-      preview.dino = loadSprite("./assets/sprites/player/right/Idle (1).webp");
+    if (!preview.dino.length) {
+      for (let i = 1; i <= IDLE_FRAMES; i++) {
+        preview.dino.push(loadSprite(`./assets/sprites/player/right/Idle (${i}).webp`));
+      }
       preview.fire = loadSprite("./assets/sprites/fireball/right/image 1.webp");
     }
     shopPick = { ...FREE, ...wallet.worn() }; // opens on what is worn now
     renderShop();
     show(shopScreen, true);
+    // breathe at the game's idle rate while the shop is open
+    clearInterval(preview.timer);
+    preview.timer = setInterval(() => {
+      preview.index = (preview.index + 1) % IDLE_FRAMES;
+      drawPreview();
+    }, IDLE_MS);
   };
   $("shopBtn").onclick = openShop;
   $("shopCloseBtn").onclick = () => {
+    clearInterval(preview.timer);
+    preview.timer = null;
     show(shopScreen, false);
     refreshHome();
   };
