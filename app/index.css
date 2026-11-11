@@ -644,6 +644,7 @@ canvas {
 }
 
 #leaderboardsBtn,
+#questsBtn,
 #settingsBtn,
 #helpBtn,
 #infoBtn {
@@ -653,6 +654,10 @@ canvas {
 }
 #leaderboardsBtn {
   background: url(images/leaderboards_btn.webp) center center / var(--small-btn-size) no-repeat;
+}
+#questsBtn {
+  position: relative;
+  background: url(images/quests_btn.webp) center center / var(--small-btn-size) no-repeat;
 }
 #settingsBtn {
   background: url(images/settings_btn.webp) center center / var(--small-btn-size) no-repeat;
@@ -2092,6 +2097,7 @@ canvas {
     font-size: 13px;
   }
   #leaderboardsBtn,
+  #questsBtn,
   #settingsBtn,
   #helpBtn,
   #infoBtn {
@@ -2130,12 +2136,32 @@ canvas {
 
 /* ------------------------------------------------ quests, nest and the hatch card */
 
-.home-cards {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+/* a count on the corner of an icon; it sits inside the icon row's gap, never past the footer */
+.badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  box-sizing: border-box;
+  border-radius: 9px;
+  background: var(--gold);
+  color: #1d1a24;
+  font-size: 12px;
+  font-weight: bold;
+  line-height: 18px;
+  text-align: center;
+  pointer-events: none;
+}
+.badge[hidden] {
+  display: none;
+}
+
+.quests-body {
+  display: flex;
+  flex-direction: column;
   gap: 12px;
-  width: min(720px, 100%);
-  margin: 12px 0;
 }
 .home-card {
   min-width: 0;
@@ -2229,69 +2255,4 @@ canvas {
 }
 #hatchTitle {
   font-size: clamp(20px, 4vmin, 30px);
-}
-
-@media (max-width: 560px) {
-  .home-cards {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-/* A landscape phone: the cards stand in a column beside the title, play and modes. */
-@media (max-height: 499px) and (min-width: 560px) {
-  .home-screen {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(210px, 38%);
-    grid-template-rows: auto minmax(0, 1fr) auto;
-    column-gap: 12px;
-    align-items: stretch;
-    justify-items: center;
-  }
-  .home-hero {
-    grid-column: 1;
-    grid-row: 1;
-  }
-  .home-main {
-    grid-column: 1;
-    grid-row: 2;
-    align-self: center;
-    width: 100%;
-  }
-  .home-footer {
-    grid-column: 1;
-    grid-row: 3;
-  }
-  .home-cards {
-    grid-column: 2;
-    grid-row: 1 / 4;
-    grid-template-columns: minmax(0, 1fr);
-    align-content: center;
-    gap: 5px;
-    width: 100%;
-    margin: 0;
-  }
-  /* the four mode cards stay in one row (they sit two to a row only under 561 px) */
-  .mode-grid {
-    gap: 6px;
-  }
-  .mode-card {
-    padding: 4px 2px;
-  }
-  .home-card {
-    padding: 5px 10px;
-  }
-  .card-title {
-    margin-bottom: 3px;
-    font-size: 13px;
-  }
-  .quest-list,
-  .nest-list {
-    gap: 3px;
-  }
-  .quest-text {
-    font-size: 12px;
-  }
-  .nest-row {
-    font-size: 12px;
-  }
 }

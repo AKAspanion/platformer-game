@@ -6,7 +6,7 @@ a red squircle with white, bold, rounded glyphs.
 
 The blank button is the existing pause button with its glyph painted out, so
 the shape and shading match exactly. Glyphs are drawn at 4x and scaled down
-for smooth edges. Writes app/images/{settings,levels,daily,endless,create,leaderboards}_btn.webp.
+for smooth edges. Writes app/images/{settings,levels,daily,endless,create,leaderboards,quests}_btn.webp.
 """
 
 import math
@@ -128,6 +128,18 @@ def leaderboards(d, s):
     d.rounded_rectangle((s(56), s(94), s(96), s(108)), radius=s(4), fill=WHITE)
 
 
+def quests(d, s):
+    # checklist: a clipboard page with three rows, each a check box and a line
+    d.rounded_rectangle((s(44), s(38), s(108), s(114)), radius=s(10), fill=WHITE)
+    d.rounded_rectangle((s(60), s(30), s(92), s(46)), radius=s(6), fill=WHITE)
+    d.rounded_rectangle((s(66), s(35), s(86), s(41)), radius=s(3), fill=RED)
+    for i, y in enumerate((58, 76, 94)):
+        d.rounded_rectangle((s(52), s(y), s(64), s(y + 12)), radius=s(3), outline=RED, width=s(3))
+        d.rounded_rectangle((s(70), s(y + 3), s(100), s(y + 9)), radius=s(3), fill=RED)
+        if i == 0:
+            d.line([(s(54), s(y + 6)), (s(58), s(y + 10)), (s(67), s(y - 2))], fill=RED, width=s(4), joint="curve")
+
+
 ICONS = {
     "settings": settings,
     "levels": levels,
@@ -135,6 +147,7 @@ ICONS = {
     "endless": endless,
     "create": create,
     "leaderboards": leaderboards,
+    "quests": quests,
 }
 
 
