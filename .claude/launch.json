@@ -1,0 +1,65 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "game",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "cd \"/Users/ankitkumarpandit/Documents/stuff/projects/platformer-game\" && PATH=/opt/homebrew/Cellar/node/26.12.1_1/bin:$PATH pnpm dev --no-open"
+      ],
+      "port": 2108
+    },
+    {
+      "name": "game-firebase",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "cd \"/Users/ankitkumarpandit/Documents/stuff/projects/platformer-game/.claude/worktrees/gameplay-enhancements-playstore-2139c5\" && npx webpack serve --no-open --port 2109"
+      ],
+      "port": 2109
+    },
+    {
+      "name": "emulators",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "cd \"/Users/ankitkumarpandit/Documents/stuff/projects/platformer-game/.claude/worktrees/gameplay-enhancements-playstore-2139c5\" && npx firebase emulators:start --project dinos-adventure"
+      ],
+      "port": 4005
+    },
+    {
+      "name": "auth-emulator",
+      "url": "http://localhost:9099",
+      "port": 9099
+    },
+    {
+      "name": "firestore-emulator",
+      "url": "http://localhost:8085",
+      "port": 8085
+    },
+    {
+      "name": "functions-emulator",
+      "url": "http://localhost:5001",
+      "port": 5001
+    },
+    {
+      "name": "emulators-here",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "cd \"/Users/ankitkumarpandit/Documents/stuff/projects/platformer-game\" && PATH=/Users/ankitkumarpandit/.nvm/versions/node/v24.14.1/bin:$PATH node scripts/sync-functions-shared.js && PATH=/Users/ankitkumarpandit/.nvm/versions/node/v24.14.1/bin:$PATH firebase emulators:start --only auth,firestore,functions --project dinos-adventure"
+      ],
+      "port": 4005
+    },
+    {
+      "name": "game-here",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "cd \"/Users/ankitkumarpandit/Documents/stuff/projects/platformer-game\" && PATH=/opt/homebrew/Cellar/node/26.12.1_1/bin:$PATH pnpm exec webpack serve --no-open --port 2110"
+      ],
+      "port": 2110
+    }
+  ]
+}
