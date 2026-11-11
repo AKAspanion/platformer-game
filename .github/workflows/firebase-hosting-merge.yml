@@ -38,7 +38,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
 
       - uses: actions/setup-node@v7
         with:
@@ -68,7 +68,7 @@ jobs:
           REQUIRE_FIREBASE_ENV: "1"
         run: pnpm build
 
-      - uses: google-github-actions/auth@v3
+      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DINOS_ADVENTURE }}
 

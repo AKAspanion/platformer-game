@@ -1,6 +1,8 @@
 # Weekly dependency updates, grouped so each ecosystem opens one PR for minor
 # and patch bumps. Majors arrive one PR each. Security updates are separate
 # and immediate once Dependabot security updates are enabled for the repo.
+# Third-party Actions are pinned to commit SHAs (with the version in a comment);
+# Dependabot updates the SHA and the comment together.
 version: 2
 updates:
   - package-ecosystem: npm
