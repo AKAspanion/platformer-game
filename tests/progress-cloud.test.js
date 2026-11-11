@@ -262,7 +262,7 @@ test("stop during a pull: the late answer is ignored", async () => {
 
 test("the Firestore rules limit saves/{uid} to its own account and its three keys", () => {
   const rules = fs.readFileSync(path.join(process.cwd(), "firestore.rules"), "utf8");
-  const block = rules.match(/match \/saves\/\{uid\} \{([\s\S]*?)\n    \}/);
+  const block = rules.match(/match \/saves\/\{uid\} \{([\s\S]*?)\n {4}\}/);
   assert.ok(block, "saves/{uid} block exists");
   const body = block[1];
   assert.match(body, /allow read: if request\.auth != null && request\.auth\.uid == uid;/);

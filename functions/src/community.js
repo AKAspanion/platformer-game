@@ -16,10 +16,11 @@
  * Firestore layout (firestore.rules keeps clients out of all of it):
  *   worldStats/{id}                { plays, finishes, likes, trend, updatedAt }
  *   worldStats/{id}/days/{day}     { plays, finishes, likes }
- *   worldStats/{id}/seen/{uid_day_kind}   dedupe marker
+ *   worldStats/{id}/seen/{uid_day_kind}   dedupe marker { at, uid, expireAt }; a
+ *                                  Firestore TTL policy deletes it after expireAt
  *   worldLikes/{worldId}_{uid}     { worldId, uid, at }
  */
-import { ApiError, signedIn } from "./handlers.js";
+import { ApiError, signedIn, realAccount } from "./handlers.js";
 import {
   dayKey,
   trendAfterPlay,
@@ -33,6 +34,8 @@ import {
 } from "../shared/worlds/community.js";
 
 const DAY_MS = 86400000;
+/** A play marker only dedupes its own day; kept a little longer, then TTL deletes it. */
+export const SEEN_TTL_MS = 3 * DAY_MS;
 
 /** The world id from a request: a valid, shareable (not built-in) id, or invalid-argument. */
 function worldIdOf(data) {
@@ -77,16 +80,20 @@ export async function handleRecordPlay({ auth, data }, { stats, limiter, now = D
     if (kind === "play") next.trend = trendAfterPlay(total ? total.trend : null, at);
     const dayNext = { plays: 0, finishes: 0, likes: 0, ...bucket };
     dayNext[field] = num(dayNext[field]) + 1;
-    tx.set(seenPath, { at });
+    tx.set(seenPath, { at, uid: user.uid, expireAt: new Date(at + SEEN_TTL_MS) });
     tx.set(dayPath, dayNext);
     tx.set(base, next);
     return { counted: true };
   });
 }
 
-/** Like, or take the like back: one per account per world. */
+/**
+ * Like, or take the like back: one per account per world. Likes pick the world
+ * of the week, so only real, verified accounts give them: anonymous players
+ * (free to make in a loop) can't.
+ */
 export async function handleToggleLike({ auth, data }, { stats, worlds, limiter, now = Date.now }) {
-  const user = signedIn(auth);
+  const user = realAccount(signedIn(auth), "like worlds");
   const worldId = worldIdOf(data);
   if (await limiter(user.uid, "like", LIKE_LIMIT)) {
     throw new ApiError("resource-exhausted", "Slow down a little, try again in a minute.");
