@@ -180,7 +180,11 @@ export function checkThumb(base64) {
 // ------------------------------------------------------------------------ page
 
 const escapeHtml = (text) =>
-  String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 
 /** "/w/<id>" -> { id, thumb: false }, "/w/<id>/thumb.png" -> { id, thumb: true }, else null. */
 export function parseWorldPath(pathname) {
@@ -236,4 +240,33 @@ export function renderWorldPage(world, { hasThumb, origin }) {
     `<body><main><h1>${escapeHtml(world.name)}</h1><p>${description}</p>` +
     `<p><a href="${target}">Play it now</a></p></main></body></html>`;
   return { status: 200, html };
+}
+
+/**
+ * Answers a request for /w/<id> or /w/<id>/thumb.png.
+ * `getWorld(id)` -> the sanitized world or null; `getThumb(id)` -> the PNG as a
+ * Buffer or null (a plain read of the thumbs doc: at most MAX_THUMB_BYTES).
+ * Returns { status, type, body, cacheControl }; a failed read throws.
+ */
+export async function handleWorldPage(path, method, { getWorld, getThumb, origin }) {
+  const gone = () => {
+    const page = renderWorldPage(null, { hasThumb: false, origin });
+    return {
+      status: page.status,
+      type: "html",
+      body: page.html,
+      cacheControl: "public, max-age=60",
+    };
+  };
+  const route = method === "GET" || method === "HEAD" ? parseWorldPath(path) : null;
+  if (!route) return gone();
+  if (route.thumb) {
+    const png = await getThumb(route.id);
+    if (!png || !png.length) return gone();
+    return { status: 200, type: "png", body: png, cacheControl: "public, max-age=3600" };
+  }
+  const [world, thumb] = await Promise.all([getWorld(route.id), getThumb(route.id)]);
+  const page = renderWorldPage(world, { hasThumb: Boolean(thumb && thumb.length), origin });
+  if (page.status !== 200) return gone();
+  return { status: 200, type: "html", body: page.html, cacheControl: "public, max-age=300" };
 }

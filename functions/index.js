@@ -43,8 +43,7 @@ import {
   handleRecordPlay,
   handleToggleLike,
   handlePickFeatured,
-  renderWorldPage,
-  parseWorldPath,
+  handleWorldPage,
 } from "./src/community.js";
 import { sanitizeWorld } from "./shared/spec.js";
 import { worldLink } from "./shared/worlds/community.js";
@@ -245,10 +244,9 @@ const stats = {
   async top(limit) {
     const snap = await db.collection("worldStats").orderBy("trend", "desc").limit(limit).get();
     if (snap.empty) return [];
-    const worlds = await db.getAll(
-      ...snap.docs.map((d) => db.collection("worlds").doc(d.id)),
-      { fieldMask: ["createdAt"] },
-    );
+    const worlds = await db.getAll(...snap.docs.map((d) => db.collection("worlds").doc(d.id)), {
+      fieldMask: ["createdAt"],
+    });
     return worlds.filter((w) => w.exists).map((w) => ({ id: w.id, createdAt: w.get("createdAt") }));
   },
   async daysOf(id, sinceDay) {
@@ -298,28 +296,19 @@ const ORIGIN = new URL(worldLink("x")).origin;
 
 /** /w/<id> (link previews, then into the game) and /w/<id>/thumb.png. */
 export const worldPage = onRequest({ timeoutSeconds: 15 }, async (req, res) => {
-  const notFound = () => {
-    const page = renderWorldPage(null, { hasThumb: false, origin: ORIGIN });
-    res.status(page.status).set("Cache-Control", "public, max-age=60").type("html").send(page.html);
-  };
-  const route = req.method === "GET" || req.method === "HEAD" ? parseWorldPath(req.path) : null;
-  if (!route) return notFound();
   try {
-    if (route.thumb) {
-      const snap = await db.collection("thumbs").doc(route.id).get();
-      const png = snap.exists ? Buffer.from(String(snap.get("png")), "base64") : null;
-      if (!png || !png.length) return notFound();
-      res.set("Cache-Control", "public, max-age=3600").type("png").send(png);
-      return;
-    }
-    const [worldSnap, thumbSnap] = await Promise.all([
-      db.collection("worlds").doc(route.id).get(),
-      db.collection("thumbs").doc(route.id).select("bytes").get(),
-    ]);
-    const world = worldSnap.exists ? sanitizeWorld(worldSnap.data()) : null;
-    const page = renderWorldPage(world, { hasThumb: thumbSnap.exists, origin: ORIGIN });
-    if (page.status !== 200) return notFound();
-    res.set("Cache-Control", "public, max-age=300").type("html").send(page.html);
+    const page = await handleWorldPage(req.path, req.method, {
+      origin: ORIGIN,
+      async getWorld(id) {
+        const snap = await db.collection("worlds").doc(id).get();
+        return snap.exists ? sanitizeWorld(snap.data()) : null;
+      },
+      async getThumb(id) {
+        const snap = await db.collection("thumbs").doc(id).get();
+        return snap.exists ? Buffer.from(String(snap.get("png")), "base64") : null;
+      },
+    });
+    res.status(page.status).set("Cache-Control", page.cacheControl).type(page.type).send(page.body);
   } catch (error) {
     logger.error(error);
     res.status(500).type("text").send("Something went wrong.");

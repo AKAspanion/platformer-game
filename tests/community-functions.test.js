@@ -8,6 +8,7 @@ import {
   renderWorldPage,
   checkThumb,
   parseWorldPath,
+  handleWorldPage,
 } from "../functions/src/community.js";
 import { handlePublish, overLimit } from "../functions/src/handlers.js";
 import { dayKey, trendAfterPlay, PLAY_LIMIT, LIKE_LIMIT } from "../app/worlds/community";
@@ -251,7 +252,10 @@ test("handlePickFeatured: last week's world is not picked twice in a row", async
 
 test("handlePickFeatured: a world pinned by hand wins until the field is cleared", async () => {
   const f = featuredFixture({ worldId: "wpin", current: "wb" });
-  assert.equal(await handlePickFeatured({ stats: f.stats, config: f.config, now: () => T }), "wpin");
+  assert.equal(
+    await handlePickFeatured({ stats: f.stats, config: f.config, now: () => T }),
+    "wpin",
+  );
   assert.deepEqual(f.written, [{ current: "wpin", lastWeek: "wb", pickedAt: T }]);
 });
 
@@ -366,5 +370,52 @@ test("publishWorld: keeps a valid thumbnail beside the world, drops a bad one", 
   assert.deepEqual(
     saved.slice(1).map((s) => s.thumb),
     bads.map(() => null),
+  );
+});
+
+test("handleWorldPage: 200 with the thumb, 200 without, 404s, the PNG, and a POST", async () => {
+  const origin = "https://dino.spanion.in";
+  const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 1, 2, 3]);
+  const world = aWorld();
+  const deps = (thumb) => ({
+    origin,
+    getWorld: async (id) => (id === world.id ? world : null),
+    getThumb: async (id) => (id === world.id ? thumb : null),
+  });
+  const withThumb = await handleWorldPage(`/w/${world.id}`, "GET", deps(png));
+  assert.equal(withThumb.status, 200);
+  assert.equal(withThumb.type, "html");
+  assert.match(withThumb.body, new RegExp(`og:image" content="${origin}/w/${world.id}/thumb.png"`));
+
+  const plain = await handleWorldPage(`/w/${world.id}`, "GET", deps(null));
+  assert.equal(plain.status, 200);
+  assert.match(
+    plain.body,
+    /og:image" content="https:\/\/dino\.spanion\.in\/images\/icons-512\.png"/,
+  );
+
+  const missing = await handleWorldPage("/w/wnope1", "GET", deps(png));
+  assert.equal(missing.status, 404);
+  assert.match(missing.body, /href="https:\/\/dino\.spanion\.in\/"/);
+
+  const image = await handleWorldPage(`/w/${world.id}/thumb.png`, "GET", deps(png));
+  assert.equal(image.status, 200);
+  assert.equal(image.type, "png");
+  assert.deepEqual(image.body, png);
+
+  assert.equal((await handleWorldPage(`/w/${world.id}/thumb.png`, "GET", deps(null))).status, 404);
+  assert.equal((await handleWorldPage(`/w/${world.id}`, "POST", deps(png))).status, 404);
+});
+
+test("handleWorldPage: a failed read throws for the adapter to answer 500", async () => {
+  await assert.rejects(
+    handleWorldPage("/w/wabcd1", "GET", {
+      origin: "https://dino.spanion.in",
+      getWorld: async () => {
+        throw new Error("down");
+      },
+      getThumb: async () => null,
+    }),
+    /down/,
   );
 });
