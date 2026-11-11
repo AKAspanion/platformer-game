@@ -9,6 +9,15 @@
       ]
     },
     {
+      "collectionGroup": "endless",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "level", "order": "DESCENDING" },
+        { "fieldPath": "score", "order": "DESCENDING" },
+        { "fieldPath": "seconds", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "scores",
       "queryScope": "COLLECTION",
       "fields": [

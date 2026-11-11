@@ -7,6 +7,10 @@ import World from "../app/game/world";
 import { enemyTypes } from "../app/game/enemies";
 import { tick, mulberry32, TILE } from "./helpers";
 import * as generator from "../app/pcg/generator";
+import { dailyLevels } from "../app/daily/rules";
+import { buildWorld } from "../app/gen";
+import { starterWorlds } from "../app/worlds/repository";
+import { starfallWorld } from "../app/modes/secret";
 
 const playable = LEVELS.map(({ id }) => id);
 const name = (id) => (LEVELS.find((l) => l.id === id) || { name: `area ${id}` }).name;
@@ -281,4 +285,81 @@ test("campaign: 5 worlds of 6 levels, level 6 is the boss, one chain to the fini
   assert.equal(back(LEVELS[0].id), null, "nothing left of Grassland 1");
   assert.equal(areas[LEVELS.find((l) => l.name === "Graveyard 1").id].theme, "dungeon");
   assert.ok(areas[LEVELS.find((l) => l.name === "Factory 1").id].backdrop, "factory back wall");
+});
+
+// ---- every platform reachable ----
+
+const {
+  unreachablePlatforms,
+  unreachableInArea,
+  validate,
+  generateSequence,
+  generateEndlessLevel,
+} = generator;
+const strandedIn = (list) =>
+  list.flatMap((data) => unreachableInArea(data).map((s) => `area ${data.id} ${s.col},${s.row}`));
+
+test("unreachablePlatforms finds a platform far above anything reachable; validate names it", () => {
+  const heights = Array(21).fill(9);
+  const level = { heights, platforms: [[3, 8, 10]], traps: [], data: { coins: [], powerups: [] } };
+  assert.ok(unreachablePlatforms(level).length > 0, "the platform 6 rows up is flagged");
+  assert.equal(validate(level), "platform 8,3 unreachable");
+  // steps in between make the climb possible
+  const stepped = {
+    ...level,
+    platforms: [
+      [7, 8, 10],
+      [5, 8, 10],
+      [3, 8, 10],
+    ],
+  };
+  assert.deepEqual(unreachablePlatforms(stepped), []);
+  assert.equal(validate(stepped), null);
+});
+
+test("generated levels never keep a platform the dino can't reach; repaired levels stay valid", () => {
+  let valid = 0;
+  for (let seed = 1; seed <= 150; seed++) {
+    const level = {
+      id: 1,
+      theme: "desert",
+      difficulty: 1 + (seed % 5),
+      seed,
+      entryHeight: 9,
+      exitHeight: 9,
+      prev: { area: null, x: 330, y: 0 },
+      next: { area: 2, x: 16, y: 9 * 16 - 8 },
+    };
+    const result = generator.buildLevel(level, seed);
+    assert.deepEqual(unreachablePlatforms(result), [], `seed ${seed}`);
+    const error = validate(result);
+    if (error) assert.ok(!/platform/.test(error), `seed ${seed}: ${error}`);
+    else valid++;
+  }
+  assert.ok(valid > 0);
+});
+
+test("campaign areas, hand-made and generated, have no unreachable platform", () => {
+  assert.deepEqual(strandedIn(playable.map((id) => areas[id])), []);
+});
+
+test("daily, endless, starter worlds and Starfall Peaks have no unreachable platform", () => {
+  const all = [];
+  for (let seed = 20261101; seed < 20261131; seed++) {
+    all.push(...generateSequence({ idBase: 3000, seed, levels: dailyLevels(seed) }));
+  }
+  for (const seed of [1, 42, 777, 20261111, 987654321]) {
+    let prevExit = 9;
+    for (let index = 0; index < 30; index++) {
+      const id = 5000 + index;
+      const out = generateEndlessLevel({ id, seed: seed + index * 7919, index, prevExit });
+      prevExit = out.exit;
+      all.push(out.data);
+    }
+  }
+  for (const world of [...starterWorlds(), starfallWorld()]) {
+    const assets = buildWorld(world, { audio: false });
+    all.push(...generateSequence({ idBase: 4000, seed: assets.seed, levels: assets.levels }));
+  }
+  assert.deepEqual(strandedIn(all), []);
 });

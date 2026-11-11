@@ -15,8 +15,8 @@ export const MAX_SECONDS = 7200;
 export const COIN_SCORE = 20;
 /** The most one enemy gives: the beetle's `score` in app/game/enemies.js (tests keep them equal). */
 export const ENEMY_MAX_SCORE = 200;
-/** A heart picked up at full health gives this bonus (app/game/world.js). */
-const FULL_HEART_BONUS = 100;
+/** A heart picked up at full health gives this bonus (app/game/world.js): the most a power-up gives. */
+export const FULL_HEART_BONUS = 100;
 /** Area ids the ceiling's levels are generated under; any base gives the same counts. */
 const CEILING_ID_BASE = 3000;
 const DAY_MS = 86400000;

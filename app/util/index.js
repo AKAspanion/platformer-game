@@ -69,25 +69,6 @@ export const preLoadAndFetch = () => {
       append(`./assets/sprites/coin/image ${index}.webp`, rel);
     }
   });
-
-  const audioFiles = [
-    { rel: "preload", file: "grasslands" },
-    { rel: "preload", file: "coin", ext: "wav" },
-    { rel: "preload", file: "jump", ext: "wav" },
-    { rel: "preload", file: "fall", ext: "mp3" },
-    { rel: "preload", file: "iceland" },
-    { rel: "preload", file: "desert" },
-    { rel: "preload", file: "dungeon" },
-  ];
-
-  audioFiles.forEach(({ rel, file, ext = "mp3" }) => {
-    if (rel === "preload") {
-      const audio = new Audio();
-      audio.url = `./assets/audio/${file}.${ext}`;
-    } else {
-      append(`./assets/audio/${file}.${ext}`, rel, "audio");
-    }
-  });
 };
 
 // Campaign levels in play order: 5 worlds x 6 levels, level 6 is the boss.
@@ -340,7 +321,7 @@ export const populateHelp = () => {
     const row = document.createElement("div");
     row.className = "flex-item help-item";
     const img = document.createElement("img");
-    img.src = `./assets/sprites/${icon}`;
+    img.dataset.src = `./assets/sprites/${icon}`; // requested when Help opens
     img.alt = "";
     row.appendChild(img);
     row.appendChild(document.createTextNode(text));
@@ -392,4 +373,12 @@ export const populateHelp = () => {
   });
 
   helpWrapper.appendChild(tipsSection);
+};
+
+/** Starts downloading the Help tips' icons; called when the Help screen opens. */
+export const loadHelpIcons = () => {
+  document.querySelectorAll("#helpWrapper img[data-src]").forEach((img) => {
+    img.src = img.dataset.src;
+    delete img.dataset.src;
+  });
 };

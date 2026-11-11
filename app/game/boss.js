@@ -90,10 +90,33 @@ const DEATH_FRAMES = 8;
 const frames = {};
 const loader = { assetCount: 0, loadCount: 0 };
 
+const drawn = new Set(); // bosses drawn in code (see registerBoss): no files
+
+/** [frame set, url] for each sprite file of one built-in boss. */
+const bossFiles = (kind) => {
+  const root = `./assets/sprites/enemies`;
+  const { base } = BOSSES[kind];
+  const files = [];
+  ["left", "right"].forEach((side) => {
+    for (let i = 1; i <= 4; i++) {
+      files.push([`walk-${side}`, `${root}/boss/${kind}/${side}/image_part_0${i}.png`]);
+      files.push([`attack-${side}`, `${root}/boss/${kind}/attack/${side}/image_part_0${i}.png`]);
+    }
+    for (let i = 1; i <= DEATH_FRAMES; i++) {
+      files.push([`dead-${side}`, `${root}/${base}/dead/${side}/image_part_0${i}.png`]);
+    }
+  });
+  return files;
+};
+
+/** Every sprite url a boss needs (none for one drawn in code). */
+export const bossImages = (kind) =>
+  BOSSES[kind] && !drawn.has(kind) ? bossFiles(kind).map(([, src]) => src) : [];
+
 const load = (kind) => {
   if (frames[kind]) return frames[kind];
   const set = (frames[kind] = {});
-  const add = (key, src) => {
+  bossFiles(kind).forEach(([key, src]) => {
     const image = new Image();
     image.onload = image.onerror = () => {
       loader.loadCount += 1;
@@ -101,17 +124,6 @@ const load = (kind) => {
     image.src = src;
     (set[key] = set[key] || []).push(image);
     loader.assetCount += 1;
-  };
-  const root = `./assets/sprites/enemies`;
-  const { base } = BOSSES[kind];
-  ["left", "right"].forEach((side) => {
-    for (let i = 1; i <= 4; i++) {
-      add(`walk-${side}`, `${root}/boss/${kind}/${side}/image_part_0${i}.png`);
-      add(`attack-${side}`, `${root}/boss/${kind}/attack/${side}/image_part_0${i}.png`);
-    }
-    for (let i = 1; i <= DEATH_FRAMES; i++) {
-      add(`dead-${side}`, `${root}/${base}/dead/${side}/image_part_0${i}.png`);
-    }
   });
   return set;
 };
@@ -124,6 +136,7 @@ const load = (kind) => {
  */
 export const registerBoss = (kind, config, set) => {
   BOSSES[kind] = config;
+  drawn.add(kind);
   frames[kind] = set;
 };
 

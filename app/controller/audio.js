@@ -1,5 +1,7 @@
 import { getData } from "../util/";
 import { audioSrc } from "../util/registry";
+const oneShots = {}; // url -> the element downloaded the first time it played
+
 export default class AudioController {
   constructor() {
     this.count = 4;
@@ -9,11 +11,19 @@ export default class AudioController {
   static play(key, ext = "wav", volume = 0.4) {
     if (getData("mute_sounds")) return;
 
-    const audio = new Audio(audioSrc(key, ext));
-    audio.volume = volume;
-    // play() rejects when the browser blocks autoplay; a missed sound is fine
-    const playing = audio.play();
-    if (playing && playing.catch) playing.catch(() => {});
+    try {
+      const src = audioSrc(key, ext);
+      // requested on first play only; later plays copy the downloaded sound
+      const base = oneShots[src];
+      const audio =
+        base && base.cloneNode ? base.cloneNode() : base || (oneShots[src] = new Audio(src));
+      audio.volume = volume;
+      // play() rejects when the browser blocks autoplay; a missed sound is fine
+      const playing = audio.play();
+      if (playing && playing.catch) playing.catch(() => {});
+    } catch (error) {
+      // no audio (blocked, or the file failed to load): the game goes on
+    }
   }
 
   play(key, ext = "wav") {

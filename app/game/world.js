@@ -3,17 +3,17 @@ import Water from "./water";
 import Player from "./player";
 import Object from "./object";
 import Portal from "./portal";
-import Enemies, { enemyTypes } from "./enemies";
+import Enemies, { enemyTypes, enemyImages } from "./enemies";
 import PowerUps from "./powerups";
 import Collider from "./collider";
 import Effects from "./effects";
 import Fireballs from "./fireballs";
-import Projectiles from "./projectiles";
-import Boss, { bossAssets } from "./boss";
+import Projectiles, { SEED_IMAGES } from "./projectiles";
+import Boss, { bossAssets, bossImages, BOSSES } from "./boss";
 import { POWERUP_TICKS } from "./player";
 import AudioController from "../controller/audio";
-import { getSkin } from "../util/registry";
-import sfx, { ENEMY_SFX, BOSS_MOVE_SFX, ALL_SFX, preloadSfx } from "../controller/sfx";
+import { getSkin, audioSrc, hasAudio } from "../util/registry";
+import sfx, { ENEMY_SFX, BOSS_MOVE_SFX } from "../controller/sfx";
 
 // particles when a projectile breaks, by kind
 const PROJECTILE_BREAK = {
@@ -32,6 +32,22 @@ const PROJECTILE_BREAK = {
 };
 
 const POWERUP_TEXT = { heart: "+1 HEART", shield: "SHIELD", triple: "TRIPLE FIRE", wings: "WINGS" };
+
+/** Enemy kinds a boss calls in: its minion, and bats for a swarm. */
+const bossMinions = (kind) => {
+  const config = BOSSES[kind];
+  if (!config) return [];
+  const flyer = config.flyMinion || (config.moves.includes("swarm") && "bat");
+  return flyer ? [config.minion, flyer] : [config.minion];
+};
+
+/** The enemy kinds, boss and seed sprites an area asks for. */
+const needsOf = (area) => {
+  const types = [...new Set((area.enemies || []).map(({ type }) => type))];
+  const boss = area.boss ? area.boss.kind : null;
+  const turret = types.some((type) => enemyTypes[type] && enemyTypes[type].kind === "turret");
+  return { types, boss, minions: boss ? bossMinions(boss) : [], seed: turret || !!boss };
+};
 
 export default class World {
   constructor(friction = 0.87, gravity = 2) {
@@ -62,7 +78,35 @@ export default class World {
     this.events = [];
 
     this.audioController = new AudioController();
-    preloadSfx(ALL_SFX);
+    // music downloads count towards the loading bar too
+    this.music = { assetCount: 0, loadCount: 0 };
+  }
+
+  /**
+   * What an area needs downloaded: { images, audio } urls. Sprites for the
+   * enemy kinds in it (and the boss, its minions, the seed sprites for what
+   * spits or lobs), and the area's music. Sound effects load on first play.
+   */
+  assetsFor(area) {
+    const { types, minions, boss, seed } = needsOf(area);
+    const images = [
+      ...enemyImages([...types, ...minions]),
+      ...(boss ? bossImages(boss) : []),
+      ...(seed ? SEED_IMAGES : []),
+    ];
+    const tracks = [area.theme, boss && `boss-${boss}`].filter(
+      (track) => track && !hasAudio(track),
+    );
+    return { images, audio: tracks.map((track) => audioSrc(track, "mp3")) };
+  }
+
+  /** Download a track (once) and note when it is in. */
+  loadTrack(track) {
+    this.audioController.load([{ file: track, ext: "mp3" }], (val) => {
+      this.loaded = val;
+      if (!val) this.music.assetCount += 1;
+      else if (this.music.loadCount < this.music.assetCount) this.music.loadCount += 1;
+    });
   }
 
   /** Swap the looping music (world theme or a boss battle theme). */
@@ -71,9 +115,7 @@ export default class World {
     this.stopThemeMusic();
     this.theme = track;
     this.playedThemeMusic = false;
-    this.audioController.load([{ file: track, ext: "mp3" }], (val) => {
-      this.loaded = val;
-    });
+    this.loadTrack(track);
   }
 
   setup(data) {
@@ -82,27 +124,12 @@ export default class World {
     const track = bossAlive ? `boss-${data.boss.kind}` : data.theme;
     this.areaTheme = data.theme;
     this.musicSwap = 0;
-    if (this.theme !== track) {
-      if (track) {
-        this.playedThemeMusic = false;
-        this.audioController.load(
-          [
-            { file: "fire", ext: "wav" },
-            { file: "coin", ext: "wav" },
-            { file: "foot", ext: "wav" },
-            { file: "jump", ext: "wav" },
-            { file: "hurt", ext: "wav" },
-            { file: "fall", ext: "mp3" },
-            { file: track, ext: "mp3" },
-          ],
-          (val) => {
-            this.loaded = val;
-          },
-        );
-
-        this.stopThemeMusic();
-        this.theme = track;
-      }
+    // music starts from update() once the level has loaded, never before
+    this.playedThemeMusic = false;
+    if (this.theme !== track && track) {
+      this.stopThemeMusic();
+      this.theme = track;
+      this.loadTrack(track);
     }
 
     this.id = data.id;
@@ -145,7 +172,10 @@ export default class World {
         maxX: this.width - 4,
         groundY: (data.boss.top + 1) * this.tileSize,
       });
+      bossMinions(data.boss.kind).forEach((type) => this.enemies.load(type));
     }
+    // what spits or lobs seeds needs those sprites (a boss may lob them too)
+    if (this.boss || needsOf(data).seed) this.projectiles.load();
     this.areaTicks = 0; // time spent in this area (stars: target time)
 
     this.portals = data.portals.map((p) => new Portal(p));
@@ -229,7 +259,8 @@ export default class World {
   }
 
   playThemeMusic() {
-    if (!this.theme) return;
+    // nothing plays while the level is still downloading (update() starts it then)
+    if (!this.theme || !this.isLoaded()) return;
 
     this.audioController.play(this.theme, "mp3");
     this.audioController.volume(this.theme, 8);
@@ -675,11 +706,11 @@ export default class World {
   }
 
   get assetCount() {
-    return this.parts.reduce((sum, part) => sum + part.assetCount, 0);
+    return this.parts.reduce((sum, part) => sum + part.assetCount, this.music.assetCount);
   }
 
   get loadCount() {
-    return this.parts.reduce((sum, part) => sum + part.loadCount, 0);
+    return this.parts.reduce((sum, part) => sum + part.loadCount, this.music.loadCount);
   }
 
   isLoaded() {

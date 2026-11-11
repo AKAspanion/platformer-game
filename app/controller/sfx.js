@@ -3,7 +3,8 @@ import { audioSrc } from "../util/registry";
 
 /**
  * Short sound effects from app/assets/audio/sfx (made by
- * scripts/generate-audio.py). Each sound is loaded once and cloned per play,
+ * scripts/generate-audio.py). Nothing is downloaded up front: each sound is
+ * requested the first time it plays (or when loadSfx asks), then cloned per play,
  * so overlapping hits don't cut each other off; a per-sound gap stops the same
  * sound stacking up when several things happen in one tick.
  */
@@ -20,6 +21,7 @@ const VOLUME = {
 const GAP_MS = 70;
 
 const cache = {};
+const ready = {};
 const lastPlayed = {};
 
 const source = (name) => {
@@ -34,11 +36,30 @@ const source = (name) => {
 /** Forget recent plays (tests run many ticks inside one real millisecond). */
 export const resetSfxGap = () => Object.keys(lastPlayed).forEach((k) => delete lastPlayed[k]);
 
-/** Warm the cache so the first play isn't delayed. */
-export const preloadSfx = (names) => names.forEach(source);
+const whenReady = (name) => {
+  if (!ready[name]) {
+    ready[name] = new Promise((resolve) => {
+      try {
+        const audio = source(name);
+        // a sound that fails to load counts as done: it just stays silent
+        audio.addEventListener("canplaythrough", resolve, { once: true });
+        audio.addEventListener("error", resolve, { once: true });
+      } catch (error) {
+        resolve();
+      }
+    });
+  }
+  return ready[name];
+};
+
+/** Starts downloading these sounds if they aren't already; resolves when they can play. */
+export const loadSfx = (names) => Promise.all(names.map(whenReady)).then(() => {});
 
 /** Forget a cached sound (a generated world re-registered it). */
-export const forgetSfx = (name) => delete cache[name];
+export const forgetSfx = (name) => {
+  delete cache[name];
+  delete ready[name];
+};
 
 export default function sfx(name, volume) {
   if (!name || getData("mute_sounds")) return;
@@ -46,8 +67,11 @@ export default function sfx(name, volume) {
   if (now - (lastPlayed[name] || 0) < GAP_MS) return;
   lastPlayed[name] = now;
   try {
+    // the first play uses the element that is still downloading (it plays when
+    // ready); later plays are copies of the downloaded one
+    const fresh = !cache[name];
     const base = source(name);
-    const audio = base.cloneNode ? base.cloneNode() : base;
+    const audio = !fresh && base.cloneNode ? base.cloneNode() : base;
     audio.volume = volume ?? VOLUME[name] ?? 0.4;
     const playing = audio.play();
     if (playing && playing.catch) playing.catch(() => {});

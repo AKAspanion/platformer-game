@@ -22,6 +22,7 @@ const FILES = [
   ["pcg/generator.js", "pcg/generator.js"],
   ["worlds/community.js", "worlds/community.js"],
   ["reminders/rules.js", "reminders/rules.js"],
+  ["modes/endless-rules.js", "modes/endless-rules.js"],
 ];
 
 const jobs = FILES.map(([from, to]) => {
