@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: the project's workflow policy names the executor (`run.executor`): ga:feature-build-team by default, or ga:feature-build. Follow the policy and this plan's Checkpoints. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Measure play with analytics, make the daily challenge free, and give it a global leaderboard, streaks and a share card, so players have a reason to come back every day.
+**Goal:** Measure play with analytics, make the daily challenge and endless mode free, and give it a global leaderboard, streaks and a share card, so players have a reason to come back every day.
 
 **Architecture:** A shared, pure `app/daily/rules.js` (day keys, the score ceiling, generated names) is copied into `functions/shared/` like the world spec already is, so the client and the `submitDailyScore` callable judge runs the same way. Scores live in Firestore at `daily/{seed}/scores/{uid}`, written only by the function and readable by anyone. Players get a silent anonymous Firebase account the first time they finish a daily run. Analytics is a small queueing wrapper that lazy-loads `firebase/analytics` after the first input.
 
@@ -440,7 +440,7 @@ Screens and states:
 | Leaderboard | error | "Leaderboard didn't load." with Try again |
 
 **Spec:**
-- §2.2: "The daily challenge is free for everyone. Endless and the world creator stay premium."
+- §2.2: "The daily challenge and endless mode are free for everyone. Only features that use AI stay premium: today, that is the world creator."
 - §2.4: "Only completed daily runs (all 5 levels) are ranked."
 - §2.4: "If the score can't be sent (offline, server error), the run is kept on the device and sent the next time the home screen opens. The result panel says "You're offline. Your score will be sent later.""
 - §2.5: "Streaks are kept on this device in phase 1. Cloud save (phase 2) carries them across devices."
@@ -450,7 +450,7 @@ Screens and states:
 **Knowledge:** none (this project has no knowledge base)
 
 **Acceptance:**
-- Given premium is off, when the daily card is clicked, then the daily starts (no premium dialog); the endless and create cards still open the premium dialog.
+- Given premium is off, when the daily or endless card is clicked, then that mode starts (no premium dialog, no ★ badge on either card); the create card still opens the premium dialog, which lists only the world creator.
 - Given a pending run for an open seed and a working `send`, when `flush` runs, then it is sent once and removed; run again, nothing is sent.
 - Given a pending run and `send` rejects, when `flush` runs, then it is kept.
 - Given a pending run whose seed is closed, when `flush` runs, then it is dropped without sending.

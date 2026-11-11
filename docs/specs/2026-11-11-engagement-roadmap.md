@@ -42,9 +42,9 @@ Each phase gets its own plan in `docs/plans/` and ships on its own branch.
 - "On localhost or with ?debug, events are written to the console and never sent."
 - `PRIVACY.md` says what is collected, by whom (Google Analytics), and how to turn it off.
 
-### 2.2 Free daily challenge
+### 2.2 Free daily challenge and endless
 
-- "The daily challenge is free for everyone. Endless and the world creator stay premium."
+- "The daily challenge and endless mode are free for everyone. Only features that use AI stay premium: today, that is the world creator."
 - The daily stays as it is: 5 generated levels from the player's local date (`dailySeed`), the same for everyone on that date.
 
 ### 2.3 Player identity
