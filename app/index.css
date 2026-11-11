@@ -2076,7 +2076,25 @@ canvas {
     gap: 6px;
   }
   .setting-row {
+    min-height: 44px;
     padding: 6px 4px;
     font-size: 15px;
+  }
+  /* tabs, segmented buttons, chips and links: a small look, a 44 px hit area */
+  .tab,
+  .segmented button,
+  .account-chip,
+  .chip,
+  .seg-btn,
+  .link-btn {
+    min-height: 44px;
+  }
+  .link-btn {
+    display: inline-flex;
+    align-items: center;
+  }
+  .delete-btn {
+    min-width: 44px;
+    min-height: 44px;
   }
 }
