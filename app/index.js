@@ -31,7 +31,7 @@ import {
 import { requestSpec, worlds } from "./creator";
 import { auth } from "./auth";
 import { reminders } from "./reminders/push.js";
-import { createPrompt } from "./reminders/prompt.js";
+import { createPrompt as createReminderPrompt } from "./reminders/prompt.js";
 import { leaderboard, TOP_LIMIT } from "./daily/leaderboard";
 import { createStreak } from "./daily/streak";
 import { createPending, errorCode, isFinalRefusal } from "./daily/pending";
@@ -368,7 +368,7 @@ window.addEventListener("load", function () {
 
   // ---------------------------------------------------------- daily reminders
 
-  const reminderPrompt = createPrompt();
+  const reminderPrompt = createReminderPrompt();
   const reminderButtons = [$("reminderYesBtn"), $("reminderNoBtn")];
   const BLOCKED_TEXT = "Notifications are blocked in your browser settings.";
   const UNSUPPORTED_TEXT = "Reminders aren't available in this browser.";
