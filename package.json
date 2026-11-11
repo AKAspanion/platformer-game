@@ -17,7 +17,8 @@
     "test": "node scripts/test.js",
     "lint": "eslint .",
     "functions:sync": "node scripts/sync-functions-shared.js",
-    "emulators": "node scripts/sync-functions-shared.js && firebase emulators:start"
+    "emulators": "node scripts/sync-functions-shared.js && firebase emulators:start",
+    "test:rules": "firebase emulators:exec --only firestore --project demo-dino \"node scripts/test-rules.js\""
   },
   "author": "Ankit Kumar Pandit",
   "license": "MIT",
@@ -40,12 +41,14 @@
     "url": "git+https://github.com/AKAspanion/platformer-game.git"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^6.0.0",
     "clean-webpack-plugin": "^4.0.0",
     "copy-webpack-plugin": "^14.0.0",
     "esbuild": "^0.28.2",
     "esbuild-loader": "^4.5.0",
     "eslint": "^10.14.0",
     "eslint-webpack-plugin": "^6.0.0",
+    "firebase-tools": "^15.35.0",
     "gh-pages": "^6.3.0",
     "prettier": "^3.9.10",
     "terser-webpack-plugin": "^5.6.1",

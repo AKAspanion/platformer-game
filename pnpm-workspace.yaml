@@ -3,3 +3,4 @@ allowBuilds:
   esbuild: true
   "@firebase/util": false
   protobufjs: false
+  re2: false
