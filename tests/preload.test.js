@@ -8,7 +8,7 @@ import Screen from "../app/screen";
 import { tileSetFor } from "../app/screen/tileset";
 import { preloadArea, preloaded, preloadedAudio, saveDataOn } from "../app/game/preload";
 import { createEndlessSession } from "../app/modes";
-import { registerSkin } from "../app/util/registry";
+import { registerAudio, registerSkin } from "../app/util/registry";
 
 // These tests share one module graph (sprites are cached for the whole run, as
 // in the browser), so each one uses levels no earlier test touched.
@@ -231,6 +231,8 @@ test("an endless run preloads the level one ahead", async () => {
 
 test("a community world needs only its music: no tile or sprite file", async () => {
   registerSkin("preload-test-skin", { tiles: [null], objects: [null], background: {} });
+  // a generated world registers its theme (a blob url) like app/gen does
+  registerAudio("tracktest", "blob:tracktest-theme");
   areas[9001] = {
     ...areas[14],
     id: 9001,
@@ -247,10 +249,13 @@ test("a community world needs only its music: no tile or sprite file", async () 
     const game = await openLevel(9000);
     const start = mark();
     game.world.update(noop);
-    assert.deepEqual(since(start), ["./assets/audio/tracktest.mp3"]);
+    assert.deepEqual(since(start), ["blob:tracktest-theme"]);
     await tick();
     arriveAudio();
-    assert.equal(preloadedAudio("./assets/audio/tracktest.mp3"), true);
+    assert.equal(preloadedAudio("blob:tracktest-theme"), true);
+    // a track that is in is not loaded twice
+    preloadArea(areas[9001]);
+    assert.deepEqual(since(start), ["blob:tracktest-theme"]);
   } finally {
     delete areas[9000];
     delete areas[9001];
@@ -279,4 +284,11 @@ test("the last boss's exit preloads nothing", async () => {
 test("assetsFor still lists what an area needs", () => {
   const world = new World();
   assert.deepEqual(world.assetsFor(areas[25]), assetsOf(areas[25]));
+});
+
+test("a community world's boss track is listed for the preloader too", () => {
+  registerAudio("boss-batLord", "blob:batlord-battle");
+  registerAudio("tracktest2", "blob:tracktest2-theme");
+  const area = { ...areas[31], theme: "tracktest2" };
+  assert.deepEqual(assetsOf(area).audio, ["blob:tracktest2-theme", "blob:batlord-battle"]);
 });

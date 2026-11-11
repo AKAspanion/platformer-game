@@ -14,7 +14,7 @@ import { walkerShoots, storyDifficulty } from "../pcg/generator";
 import Boss, { bossAssets, bossImages, BOSSES } from "./boss";
 import { POWERUP_TICKS } from "./player";
 import AudioController from "../controller/audio";
-import { getSkin, audioSrc, hasAudio } from "../util/registry";
+import { getSkin, audioSrc } from "../util/registry";
 import areas from "../areas";
 import { preloadArea } from "./preload";
 import sfx, { ENEMY_SFX, BOSS_MOVE_SFX } from "../controller/sfx";
@@ -83,7 +83,7 @@ export const assetsOf = (area) => {
     ...(boss ? bossImages(boss) : []),
     ...(seed ? SEED_IMAGES : []),
   ];
-  const tracks = [area.theme, boss && `boss-${boss}`].filter((track) => track && !hasAudio(track));
+  const tracks = [area.theme, boss && `boss-${boss}`].filter(Boolean);
   return { images, audio: tracks.map((track) => audioSrc(track, "mp3")) };
 };
 
