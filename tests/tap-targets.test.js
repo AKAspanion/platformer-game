@@ -46,12 +46,39 @@ const TAP_TARGETS = [
   ".text-input", // #worldSearch and the other text fields
 ];
 
-test("on a short screen every tap target has a hit area of at least 44 px", () => {
+// drawn small on a short screen; an invisible ::after keeps the 44 px touch area
+const SMALL_WITH_HIT_AREA = TAP_TARGETS.filter((t) => ![".setting-row", ".text-input"].includes(t));
+
+/** The compact block's rules whose selector list holds `selector`. */
+const rulesFor = (block, selector) =>
+  [...block.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+    .filter(([, selectors]) => selectors.split(",").some((s) => s.trim() === selector))
+    .map(([, , body]) => body);
+
+test("on a short screen buttons are drawn small: no min-height of 44 px or more", () => {
   const block = compactBlock();
-  for (const selector of TAP_TARGETS) {
-    const height = minHeightOf(block, selector) || (selector === ".close-btn" ? 44 : 0);
-    assert.ok(height >= 44, `${selector} gets a ${height}px min-height in the compact block`);
+  for (const selector of SMALL_WITH_HIT_AREA) {
+    assert.ok(minHeightOf(block, selector) < 44, `${selector} is drawn smaller than 44 px`);
   }
+});
+
+test("on a short screen every small button keeps an invisible 44 px touch area", () => {
+  const block = compactBlock();
+  for (const selector of SMALL_WITH_HIT_AREA) {
+    const own = rulesFor(block, selector).join(";");
+    assert.match(own, /position:\s*relative/, `${selector} is the touch area's anchor`);
+    const hit = rulesFor(block, `${selector}::after`).join(";");
+    assert.match(hit, /content:\s*""/, `${selector}::after exists`);
+    assert.match(hit, /position:\s*absolute/, `${selector}::after is laid over the button`);
+    assert.match(hit, /min-height:\s*44px|height:\s*44px/, `${selector}::after is 44 px tall`);
+  }
+});
+
+test("rows and text fields stay easy to tap without an overlay over their controls", () => {
+  const block = compactBlock();
+  assert.ok(minHeightOf(block, ".setting-row") >= 40, "a Settings row is at least 40 px");
+  assert.ok(minHeightOf(block, ".text-input") >= 38, "a text field is at least 38 px");
+  assert.equal(rulesFor(block, ".setting-row::after").length, 0, "no overlay over a row's switch");
 });
 
 test("every kind of button in the markup is covered by that list", () => {

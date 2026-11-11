@@ -81,7 +81,8 @@ Rules from earlier phases that hold here:
 ### 2.3 Compact home and menus
 
 - "On screens under 500 px tall, buttons, gaps, padding and type on the home screen and in menus are about 25% smaller. Mode cards stay in one row on screens 561 px wide and up, and sit two to a row only below that."
-- "Tap targets stay at least 44 px tall."
+- "Tap targets stay at least 44 px tall to touch. Buttons, tabs and chips may be drawn smaller (about 30 px) with an invisible 44 px touch area; Settings rows stay at least 40 px and text fields at least 38 px." (Changed after the build at the developer's request: the menus looked bigger on a phone, not smaller.)
+- "On short screens the padding around screens and inside menus is tight, so the content gets the room."
 - Done means: "At 667 × 375 and 844 × 390, everything on the home screen fits without scrolling." Before-and-after screenshots at both sizes go in the PR.
 - Screens taller than 500 px look as they do today.
 
