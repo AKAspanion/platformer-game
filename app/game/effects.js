@@ -107,14 +107,14 @@ export default class Effects {
     this.shakeLeft = Math.max(this.shakeLeft, ticks);
   }
 
-  /** Counts the shake down; the world calls it every tick, hit-stop or not. */
+  /** Counts the shake down; the world calls it on every tick it is not frozen by hit-stop. */
   tickShake() {
     if (this.shakeLeft > 0) this.shakeLeft -= 1;
   }
 
-  /** Where to draw the world this tick: {0, 0} when nothing shakes. */
+  /** Where to draw the world this tick: {0, 0} when nothing shakes or hit-stop holds it still. */
   shakeOffset() {
-    if (this.shakeLeft <= 0) return { x: 0, y: 0 };
+    if (this.shakeLeft <= 0 || this.freeze > 0) return { x: 0, y: 0 };
     const sign = this.shakeLeft % 2 ? 1 : -1;
     return { x: sign * this.shakePx, y: (this.shakeLeft % 3 === 0 ? 1 : -1) * (this.shakePx / 2) };
   }

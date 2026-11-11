@@ -9,6 +9,11 @@ const plain = () => makeWorld(arena());
 
 /** True for each of the next 6 ticks, then the shake is gone. */
 const shakesSixTicks = (world) => {
+  // the world is frozen first (hit-stop): nothing moves, then the shake plays in full
+  while (world.effects.freeze > 0) {
+    assert.deepEqual(world.effects.shakeOffset(), still);
+    tick(world, 1);
+  }
   for (let i = 0; i < 6; i++) {
     const { x, y } = world.effects.shakeOffset();
     assert.ok(x !== 0 || y !== 0, `tick ${i}`);
@@ -88,4 +93,21 @@ test("combo tiers and kills never shake, but still chime", () => {
 test("the shell draws no offset with Screen shake off", () => {
   const src = fs.readFileSync("app/index.js", "utf8");
   assert.match(src, /settings\.get\("shake"\)/);
+});
+
+test("the screen holds still during hit-stop; the full 6-tick shake plays after it", () => {
+  const world = plain();
+  world.effects.hitStop(3);
+  world.effects.shake(2, 6);
+  for (let i = 0; i < 3; i++) {
+    assert.deepEqual(world.effects.shakeOffset(), still, `frozen tick ${i}`);
+    tick(world, 1);
+  }
+  shakesSixTicks(world);
+});
+
+test("a shake with no hit-stop moves the screen for 6 ticks", () => {
+  const world = plain();
+  world.effects.shake(2, 6);
+  shakesSixTicks(world);
 });

@@ -827,14 +827,13 @@ export default class World {
       }
     }
 
-    this.effects.tickShake();
-
     // hit-stop: freeze the world for a couple of ticks when something is hit
     if (this.effects.freeze > 0) {
       this.effects.freeze -= 1;
       return;
     }
 
+    this.effects.tickShake();
     this.effects.update();
     this.combo.tick();
     this.areaTicks += 1;
