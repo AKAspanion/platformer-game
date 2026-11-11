@@ -1,0 +1,58 @@
+# Every push to master: run CI, then deploy the game (Hosting), the world
+# creator's functions and the Firestore rules and indexes to dinos-adventure.
+#
+# Needs the FIREBASE_SERVICE_ACCOUNT_DINOS_ADVENTURE secret (a service
+# account key with deploy roles, see functions/README.md) and the
+# ANTHROPIC_API_KEY function secret set once in the project.
+name: Deploy to Firebase on merge
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: firebase-deploy
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    needs: ci
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://dinos-adventure.web.app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+
+      - name: Install
+        run: |
+          yarn install --frozen-lockfile
+          npm ci --prefix functions
+
+      - name: Build
+        run: yarn build
+
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DINOS_ADVENTURE }}
+
+      - name: Deploy
+        run: >
+          npx --yes firebase-tools@15
+          deploy --project dinos-adventure
+          --only hosting,functions,firestore:rules,firestore:indexes
+          --non-interactive --force
+          --message "${{ github.sha }}"

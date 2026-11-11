@@ -4,33 +4,33 @@ import { normalizeWorldSpec, specFromPrompt, sanitizeWorld } from "../worlds/spe
  * Prompt-to-world creator (premium, needs sign-in).
  *
  * The player describes a world ("a frozen fortress full of bats, really
- * hard"). The AI (server/world-api.mjs) turns that into a world spec: palette,
- * terrain, backdrop, decor, 2-4 creature designs, a boss with its moves, a
- * music mood. app/gen then paints, composes and builds the whole world (5
- * levels + a boss arena) from the spec on each device. Without a server, the
- * keyword parser in app/worlds/spec.js writes the spec offline.
+ * hard"). Claude (the designWorld function, functions/index.js) turns that
+ * into a world spec: palette, terrain, backdrop, decor, 2-4 creature designs,
+ * a boss with its moves, a music mood. app/gen then paints, composes and
+ * builds the whole world (5 levels + a boss arena) from the spec on each
+ * device. When the designer can't be reached, the keyword parser in
+ * app/worlds/spec.js writes the spec offline.
  */
 
 export { specFromPrompt, normalizeWorldSpec };
 
 /**
- * Ask the world server for a spec. Falls back to the offline parser when no
- * server is set or it fails; `source` says which one produced the spec.
+ * Ask the AI designer for a spec: `design(prompt)` -> raw spec. Falls back to
+ * the offline parser without a designer, or when it fails or takes too long;
+ * `source` says which one produced the spec.
  */
-export async function requestSpec(prompt, serverUrl, { timeoutMs = 20000 } = {}) {
-  if (!serverUrl) return { spec: specFromPrompt(prompt), source: "offline" };
-  const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
-  const timer = controller && setTimeout(() => controller.abort(), timeoutMs);
+export async function requestSpec(prompt, design, { timeoutMs = 75000 } = {}) {
+  if (!design) return { spec: specFromPrompt(prompt), source: "offline" };
+  let timer = null;
   try {
-    const response = await fetch(serverUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt: String(prompt).slice(0, 400) }),
-      signal: controller ? controller.signal : undefined,
-    });
-    if (!response.ok) throw new Error(`server returned ${response.status}`);
-    const body = await response.json();
-    return { spec: normalizeWorldSpec(body.spec || body), source: "ai" };
+    const raw = await Promise.race([
+      design(String(prompt).slice(0, 400)),
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error("the designer took too long")), timeoutMs);
+      }),
+    ]);
+    if (!raw || typeof raw !== "object") throw new Error("the designer sent nothing back");
+    return { spec: normalizeWorldSpec(raw.spec || raw), source: "ai" };
   } catch (error) {
     return {
       spec: specFromPrompt(prompt),

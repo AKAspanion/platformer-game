@@ -3,18 +3,19 @@ import { sanitizeWorld, specFromPrompt, newWorld } from "./spec.js";
 /**
  * The shared world repository: every world anyone creates, newest first.
  *
- *   repo.list({ limit })      -> Promise<world[]>
- *   repo.publish(world, token)-> Promise<world>   (needs a signed-in user's token)
- *   repo.subscribe(cb)        -> unsubscribe()    (cb(world) for each new world, live)
- *   repo.live                 -> true when worlds reach other devices
+ *   repo.list({ limit })   -> Promise<world[]>
+ *   repo.get(id)           -> Promise<world | null>
+ *   repo.publish(world)    -> Promise<world>   (the signed-in player's; the server stamps author + time)
+ *   repo.subscribe(cb)     -> unsubscribe()    (cb(world) for each new world, live)
+ *   repo.live              -> true when worlds reach other devices
  *
- * Two backends today, one to come:
- *   - HttpRepository: the world server (server/world-api.mjs), shared by every
- *     install that points at it; live updates over Server-Sent Events.
- *   - LocalRepository: the mock. Kept on this device (localStorage), live
- *     across tabs (BroadcastChannel). Used when no server is configured.
- *   - Firebase (later): a Firestore "worlds" collection with an onSnapshot
- *     listener implements the same three calls.
+ * Backends:
+ *   - FirestoreRepository: the game's. Worlds are read from Firestore and
+ *     published through the publishWorld function; onSnapshot makes it live.
+ *     It takes a small adapter (app/firebase/worlds.js) so it can be tested
+ *     without Firebase.
+ *   - LocalRepository: this device only (localStorage, live across tabs via
+ *     BroadcastChannel). Used by tests and as a fallback.
  * Everything that comes in is validated with sanitizeWorld.
  */
 
@@ -114,8 +115,7 @@ export class LocalRepository {
     return readList(LOCAL_KEY).find((w) => w.id === id) || null;
   }
 
-  async publish(raw, token) {
-    if (!token) throw new Error("Sign in to share worlds.");
+  async publish(raw) {
     const world = sanitizeWorld(raw);
     if (!world) throw new Error("That world can't be shared.");
     writeList(LOCAL_KEY, mergeWorlds(readList(LOCAL_KEY), [world]));
@@ -130,43 +130,25 @@ export class LocalRepository {
   }
 }
 
-// ------------------------------------------------------------------- server
+// ---------------------------------------------------------------- firestore
 
-export class HttpRepository {
-  /** `base` is the server origin, e.g. https://worlds.example.com */
-  constructor(base, { fetchImpl, EventSourceImpl } = {}) {
-    this.base = String(base).replace(/\/+$/, "");
-    this.fetch = fetchImpl || ((...args) => globalThis.fetch(...args));
-    this.EventSource = EventSourceImpl || globalThis.EventSource;
+export class FirestoreRepository {
+  /**
+   * `worlds` is the adapter: list(n) -> raw[], get(id) -> raw | null,
+   * watch(n, onAdded, onError) -> stop(), publish(world) -> raw.
+   */
+  constructor(worlds) {
+    this.worlds = worlds;
     this.live = true;
     this.listeners = new Set();
-    this.source = null;
-    this.poll = null;
+    this.stop = null;
     this.seen = new Set();
-  }
-
-  async request(path, options = {}) {
-    const response = await this.fetch(`${this.base}${path}`, options);
-    let body = null;
-    try {
-      body = await response.json();
-    } catch (error) {
-      body = null;
-    }
-    if (!response.ok) {
-      throw new Error((body && body.error) || `server returned ${response.status}`);
-    }
-    return body || {};
-  }
-
-  async fetchList(limit) {
-    const body = await this.request(`/api/worlds?limit=${Math.max(1, Math.min(100, limit))}`);
-    return (body.worlds || []).map(sanitizeWorld).filter(Boolean).sort(newestFirst);
   }
 
   async list({ limit = 60 } = {}) {
     try {
-      const worlds = await this.fetchList(limit);
+      const raw = await this.worlds.list(Math.max(1, Math.min(100, limit)));
+      const worlds = raw.map(sanitizeWorld).filter(Boolean).sort(newestFirst);
       worlds.forEach((w) => this.seen.add(w.id));
       writeList(CACHE_KEY, worlds);
       return worlds;
@@ -182,20 +164,13 @@ export class HttpRepository {
   }
 
   async get(id) {
-    const body = await this.request(`/api/worlds/${encodeURIComponent(id)}`);
-    return sanitizeWorld(body.world);
+    return sanitizeWorld(await this.worlds.get(id));
   }
 
-  async publish(raw, token) {
-    if (!token) throw new Error("Sign in to share worlds.");
+  async publish(raw) {
     const world = sanitizeWorld(raw);
     if (!world) throw new Error("That world can't be shared.");
-    const body = await this.request("/api/worlds", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ world }),
-    });
-    const saved = sanitizeWorld(body.world) || world;
+    const saved = sanitizeWorld(await this.worlds.publish(world)) || world;
     this.seen.add(saved.id);
     writeList(CACHE_KEY, mergeWorlds(readList(CACHE_KEY), [saved]));
     return saved;
@@ -210,73 +185,13 @@ export class HttpRepository {
 
   subscribe(cb) {
     this.listeners.add(cb);
-    if (!this.source && !this.poll && !this.retry) this.connect();
+    if (!this.stop) this.stop = this.worlds.watch(20, (raw) => this.deliver(raw));
     return () => {
       this.listeners.delete(cb);
-      if (!this.listeners.size) this.disconnect();
+      if (!this.listeners.size && this.stop) {
+        this.stop();
+        this.stop = null;
+      }
     };
   }
-
-  /** Worlds published while we weren't listening. */
-  catchUp() {
-    this.fetchList(20)
-      .then((worlds) => worlds.reverse().forEach((w) => this.deliver(w)))
-      .catch(() => {});
-  }
-
-  connect() {
-    this.retry = null;
-    if (this.EventSource) {
-      try {
-        const source = new this.EventSource(`${this.base}/api/worlds/stream`);
-        this.source = source;
-        source.addEventListener("world", (event) => {
-          try {
-            this.deliver(JSON.parse(event.data));
-          } catch (error) {
-            // a bad message: skip it
-          }
-        });
-        source.addEventListener("open", () => {
-          if (this.failures) this.catchUp();
-          this.failures = 0;
-        });
-        // the browser would reconnect at once, forever: back off instead
-        source.addEventListener("error", () => {
-          source.close();
-          if (this.source !== source) return;
-          this.source = null;
-          this.failures = (this.failures || 0) + 1;
-          const delay = Math.min(60000, 2000 * 2 ** Math.min(5, this.failures - 1));
-          this.retry = setTimeout(() => this.connect(), delay);
-        });
-        return;
-      } catch (error) {
-        this.source = null;
-      }
-    }
-    // no SSE: poll for new worlds
-    this.poll = setInterval(() => this.catchUp(), 20000);
-  }
-
-  disconnect() {
-    if (this.source) this.source.close();
-    if (this.poll) clearInterval(this.poll);
-    if (this.retry) clearTimeout(this.retry);
-    this.source = null;
-    this.poll = null;
-    this.retry = null;
-  }
 }
-
-/** The world server's origin from the settings URL (".../api/world" or a bare origin). */
-export const serverBase = (url) =>
-  String(url || "")
-    .trim()
-    .replace(/\/api\/worlds?\/?$/, "")
-    .replace(/\/+$/, "");
-
-export const createRepository = (serverUrl) => {
-  const base = serverBase(serverUrl);
-  return base ? new HttpRepository(base) : new LocalRepository();
-};

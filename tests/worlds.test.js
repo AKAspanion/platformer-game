@@ -8,13 +8,14 @@ import { enemyTypes } from "../app/game/enemies";
 import { createCustomSession } from "../app/modes";
 import { buildLevel, validate } from "../app/pcg/generator";
 import { OPTIONS, specFromPrompt, sanitizeWorld, newWorld } from "../app/worlds/spec";
-import { LocalRepository, HttpRepository, serverBase, mergeWorlds } from "../app/worlds/repository";
+import { LocalRepository, FirestoreRepository, mergeWorlds } from "../app/worlds/repository";
 import { buildEnemy, buildBossFrames, enemySize } from "../app/gen/creatures";
 import { buildTiles, buildBackground, buildObjects, buildLiquid } from "../app/gen/scenery";
 import { composeTrack, creatureSounds, bossSounds, encodeWav, RATE } from "../app/gen/audio";
 import { buildWorld, previewWorld } from "../app/gen";
 import { getSkin, audioSrc } from "../app/util/registry";
-import { auth } from "../app/auth";
+import { createAuth } from "../app/auth";
+import { mockAuthBackend } from "../app/auth/mock";
 import { tick } from "./helpers";
 
 const world = (prompt, seed = 7) => ({
@@ -271,37 +272,62 @@ test("a generated boss fights with its moves, summons its minions and can be bea
 
 // --------------------------------------------------------------- auth
 
-test("mock sign-in: names are checked, tokens identify the user, sign-out clears", async () => {
-  localStorage.removeItem("auth_user");
-  auth._reload();
+test("sign-in: checks input, restores the session, signs out", async () => {
+  localStorage.removeItem("mock_auth");
+  const auth = createAuth(mockAuthBackend());
   const seen = [];
   const off = auth.onAuthStateChanged((user) => seen.push(user && user.displayName));
+  await auth.ready(100);
   assert.equal(auth.currentUser, null);
+  assert.ok(auth.known);
+
   await assert.rejects(auth.signInWithGoogle({ name: "x" }), /2 letters/);
-  await assert.rejects(auth.signInWithEmail({ name: "Ana", email: "nope" }), /email/);
+  await assert.rejects(auth.signInWithEmail({ email: "nope", password: "secret1" }), /email/);
+  await assert.rejects(auth.signInWithEmail({ email: "a@b.co" }), /password/);
+  await assert.rejects(
+    auth.signInWithEmail({ email: "a@b.co", password: "123", name: "Ana", create: true }),
+    /6 characters/,
+  );
+  await assert.rejects(
+    auth.signInWithEmail({ email: "a@b.co", password: "secret1", name: "", create: true }),
+    /2 letters/,
+  );
+  await assert.rejects(auth.resetPassword(""), /email/);
 
-  const user = await auth.signInWithGoogle({ name: "  Ana <3 " });
+  const user = await auth.signInWithEmail({
+    email: " a@b.co ",
+    password: "secret1",
+    name: "  Ana <3 ",
+    create: true,
+  });
   assert.equal(user.displayName, "Ana 3");
-  assert.match(user.uid, /^mock_/);
-  const token = await auth.getIdToken();
-  const payload = JSON.parse(Buffer.from(token.slice(5), "base64url").toString());
-  assert.equal(payload.uid, user.uid);
+  assert.equal(user.provider, "email");
+  await assert.rejects(
+    auth.signInWithEmail({ email: "a@b.co", password: "secret1", name: "Ana", create: true }),
+    /already has an account/,
+  );
+  await assert.rejects(auth.signInWithEmail({ email: "a@b.co", password: "wrong!" }), /Wrong/);
 
-  auth._reload();
-  assert.equal(auth.currentUser.uid, user.uid, "stays signed in");
-  const again = await auth.signInWithGoogle({ name: "Ana 3" });
-  assert.equal(again.uid, user.uid, "same name, same account");
+  // another launch of the game: the session comes back
+  const later = createAuth(mockAuthBackend());
+  later.resume();
+  await later.ready(100);
+  assert.equal(later.currentUser.uid, user.uid, "stays signed in");
 
   await auth.signOut();
   assert.equal(auth.currentUser, null);
-  assert.equal(await auth.getIdToken(), null);
+  const again = await auth.signInWithEmail({ email: "a@b.co", password: "secret1" });
+  assert.equal(again.uid, user.uid, "same account");
   off();
-  assert.deepEqual(seen, [null, "Ana 3", "Ana 3", "Ana 3", null]);
+  assert.deepEqual(seen, [null, "Ana 3", null, "Ana 3"]);
+
+  const none = createAuth();
+  await assert.rejects(none.signInWithGoogle(), /isn't available/);
 });
 
 // --------------------------------------------------------- repository
 
-test("local repository: starter worlds, publish needs sign-in, newest first, live", async () => {
+test("local repository: starter worlds, newest first, live", async () => {
   localStorage.removeItem("shared_worlds");
   const repo = new LocalRepository();
   const starters = await repo.list();
@@ -311,8 +337,8 @@ test("local repository: starter worlds, publish needs sign-in, newest first, liv
   const heard = [];
   const off = repo.subscribe((w) => heard.push(w.id));
   const made = newWorld(specFromPrompt("reef"), { uid: "u1", displayName: "Kai" });
-  await assert.rejects(repo.publish(made, null), /Sign in/);
-  await repo.publish(made, "mock.token");
+  await assert.rejects(repo.publish({ id: "!" }), /can't be shared/);
+  await repo.publish(made);
   assert.deepEqual(heard, [made.id]);
   const list = await repo.list();
   assert.equal(list[0].id, made.id);
@@ -321,72 +347,77 @@ test("local repository: starter worlds, publish needs sign-in, newest first, liv
   off();
 });
 
-test("server repository: lists, publishes with the token, streams new worlds once", async () => {
+test("firestore repository: lists, publishes, delivers new worlds once, works offline", async () => {
+  localStorage.removeItem("shared_worlds_cache");
   const made = newWorld(specFromPrompt("moon base"), { uid: "u2", displayName: "Lee" });
   const other = newWorld(
     specFromPrompt("desert"),
     { uid: "u3", displayName: "Sam" },
-    {
-      now: made.createdAt + 1000,
-    },
+    { now: made.createdAt + 1000 },
   );
-  const calls = [];
-  const fetchImpl = async (url, options = {}) => {
-    calls.push({ url, options });
-    if (options.method === "POST") {
-      return { ok: true, json: async () => ({ world: JSON.parse(options.body).world }) };
-    }
-    return { ok: true, json: async () => ({ worlds: [made, { id: "bad id!" }] }) };
+  let online = true;
+  let added = null;
+  let stopped = 0;
+  const published = [];
+  const adapter = {
+    async list(count) {
+      if (!online) throw new Error("No connection.");
+      assert.equal(count, 60);
+      return [made, { id: "bad id!" }];
+    },
+    async get(id) {
+      return id === made.id ? made : null;
+    },
+    watch(count, onAdded) {
+      assert.equal(count, 20);
+      added = onAdded;
+      return () => stopped++;
+    },
+    async publish(world) {
+      published.push(world);
+      // the server stamps the author and time
+      return { ...world, author: { uid: "u3", name: "Sam S" }, createdAt: world.createdAt + 5 };
+    },
   };
-  let source;
-  class FakeEventSource {
-    constructor(url) {
-      this.url = url;
-      this.handlers = {};
-      source = this;
-    }
-    addEventListener(type, fn) {
-      this.handlers[type] = fn;
-    }
-    close() {
-      this.closed = true;
-    }
-  }
-  const repo = new HttpRepository("https://w.example/", {
-    fetchImpl,
-    EventSourceImpl: FakeEventSource,
-  });
-  const list = await repo.list();
+  const repo = new FirestoreRepository(adapter);
+  assert.equal(repo.live, true);
   assert.deepEqual(
-    list.map((w) => w.id),
+    (await repo.list()).map((w) => w.id),
     [made.id],
   );
-  assert.equal(calls[0].url, "https://w.example/api/worlds?limit=60");
+  assert.equal((await repo.get(made.id)).name, made.name);
+  assert.equal(await repo.get("nope"), null);
 
-  await repo.publish(other, "tok123");
-  const post = calls.find((c) => c.options.method === "POST");
-  assert.equal(post.options.headers.Authorization, "Bearer tok123");
+  const saved = await repo.publish(other);
+  assert.equal(published.length, 1);
+  assert.equal(saved.author.name, "Sam S");
+  await assert.rejects(repo.publish({ id: "x" }), /can't be shared/);
 
   const heard = [];
   const off = repo.subscribe((w) => heard.push(w.id));
-  assert.equal(source.url, "https://w.example/api/worlds/stream");
+  const off2 = repo.subscribe(() => {});
   const third = newWorld(specFromPrompt("jungle"), { uid: "u4", displayName: "Mo" });
-  source.handlers.world({ data: JSON.stringify(third) });
-  source.handlers.world({ data: JSON.stringify(third) }); // duplicate
-  source.handlers.world({ data: JSON.stringify(other) }); // our own publish
-  source.handlers.world({ data: "not json" });
+  added(third);
+  added(third); // duplicate
+  added(other); // our own publish
+  added({ id: "bad id!" });
   assert.deepEqual(heard, [third.id]);
-  // the stream drops: back off instead of hammering the server
-  const dropped = source;
-  dropped.handlers.error();
-  assert.ok(dropped.closed);
-  assert.equal(repo.source, null);
-  assert.ok(repo.retry, "reconnect scheduled");
   off();
-  assert.ok(source.closed);
+  assert.equal(stopped, 0, "still one listener");
+  off2();
+  assert.equal(stopped, 1, "stops listening with the last listener");
 
-  assert.equal(serverBase("https://w.example/api/world"), "https://w.example");
-  assert.equal(serverBase("https://w.example/"), "https://w.example");
+  // offline: the last list, marked stale
+  online = false;
+  const cached = await repo.list();
+  assert.ok(cached.stale);
+  assert.deepEqual(
+    cached.map((w) => w.id),
+    [other.id, made.id],
+  );
+  localStorage.removeItem("shared_worlds_cache");
+  await assert.rejects(repo.list(), /No connection/);
+
   assert.deepEqual(
     mergeWorlds([made], [other, made]).map((w) => w.id),
     [other.id, made.id],

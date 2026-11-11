@@ -987,6 +987,31 @@ canvas {
   font-size: 14px;
   color: var(--red-dark);
 }
+.login-error.ok {
+  color: var(--ink);
+}
+.login-row {
+  display: flex;
+  gap: 10px;
+}
+.login-row .btn {
+  flex: 1;
+}
+.login-body .btn:disabled {
+  opacity: 0.6;
+}
+.link-btn {
+  align-self: center;
+  padding: 2px 6px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  color: inherit;
+  text-decoration: underline;
+  opacity: 0.75;
+  cursor: pointer;
+}
 
 /* -------------------------------------------------------------- level select */
 

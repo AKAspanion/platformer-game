@@ -28,7 +28,9 @@ import {
 } from "./modes";
 import { requestSpec, worlds } from "./creator";
 import { auth } from "./auth";
-import { createRepository, serverBase, mergeWorlds } from "./worlds/repository";
+import { firebaseAuthBackend } from "./firebase/auth";
+import { firestoreWorlds } from "./firebase/worlds";
+import { FirestoreRepository, mergeWorlds, starterWorlds } from "./worlds/repository";
 import { newWorld } from "./worlds/spec";
 import { previewImage } from "./gen";
 import { getSkin } from "./util/registry";
@@ -41,7 +43,9 @@ preLoadAndFetch();
 populateLinks();
 populateHelp();
 
-const BUILD_WORLD_API = typeof WORLD_API_URL !== "undefined" ? WORLD_API_URL : "";
+// Firebase loads only for players who signed in before, or when they open Worlds
+auth.use(firebaseAuthBackend());
+auth.resume();
 
 let loadingActive = false;
 let controllerActive = false;
@@ -1061,7 +1065,6 @@ window.addEventListener("load", function () {
   const setSound = $("setSound");
   const setVibration = $("setVibration");
   const setControls = $("setControls");
-  const setWorldApi = $("setWorldApi");
   const setPremiumDev = $("setPremiumDev");
 
   const refreshSettings = () => {
@@ -1072,7 +1075,6 @@ window.addEventListener("load", function () {
     setControls.querySelectorAll("button").forEach((b) => {
       b.classList.toggle("active", b.dataset.value === settings.get("controlSize"));
     });
-    setWorldApi.value = settings.get("worldApiUrl") || "";
     const premium = isPremium();
     $("premiumStatus").textContent = premium ? "Active ★" : "Locked";
     $("premiumBtn").style.display = premium ? "none" : "inline-block";
@@ -1109,12 +1111,8 @@ window.addEventListener("load", function () {
       refreshSettings();
     };
   });
-  setWorldApi.onchange = () => {
-    settings.set("worldApiUrl", setWorldApi.value.trim());
-    connectRepository();
-  };
-  $("accountBtn").onclick = () => {
-    if (auth.currentUser) auth.signOut();
+  $("accountBtn").onclick = async () => {
+    if (auth.currentUser) await auth.signOut().catch(() => {});
     else openLogin(() => refreshSettings());
     refreshSettings();
   };
@@ -1173,26 +1171,57 @@ window.addEventListener("load", function () {
   let afterLogin = null;
   const loginName = $("loginName");
   const loginEmail = $("loginEmail");
+  const loginPassword = $("loginPassword");
   const loginError = $("loginError");
+  const loginButtons = ["loginGoogleBtn", "loginEmailBtn", "loginCreateBtn", "loginResetBtn"];
 
   const openLogin = (then) => {
     afterLogin = then || null;
     loginError.textContent = "";
+    loginError.classList.remove("ok");
     show(loginScreen, true);
-    setTimeout(() => loginName.focus(), 60);
+    // start downloading sign-in while the player types
+    auth.start();
   };
+  const busyLogin = (busy) => loginButtons.forEach((id) => ($(id).disabled = busy));
+
   /** Run `then` signed in: straight away, or after the sign-in screen. */
-  const requireLogin = (then) => (auth.currentUser ? then() : openLogin(then));
+  const requireLogin = async (then) => {
+    if (!auth.currentUser && !auth.known) {
+      showToast("<b>Checking your account…</b>");
+      await auth.ready();
+    }
+    return auth.currentUser ? then() : openLogin(then);
+  };
 
   const signIn = async (method) => {
     loginError.textContent = "";
+    loginError.classList.remove("ok");
+    busyLogin(true);
     try {
-      if (method === "google") await auth.signInWithGoogle({ name: loginName.value });
-      else await auth.signInWithEmail({ name: loginName.value, email: loginEmail.value });
+      if (method === "reset") {
+        await auth.resetPassword(loginEmail.value);
+        loginError.classList.add("ok");
+        loginError.textContent = "Check your email for a link to reset your password.";
+        return;
+      }
+      const user =
+        method === "google"
+          ? await auth.signInWithGoogle({ name: loginName.value })
+          : await auth.signInWithEmail({
+              email: loginEmail.value,
+              password: loginPassword.value,
+              name: loginName.value,
+              create: method === "create",
+            });
+      if (!user) return; // a redirect takes over
     } catch (error) {
       loginError.textContent = error.message;
       return;
+    } finally {
+      busyLogin(false);
     }
+    loginPassword.value = "";
     show(loginScreen, false);
     const next = afterLogin;
     afterLogin = null;
@@ -1200,9 +1229,11 @@ window.addEventListener("load", function () {
   };
   $("loginGoogleBtn").onclick = () => signIn("google");
   $("loginEmailBtn").onclick = () => signIn("email");
-  [loginName, loginEmail].forEach((input) =>
+  $("loginCreateBtn").onclick = () => signIn("create");
+  $("loginResetBtn").onclick = () => signIn("reset");
+  [loginEmail, loginPassword].forEach((input) =>
     input.addEventListener("keydown", (event) => {
-      if (event.key === "Enter") signIn(input === loginEmail ? "email" : "google");
+      if (event.key === "Enter") signIn("email");
     }),
   );
   $("loginCloseBtn").onclick = () => {
@@ -1224,7 +1255,7 @@ window.addEventListener("load", function () {
     if (signOutArmed) {
       clearTimeout(signOutArmed);
       signOutArmed = null;
-      auth.signOut();
+      auth.signOut().catch(() => {});
       show(createScreen, false);
       return;
     }
@@ -1237,26 +1268,16 @@ window.addEventListener("load", function () {
   auth.onAuthStateChanged((user) => {
     renderAccount();
     if (user && !loginName.value) loginName.value = user.displayName;
+    if (user && isPremium()) watchCommunity();
   });
 
   // ------------------------------------------------------------ repository
 
-  const serverSetting = () => settings.get("worldApiUrl") || BUILD_WORLD_API;
-  const specUrl = () =>
-    serverBase(serverSetting()) ? `${serverBase(serverSetting())}/api/world` : "";
-
-  let repo = null;
+  const repo = new FirestoreRepository(firestoreWorlds);
   let unwatch = null;
-  let community = [];
+  // the Dino Team's starter worlds are always there, even offline
+  let community = starterWorlds();
   const freshIds = new Set();
-
-  const connectRepository = () => {
-    if (unwatch) unwatch();
-    unwatch = null;
-    community = [];
-    repo = createRepository(serverSetting());
-  };
-  connectRepository();
 
   /** New worlds from anyone, as they are published. */
   const watchCommunity = () => {
@@ -1281,9 +1302,8 @@ window.addEventListener("load", function () {
     communityStatus.textContent = {
       loading: "Loading worlds…",
       live: `Live · ${count}`,
-      local: `This device only (no world server) · ${count}`,
       stale: `Offline · saved list · ${count}`,
-      error: `Couldn't reach the world server: ${connectionError}`,
+      error: `Offline (${connectionError}) · ${count}`,
     }[connection];
   };
   const loadCommunity = async () => {
@@ -1292,7 +1312,7 @@ window.addEventListener("load", function () {
     try {
       const list = await repo.list({ limit: 60 });
       community = mergeWorlds(community, list);
-      connection = list.stale ? "stale" : repo.live ? "live" : "local";
+      connection = list.stale ? "stale" : "live";
     } catch (error) {
       connection = "error";
       connectionError = error.message;
@@ -1514,8 +1534,9 @@ window.addEventListener("load", function () {
       setCreateStatus("");
       try {
         setStep(0);
-        const server = specUrl();
-        const { spec, source, error } = await requestSpec(prompt, server);
+        const { spec, source, error } = await requestSpec(prompt, (text) =>
+          firestoreWorlds.design(text),
+        );
         const world = newWorld(spec, auth.currentUser);
 
         setStep(1);
@@ -1527,26 +1548,23 @@ window.addEventListener("load", function () {
 
         setStep(3);
         await paint();
-        worlds.add(world);
         let shared = "";
+        let saved = world;
         try {
-          await repo.publish(world, await auth.getIdToken());
-          shared = repo.live
-            ? "Shared with everyone."
-            : "Shared (this device only: no world server).";
+          saved = await repo.publish(world);
+          shared = "Shared with everyone.";
+          community = mergeWorlds(community, [saved]);
         } catch (publishError) {
           shared = `Saved on this device, not shared: ${publishError.message}`;
         }
+        worlds.add(saved);
         setStep(STEPS.length);
-        community = mergeWorlds(community, [world]);
         const how =
           source === "ai"
             ? "Designed with AI."
-            : server
-              ? `AI unavailable (${error}), designed offline.`
-              : "Designed offline (add a world server in Settings for AI).";
+            : `AI designer unavailable (${error}), designed offline.`;
         setCreateStatus(`"${world.name}" is ready. ${how} ${shared}`);
-        $("createResult").appendChild(worldCard(world, { fresh: true }));
+        $("createResult").appendChild(worldCard(saved, { fresh: true }));
       } catch (buildError) {
         setCreateStatus(`Couldn't build that world: ${buildError.message}`);
         createSteps.hidden = true;
@@ -1554,8 +1572,6 @@ window.addEventListener("load", function () {
         createBtn.disabled = false;
       }
     });
-
-  if (auth.currentUser && isPremium()) watchCommunity();
 
   // --------------------------------------------------------------- input
 

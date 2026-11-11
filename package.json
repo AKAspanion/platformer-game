@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "main": "index.js",
   "scripts": {
-    "build": "webpack",
+    "build": "webpack --mode production",
     "dev": "webpack serve",
     "dep": "gh-pages -d dist",
     "deploy": "gh-pages -d dist",
@@ -13,7 +13,10 @@
     "levels": "node scripts/generate-levels.js && prettier --write app/areas && python3 scripts/generate-thumbnails.py",
     "sprites": "python3 scripts/generate-sprites.py && python3 scripts/generate-enemy-death.py && python3 scripts/generate-icons.py",
     "audio": "python3 scripts/generate-audio.py",
-    "test": "node scripts/test.js"
+    "test": "node scripts/test.js",
+    "lint": "eslint .",
+    "functions:sync": "node scripts/sync-functions-shared.js",
+    "emulators": "node scripts/sync-functions-shared.js && firebase emulators:start"
   },
   "author": "Ankit Kumar Pandit",
   "license": "MIT",
@@ -44,5 +47,8 @@
     "webpack-cli": "^7.3.1",
     "webpack-dashboard": "^3.3.8",
     "webpack-dev-server": "^6.1.0"
+  },
+  "dependencies": {
+    "firebase": "^13.2.0"
   }
 }

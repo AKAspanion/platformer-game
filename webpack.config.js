@@ -12,6 +12,9 @@ module.exports = {
   entry: path.resolve(__dirname, "./app/index.js"),
   output: {
     filename: "bundle.js",
+    // Firebase (sign-in, shared worlds) is a separate chunk, loaded on demand
+    chunkFilename: "chunks/[name].[contenthash:8].js",
+    publicPath: "auto",
   },
   optimization: {
     minimizer: [
@@ -32,11 +35,9 @@ module.exports = {
   plugins: [
     // new CleanWebpackPlugin(),
     new DashboardPlugin(),
-    // PREMIUM=1 unlocks premium by default (test builds); WORLD_API_URL points
-    // the world creator at a server (see server/README.md).
+    // PREMIUM=1 unlocks premium by default (test builds).
     new webpack.DefinePlugin({
       PREMIUM_DEFAULT: JSON.stringify(process.env.PREMIUM === "1"),
-      WORLD_API_URL: JSON.stringify(process.env.WORLD_API_URL || ""),
     }),
     new ESLintPlugin({}),
     new CopyPlugin({
@@ -49,6 +50,11 @@ module.exports = {
         { from: path.resolve(__dirname, "app/favicon.ico"), to: "favicon.ico" },
         { from: path.resolve(__dirname, "app/manifest.json"), to: "manifest.json" },
         { from: path.resolve(__dirname, "app/assetlinks.json"), to: "assetlinks.json" },
+        // Android app links for the Play Store app (TWA)
+        {
+          from: path.resolve(__dirname, "app/assetlinks.json"),
+          to: ".well-known/assetlinks.json",
+        },
       ],
     }),
   ],
@@ -61,6 +67,16 @@ module.exports = {
     historyApiFallback: true,
     host: "localhost",
     port: 2108,
+    // ?emulators=1 talks to the Firebase emulators (yarn emulators) through
+    // this server, so the game, Auth, Firestore and Functions share one origin.
+    proxy: [
+      {
+        context: ["/identitytoolkit.googleapis.com", "/securetoken.googleapis.com", "/emulator"],
+        target: "http://127.0.0.1:9099",
+      },
+      { context: ["/google.firestore.v1.Firestore"], target: "http://127.0.0.1:8085" },
+      { context: ["/dinos-adventure"], target: "http://127.0.0.1:5001" },
+    ],
     open: true,
     client: {
       overlay: {

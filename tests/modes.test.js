@@ -243,34 +243,35 @@ test("a created world is 5 playable levels and a boss arena, with its own creatu
   }
 });
 
-test("requestSpec uses the server's spec, or falls back offline when it fails", async () => {
-  const original = globalThis.fetch;
-  try {
-    globalThis.fetch = async () => ({
-      ok: true,
-      json: async () => ({
-        spec: {
-          version: 2,
-          name: "Moon Base",
-          terrain: { surface: "metal", pits: "void" },
-          enemies: [{ name: "Zorp", behavior: "walker", body: "box" }],
-        },
-      }),
-    });
-    const ai = await requestSpec("whatever", "http://server/api/world");
-    assert.equal(ai.source, "ai");
-    assert.equal(ai.spec.name, "Moon Base");
-    assert.equal(ai.spec.terrain.surface, "metal");
-    assert.equal(ai.spec.enemies[0].name, "Zorp");
+test("requestSpec uses the AI designer's spec, or falls back offline", async () => {
+  const spec = {
+    version: 2,
+    name: "Moon Base",
+    terrain: { surface: "metal", pits: "void" },
+    enemies: [{ name: "Zorp", behavior: "walker", body: "box" }],
+  };
+  const prompts = [];
+  const ai = await requestSpec("whatever", async (prompt) => {
+    prompts.push(prompt);
+    return spec;
+  });
+  assert.deepEqual(prompts, ["whatever"]);
+  assert.equal(ai.source, "ai");
+  assert.equal(ai.spec.name, "Moon Base");
+  assert.equal(ai.spec.terrain.surface, "metal");
+  assert.equal(ai.spec.enemies[0].name, "Zorp");
 
-    globalThis.fetch = async () => ({ ok: false, status: 503 });
-    const down = await requestSpec("snowy hills", "http://server/api/world");
-    assert.equal(down.source, "offline");
-    assert.equal(down.spec.terrain.surface, "snow");
+  const down = await requestSpec("snowy hills", async () => {
+    throw new Error("Can't reach the server right now.");
+  });
+  assert.equal(down.source, "offline");
+  assert.equal(down.error, "Can't reach the server right now.");
+  assert.equal(down.spec.terrain.surface, "snow");
 
-    const none = await requestSpec("snowy hills", "");
-    assert.equal(none.source, "offline");
-  } finally {
-    globalThis.fetch = original;
-  }
+  const slow = await requestSpec("snowy hills", () => new Promise(() => {}), { timeoutMs: 20 });
+  assert.equal(slow.source, "offline");
+  assert.match(slow.error, /too long/);
+
+  const none = await requestSpec("snowy hills", null);
+  assert.equal(none.source, "offline");
 });

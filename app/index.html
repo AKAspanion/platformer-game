@@ -179,15 +179,6 @@
             ><span>Premium (developer switch)</span
             ><input type="checkbox" id="setPremiumDev" class="switch"
           /></label>
-          <div class="setting-row setting-stack">
-            <span>World creator server</span>
-            <input
-              type="url"
-              id="setWorldApi"
-              class="text-input"
-              placeholder="https://your-server (empty = offline, worlds stay on this device)"
-            />
-          </div>
           <div class="setting-row">
             <span>Progress</span>
             <button id="resetBtn" class="btn btn-small btn-danger">Reset progress</button>
@@ -273,7 +264,13 @@
           <p class="login-lead">Sign in to create worlds and play the ones others share.</p>
           <label class="field">
             <span>Your name (shown on your worlds)</span>
-            <input id="loginName" class="text-input" maxlength="20" autocomplete="nickname" />
+            <input
+              id="loginName"
+              class="text-input"
+              maxlength="20"
+              autocomplete="nickname"
+              placeholder="Optional with Google: your first name"
+            />
           </label>
           <button id="loginGoogleBtn" class="btn btn-google">
             <span class="g-logo" aria-hidden="true">G</span>Continue with Google
@@ -289,11 +286,24 @@
               placeholder="you@example.com"
             />
           </label>
-          <button id="loginEmailBtn" class="btn btn-secondary">Continue with email</button>
+          <label class="field">
+            <span>Password</span>
+            <input
+              id="loginPassword"
+              class="text-input"
+              type="password"
+              autocomplete="current-password"
+              minlength="6"
+            />
+          </label>
+          <div class="login-row">
+            <button id="loginEmailBtn" class="btn btn-secondary">Sign in</button>
+            <button id="loginCreateBtn" class="btn btn-secondary">Create account</button>
+          </div>
+          <button id="loginResetBtn" class="link-btn">Forgot password?</button>
           <div id="loginError" class="login-error" role="alert"></div>
           <div class="premium-note">
-            Demo sign-in: no password, your account lives on this device until online accounts
-            arrive.
+            Only your name is shown to other players, never your email.
           </div>
         </div>
       </div>
