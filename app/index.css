@@ -148,6 +148,11 @@ canvas {
 #pauseBtn:active {
   opacity: var(--ctrl-pressed, 0.75);
 }
+/* without touch, pause is the only on-screen control: not a faint touch button */
+.no-touch #pauseBtn,
+.no-touch #pauseBtn:active {
+  opacity: 1;
+}
 
 /* ------------------------------------------------------------------- buttons */
 

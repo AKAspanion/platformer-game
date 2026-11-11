@@ -90,6 +90,8 @@ readPremiumFromUrl();
 preLoadAndFetch();
 populateLinks();
 const isTouchesEnabled = "ontouchstart" in document.documentElement;
+// the pause button is a touch button only on a touch device (see app/index.css)
+document.documentElement.classList.toggle("no-touch", !isTouchesEnabled);
 populateHelp(isTouchesEnabled);
 
 // Firebase loads only for players who signed in before, or when they open Worlds
