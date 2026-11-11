@@ -29,6 +29,7 @@ export function mockAuthBackend() {
       displayName: account.name || "Player",
       email: account.email || null,
       provider: account.provider,
+      emailVerified: account.provider === "google" || !!account.verified,
     };
     onUser(user);
     return user;
@@ -81,6 +82,25 @@ export function mockAuthBackend() {
 
     async resetPassword() {},
 
+    // tests verify an address with verifyEmail(email) below
+    async sendVerification() {},
+
+    async reload() {
+      const state = read();
+      return signIn(state, byUid(state, state.current));
+    },
+
+    async deleteAccount() {
+      const state = read();
+      Object.keys(state.accounts).forEach((key) => {
+        if (state.accounts[key].uid === state.current) delete state.accounts[key];
+      });
+      state.current = null;
+      write(state);
+      onUser(null);
+      return { worlds: 0 };
+    },
+
     async signOut() {
       const state = read();
       state.current = null;
@@ -88,4 +108,12 @@ export function mockAuthBackend() {
       onUser(null);
     },
   };
+}
+
+/** Tests: the player opened the link in their verify email. */
+export function verifyEmail(email) {
+  const state = read();
+  const account = state.accounts[`email:${email.toLowerCase()}`];
+  if (account) account.verified = true;
+  write(state);
 }

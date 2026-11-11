@@ -6,11 +6,14 @@ import path from "node:path";
 import {
   handleDesign,
   handlePublish,
+  handleSearch,
+  handleDeleteAccount,
   overLimit,
   authorName,
   LIMITS,
+  MAX_RESULTS,
 } from "../functions/src/handlers.js";
-import { newWorld, specFromPrompt } from "../app/worlds/spec";
+import { newWorld, specFromPrompt, matchWorlds, ANONYMOUS } from "../app/worlds/spec";
 
 // the functions validate worlds with a copy of the game's spec.js
 test("functions use the same world validation as the game", () => {
@@ -115,4 +118,122 @@ test("rate limit: a sliding hour per user and kind", async () => {
   assert.equal(await overLimit(tx, "u2", "publish", 2, t0 + 2), false, "users are separate");
   assert.equal(await overLimit(tx, "u1", "publish", 2, t0 + 3600001), false, "an hour later");
   assert.equal(docs.u1.publish.length, 1, "expired entries are dropped");
+});
+
+test("email accounts verify their address before designing or sharing", async () => {
+  const design = async () => ({ spec: { name: "Caves" } });
+  const emailUser = (verified) => ({
+    uid: "e1",
+    token: { name: "Eve", email_verified: verified, firebase: { sign_in_provider: "password" } },
+  });
+  await assert.rejects(
+    handleDesign({ auth: emailUser(false), data: { prompt: "caves" } }, { design, limiter: open }),
+    (e) => e.code === "permission-denied" && /Verify your email/.test(e.message),
+  );
+  const world = newWorld(specFromPrompt("caves"), { uid: "e1", displayName: "Eve" });
+  await assert.rejects(
+    handlePublish({ auth: emailUser(false), data: { world } }, { store: {}, limiter: open }),
+    (e) => e.code === "permission-denied",
+  );
+  const out = await handleDesign(
+    { auth: emailUser(true), data: { prompt: "caves" } },
+    { design, limiter: open },
+  );
+  assert.equal(out.spec.name, "Caves");
+  const google = {
+    uid: "g1",
+    token: { name: "Gus", email_verified: true, firebase: { sign_in_provider: "google.com" } },
+  };
+  assert.ok(
+    await handleDesign({ auth: google, data: { prompt: "caves" } }, { design, limiter: open }),
+  );
+});
+
+const shared = (prompt, name, author, createdAt) => ({
+  ...newWorld(specFromPrompt(prompt), { uid: author.toLowerCase(), displayName: author }),
+  name,
+  createdAt,
+});
+
+test("searchWorlds: every world, by name, creator or boss, best matches first", async () => {
+  const all = [
+    shared("frozen fortress of bats", "Ice Keep", "Ana", 3),
+    shared("lava caves", "Magma Pits", "Bo", 2),
+    shared("frozen lake", "Frozen Lake", "Cy", 1),
+  ];
+  const allWorlds = async () => all;
+  await assert.rejects(
+    handleSearch({ auth: null, data: { query: "ice" } }, { allWorlds }),
+    (e) => e.code === "unauthenticated",
+  );
+  await assert.rejects(
+    handleSearch({ auth: user(), data: { query: " a " } }, { allWorlds }),
+    (e) => e.code === "invalid-argument",
+  );
+  const byName = await handleSearch({ auth: user(), data: { query: "FROZEN" } }, { allWorlds });
+  assert.equal(byName.worlds[0].name, "Frozen Lake", "a name starting with it ranks first");
+  const byAuthor = await handleSearch({ auth: user(), data: { query: "bo" } }, { allWorlds });
+  assert.ok(byAuthor.worlds.some((w) => w.name === "Magma Pits"));
+  const none = await handleSearch({ auth: user(), data: { query: "zzz" } }, { allWorlds });
+  assert.deepEqual(none.worlds, []);
+
+  const many = Array.from({ length: 50 }, (_, i) => shared("caves", `Cave ${i}`, "Ana", i + 1));
+  const capped = await handleSearch(
+    { auth: user(), data: { query: "cave" } },
+    { allWorlds: async () => [...many, { id: "!" }] },
+  );
+  assert.equal(capped.worlds.length, MAX_RESULTS);
+  assert.equal(capped.worlds[0].name, "Cave 49", "newest first among equals");
+});
+
+test("matchWorlds: every word must match, accents and case don't matter", () => {
+  const list = [
+    { id: "a", name: "Crème Castle", author: { name: "Zoé" }, createdAt: 1 },
+    { id: "b", name: "Castle Rock", author: { name: "Max" }, tagline: "creme pies", createdAt: 2 },
+  ];
+  assert.deepEqual(
+    matchWorlds(list, "creme castle").map((w) => w.id),
+    ["a", "b"],
+  );
+  assert.deepEqual(
+    matchWorlds(list, "zoe").map((w) => w.id),
+    ["a"],
+  );
+  assert.deepEqual(matchWorlds(list, "  "), []);
+  assert.deepEqual(
+    matchWorlds([null, 3, ...list], "rock").map((w) => w.id),
+    ["b"],
+  );
+});
+
+test("deleteAccount: worlds become Anonymous, then data and account go", async () => {
+  const calls = [];
+  const accounts = {
+    anonymizeWorlds: async (uid, author) => {
+      calls.push(["anonymize", uid, author]);
+      return 3;
+    },
+    deleteData: async (uid) => calls.push(["data", uid]),
+    deleteUser: async (uid) => calls.push(["user", uid]),
+  };
+  await assert.rejects(
+    handleDeleteAccount({ auth: null }, { accounts }),
+    (e) => e.code === "unauthenticated",
+  );
+  assert.equal(calls.length, 0);
+  const out = await handleDeleteAccount({ auth: user("u9") }, { accounts });
+  assert.deepEqual(out, { worlds: 3 });
+  assert.deepEqual(calls, [
+    ["anonymize", "u9", { uid: "", name: ANONYMOUS }],
+    ["data", "u9"],
+    ["user", "u9"],
+  ]);
+
+  // the account isn't deleted when its worlds couldn't be handed over
+  calls.length = 0;
+  accounts.anonymizeWorlds = async () => {
+    throw new Error("firestore down");
+  };
+  await assert.rejects(handleDeleteAccount({ auth: user("u9") }, { accounts }), /firestore down/);
+  assert.deepEqual(calls, []);
 });

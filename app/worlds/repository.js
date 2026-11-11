@@ -1,4 +1,4 @@
-import { sanitizeWorld, specFromPrompt, newWorld } from "./spec.js";
+import { sanitizeWorld, specFromPrompt, newWorld, matchWorlds } from "./spec.js";
 
 /**
  * The shared world repository: every world anyone creates, newest first.
@@ -6,6 +6,7 @@ import { sanitizeWorld, specFromPrompt, newWorld } from "./spec.js";
  *   repo.list({ limit })   -> Promise<world[]>
  *   repo.get(id)           -> Promise<world | null>
  *   repo.publish(world)    -> Promise<world>   (the signed-in player's; the server stamps author + time)
+ *   repo.search(query)     -> Promise<world[]> (every world, not just the newest; see matchWorlds)
  *   repo.subscribe(cb)     -> unsubscribe()    (cb(world) for each new world, live)
  *   repo.live              -> true when worlds reach other devices
  *
@@ -115,6 +116,10 @@ export class LocalRepository {
     return readList(LOCAL_KEY).find((w) => w.id === id) || null;
   }
 
+  async search(query) {
+    return matchWorlds(readList(LOCAL_KEY), query, 30);
+  }
+
   async publish(raw) {
     const world = sanitizeWorld(raw);
     if (!world) throw new Error("That world can't be shared.");
@@ -135,7 +140,7 @@ export class LocalRepository {
 export class FirestoreRepository {
   /**
    * `worlds` is the adapter: list(n) -> raw[], get(id) -> raw | null,
-   * watch(n, onAdded, onError) -> stop(), publish(world) -> raw.
+   * watch(n, onAdded, onError) -> stop(), publish(world) -> raw, search(query) -> raw[].
    */
   constructor(worlds) {
     this.worlds = worlds;
@@ -165,6 +170,12 @@ export class FirestoreRepository {
 
   async get(id) {
     return sanitizeWorld(await this.worlds.get(id));
+  }
+
+  async search(query) {
+    const raw = await this.worlds.search(String(query || "").slice(0, 60));
+    // the server ranks them; sanitizing keeps that order
+    return (Array.isArray(raw) ? raw : []).map(sanitizeWorld).filter(Boolean);
   }
 
   async publish(raw) {

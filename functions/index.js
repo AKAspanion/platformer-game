@@ -4,8 +4,10 @@
  *
  *   designWorld({ prompt })  -> { spec }    Claude turns a prompt into a world spec
  *   publishWorld({ world })  -> { world }   validates a world and shares it in Firestore
+ *   searchWorlds({ query })  -> { worlds }  every shared world matching a search
+ *   deleteAccount()          -> { worlds }  deletes the caller; their worlds become "Anonymous"
  *
- * Both are callable functions: the Firebase SDK in the game sends the
+ * All are callable functions: the Firebase SDK in the game sends the
  * player's ID token, so request.auth is the verified user (or null).
  * Players read the shared worlds straight from Firestore (see firestore.rules);
  * only these functions write them.
@@ -20,7 +22,15 @@ import { defineSecret } from "firebase-functions/params";
 import * as logger from "firebase-functions/logger";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
-import { ApiError, handleDesign, handlePublish, overLimit } from "./src/handlers.js";
+import { getAuth } from "firebase-admin/auth";
+import {
+  ApiError,
+  handleDesign,
+  handlePublish,
+  handleSearch,
+  handleDeleteAccount,
+  overLimit,
+} from "./src/handlers.js";
 import { createDesigner, Anthropic } from "./src/designer.js";
 
 // invoker "public": anyone may reach the functions (the game calls them from the
@@ -100,3 +110,47 @@ export const designWorld = callable(
 export const publishWorld = callable({ timeoutSeconds: 20 }, (request) =>
   handlePublish(request, { store, limiter }),
 );
+
+// Firestore can't search text, so search reads every world, at most once per
+// two minutes per instance: a search costs nothing more than a cache hit.
+const SEARCH_CACHE_MS = 120000;
+let everyWorld = null;
+const allWorlds = async () => {
+  if (everyWorld && Date.now() - everyWorld.at < SEARCH_CACHE_MS) return everyWorld.list;
+  const snap = await db.collection("worlds").orderBy("createdAt", "desc").get();
+  everyWorld = { at: Date.now(), list: snap.docs.map((d) => d.data()) };
+  return everyWorld.list;
+};
+
+export const searchWorlds = callable({ timeoutSeconds: 30 }, (request) =>
+  handleSearch(request, { allWorlds }),
+);
+
+const accounts = {
+  async anonymizeWorlds(uid, author) {
+    const snap = await db.collection("worlds").where("author.uid", "==", uid).get();
+    for (let i = 0; i < snap.docs.length; i += 400) {
+      const batch = db.batch();
+      snap.docs.slice(i, i + 400).forEach((d) => batch.update(d.ref, { author }));
+      await batch.commit();
+    }
+    everyWorld = null;
+    return snap.size;
+  },
+  async deleteData(uid) {
+    await db.collection("limits").doc(uid).delete();
+  },
+  async deleteUser(uid) {
+    try {
+      await getAuth().deleteUser(uid);
+    } catch (error) {
+      if (error.code !== "auth/user-not-found") throw error;
+    }
+  },
+};
+
+export const deleteAccount = callable({ timeoutSeconds: 60 }, async (request) => {
+  const result = await handleDeleteAccount(request, { accounts });
+  logger.info(`account deleted, ${result.worlds} worlds now anonymous`, { uid: request.auth.uid });
+  return result;
+});

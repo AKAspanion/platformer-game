@@ -31,7 +31,7 @@ import { auth } from "./auth";
 import { firebaseAuthBackend } from "./firebase/auth";
 import { firestoreWorlds } from "./firebase/worlds";
 import { FirestoreRepository, mergeWorlds, starterWorlds } from "./worlds/repository";
-import { newWorld } from "./worlds/spec";
+import { newWorld, matchWorlds, searchTerms, ANONYMOUS } from "./worlds/spec";
 import { previewImage } from "./gen";
 import { getSkin } from "./util/registry";
 import { createCampaign, starsFor, targetTime, starCount, STAR } from "./campaign";
@@ -69,6 +69,8 @@ const settingsScreen = $("settingsScreen");
 const premiumScreen = $("premiumScreen");
 const createScreen = $("createScreen");
 const loginScreen = $("loginScreen");
+const verifyScreen = $("verifyScreen");
+const deleteScreen = $("deleteScreen");
 const controllers = document.querySelectorAll(".controller");
 const loadingScreen = $("loadingScreen");
 const progressValue = $("progressValue");
@@ -989,7 +991,7 @@ window.addEventListener("load", function () {
   const premiumModes = {
     daily: startDaily,
     endless: startEndless,
-    create: () => requireLogin(() => openCreator()),
+    create: () => requireLogin(() => openCreator(), "worlds"),
   };
 
   const refreshHome = () => {
@@ -1009,6 +1011,26 @@ window.addEventListener("load", function () {
         ? "Start your adventure"
         : `Continue · ${last.name} · ★ ${stars}/${LEVELS.length * 3}`;
   };
+
+  // the daily levels change at local midnight (dailySeed): count down to it
+  const dailyTimer = $("dailyTimer");
+  let dailyDay = dailySeed();
+  const two = (n) => String(n).padStart(2, "0");
+  const tickDaily = () => {
+    const now = new Date();
+    if (dailySeed(now) !== dailyDay) {
+      dailyDay = dailySeed(now);
+      refreshHome(); // today's best starts over
+    }
+    if (!isVisible(homeScreen)) return;
+    const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    const left = Math.max(0, Math.ceil((midnight - now) / 1000));
+    const h = Math.floor(left / 3600);
+    const m = Math.floor((left % 3600) / 60);
+    dailyTimer.textContent = `New levels in ${h}:${two(m)}:${two(left % 60)}`;
+  };
+  tickDaily();
+  setInterval(tickDaily, 1000);
 
   const openLevels = () => {
     populatePortals(
@@ -1085,6 +1107,7 @@ window.addEventListener("load", function () {
     const user = auth.currentUser;
     $("accountStatus").textContent = user ? user.displayName : "Not signed in";
     $("accountBtn").textContent = user ? "Sign out" : "Sign in";
+    $("deleteAccountRow").style.display = user ? "flex" : "none";
   };
 
   $("settingsBtn").onclick = () => {
@@ -1113,7 +1136,7 @@ window.addEventListener("load", function () {
   });
   $("accountBtn").onclick = async () => {
     if (auth.currentUser) await auth.signOut().catch(() => {});
-    else openLogin(() => refreshSettings());
+    else openLogin(() => refreshSettings(), "settings");
     refreshSettings();
   };
   setPremiumDev.onchange = () => {
@@ -1168,17 +1191,57 @@ window.addEventListener("load", function () {
       (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch],
     );
 
+  /** A button that is working: disabled, with its spinner turning. */
+  const setBusy = (button, busy) => {
+    button.disabled = busy;
+    button.classList.toggle("busy", busy);
+  };
+
+  // Google sign-in leaves the page: what to open when the player comes back
+  const LOGIN_NEXT = "login_next";
+  const tabStore = {
+    get: (key) => {
+      try {
+        return sessionStorage.getItem(key);
+      } catch (error) {
+        return null;
+      }
+    },
+    set: (key, value) => {
+      try {
+        if (value == null) sessionStorage.removeItem(key);
+        else sessionStorage.setItem(key, value);
+      } catch (error) {
+        // private mode: the player lands on the home screen, signed in
+      }
+    },
+  };
+  const loginIntents = {
+    worlds: () => isPremium() && openCreator(),
+    settings: () => {
+      refreshSettings();
+      show(settingsScreen, true);
+    },
+  };
+
   let afterLogin = null;
+  let loginIntent = null;
   const loginName = $("loginName");
   const loginEmail = $("loginEmail");
   const loginPassword = $("loginPassword");
   const loginError = $("loginError");
   const loginButtons = ["loginGoogleBtn", "loginEmailBtn", "loginCreateBtn", "loginResetBtn"];
 
-  const openLogin = (then) => {
+  const loginMessage = (text, ok = false) => {
+    loginError.textContent = text;
+    loginError.classList.toggle("ok", ok);
+  };
+
+  /** `then` runs after sign-in; `intent` (loginIntents) replaces it after a Google redirect. */
+  const openLogin = (then, intent = null) => {
     afterLogin = then || null;
-    loginError.textContent = "";
-    loginError.classList.remove("ok");
+    loginIntent = intent;
+    loginMessage("");
     show(loginScreen, true);
     // start downloading sign-in while the player types
     auth.start();
@@ -1186,37 +1249,41 @@ window.addEventListener("load", function () {
   const busyLogin = (busy) => loginButtons.forEach((id) => ($(id).disabled = busy));
 
   /** Run `then` signed in: straight away, or after the sign-in screen. */
-  const requireLogin = async (then) => {
+  const requireLogin = async (then, intent = null) => {
     if (!auth.currentUser && !auth.known) {
       showToast("<b>Checking your account…</b>");
       await auth.ready();
     }
-    return auth.currentUser ? then() : openLogin(then);
+    return auth.currentUser ? then() : openLogin(then, intent);
   };
 
   const signIn = async (method) => {
-    loginError.textContent = "";
-    loginError.classList.remove("ok");
+    loginMessage("");
     busyLogin(true);
     try {
       if (method === "reset") {
         await auth.resetPassword(loginEmail.value);
-        loginError.classList.add("ok");
-        loginError.textContent = "Check your email for a link to reset your password.";
+        loginMessage(
+          "Check your email for a link to reset your password. It brings you back here.",
+          true,
+        );
         return;
       }
-      const user =
-        method === "google"
-          ? await auth.signInWithGoogle({ name: loginName.value })
-          : await auth.signInWithEmail({
-              email: loginEmail.value,
-              password: loginPassword.value,
-              name: loginName.value,
-              create: method === "create",
-            });
-      if (!user) return; // a redirect takes over
+      if (method === "google") {
+        tabStore.set(LOGIN_NEXT, loginIntent || "home");
+        loginMessage("Taking you to Google…", true);
+        await auth.signInWithGoogle(); // the page leaves for Google
+        return;
+      }
+      await auth.signInWithEmail({
+        email: loginEmail.value,
+        password: loginPassword.value,
+        name: loginName.value,
+        create: method === "create",
+      });
     } catch (error) {
-      loginError.textContent = error.message;
+      if (method === "google") tabStore.set(LOGIN_NEXT, null);
+      loginMessage(error.message);
       return;
     } finally {
       busyLogin(false);
@@ -1225,7 +1292,10 @@ window.addEventListener("load", function () {
     show(loginScreen, false);
     const next = afterLogin;
     afterLogin = null;
-    if (next) next();
+    loginIntent = null;
+    // a new email account: verify the address first, then carry on
+    if (method === "create") openVerify(next, { thenOnClose: true });
+    else if (next) next();
   };
   $("loginGoogleBtn").onclick = () => signIn("google");
   $("loginEmailBtn").onclick = () => signIn("email");
@@ -1238,7 +1308,172 @@ window.addEventListener("load", function () {
   );
   $("loginCloseBtn").onclick = () => {
     afterLogin = null;
+    loginIntent = null;
     show(loginScreen, false);
+  };
+
+  // back from Google: finish what the player was doing
+  const pendingLogin = tabStore.get(LOGIN_NEXT);
+  if (pendingLogin) {
+    tabStore.set(LOGIN_NEXT, null);
+    auth.start();
+    let done = false;
+    const stopWaiting = auth.onAuthStateChanged((user) => {
+      if (!user || done) return;
+      done = true;
+      setTimeout(() => stopWaiting()); // not inside its own first call
+      showToast(`<b>Signed in as ${esc(user.displayName)}</b>`);
+      if (loginIntents[pendingLogin]) loginIntents[pendingLogin]();
+    });
+    setTimeout(() => !done && stopWaiting(), 30000);
+  }
+  // a Google sign-in that came back with an error
+  auth.onError((error) => {
+    openLogin(null, pendingLogin);
+    loginMessage(error.message);
+  });
+
+  // ---------------------------------------------------------- verify email
+
+  const verifyStatus = $("verifyStatus");
+  const verifyDoneBtn = $("verifyDoneBtn");
+  let afterVerify = null;
+  let verifyThenOnClose = false;
+  const verifyMessage = (text, ok = false) => {
+    verifyStatus.textContent = text;
+    verifyStatus.classList.toggle("ok", ok);
+  };
+
+  /** Ask an email account to verify; `then` runs once verified (or on close, if asked). */
+  const openVerify = (then = null, { thenOnClose = false } = {}) => {
+    afterVerify = then;
+    verifyThenOnClose = thenOnClose;
+    $("verifyEmail").textContent = (auth.currentUser && auth.currentUser.email) || "your email";
+    verifyMessage("");
+    show(verifyScreen, true);
+  };
+  const closeVerify = (verified) => {
+    show(verifyScreen, false);
+    const next = afterVerify;
+    afterVerify = null;
+    if (next && (verified || verifyThenOnClose)) next();
+  };
+
+  /** Run `then` with a verified account (creating worlds needs one). */
+  const requireVerified = (then) =>
+    requireLogin(() => (auth.needsVerification() ? openVerify(then) : then()), "worlds");
+
+  const checkVerified = async ({ quiet = false } = {}) => {
+    if (!quiet) {
+      setBusy(verifyDoneBtn, true);
+      verifyMessage("");
+    }
+    try {
+      const user = await auth.reload();
+      if (user && !auth.needsVerification(user)) {
+        showToast("<b>Email verified</b><span>You can create worlds now</span>");
+        closeVerify(true);
+      } else if (!quiet) {
+        verifyMessage("Not verified yet. Open the link in the email, then try again.");
+      }
+    } catch (error) {
+      if (!quiet) verifyMessage(error.message);
+    } finally {
+      if (!quiet) setBusy(verifyDoneBtn, false);
+    }
+  };
+  verifyDoneBtn.onclick = () => checkVerified();
+  $("verifyResendBtn").onclick = async () => {
+    const button = $("verifyResendBtn");
+    button.disabled = true;
+    try {
+      await auth.sendVerification();
+      verifyMessage("Sent. Check your inbox.", true);
+    } catch (error) {
+      verifyMessage(error.message);
+    } finally {
+      button.disabled = false;
+    }
+  };
+  $("verifySwitchBtn").onclick = async () => {
+    afterVerify = null;
+    show(verifyScreen, false);
+    show(createScreen, false);
+    await auth.signOut().catch(() => {});
+    openLogin(() => isPremium() && openCreator(), "worlds");
+  };
+  $("verifyCloseBtn").onclick = () => closeVerify(false);
+  // verified in another tab or the mail app: notice it on coming back
+  window.addEventListener("focus", () => {
+    if (isVisible(verifyScreen)) checkVerified({ quiet: true });
+  });
+
+  // ------------------------------------------------- links in our emails
+
+  // Firebase's emails link back here: ?verified=1 after verifying, ?reset=1 after a new password
+  const arrivedFrom = new URLSearchParams(location.search);
+  if (arrivedFrom.has("verified") || arrivedFrom.has("reset")) {
+    arrivedFrom.delete("verified");
+    arrivedFrom.delete("reset");
+    const rest = arrivedFrom.toString();
+    const verifiedLink = /[?&]verified=/.test(location.search);
+    history.replaceState(null, "", location.pathname + (rest ? `?${rest}` : "") + location.hash);
+    if (verifiedLink) {
+      auth.ready().then(async () => {
+        if (!auth.currentUser) {
+          showToast("<b>Email verified</b><span>Sign in to create worlds</span>");
+          return;
+        }
+        const user = await auth.reload().catch(() => auth.currentUser);
+        if (user && !auth.needsVerification(user)) {
+          showToast("<b>Email verified</b><span>You can create worlds now</span>");
+        }
+      });
+    } else {
+      openLogin(() => isPremium() && openCreator(), "worlds");
+      loginMessage("Password changed. Sign in with your new password.", true);
+    }
+  }
+
+  // --------------------------------------------------------- delete account
+
+  const deleteConfirmBtn = $("deleteConfirmBtn");
+  const deleteStatus = $("deleteStatus");
+  $("deleteAccountBtn").onclick = () => {
+    if (!auth.currentUser) return;
+    $("deleteAccountName").textContent = auth.currentUser.displayName;
+    deleteStatus.textContent = "";
+    show(deleteScreen, true);
+  };
+  const closeDelete = () => {
+    if (!deleteConfirmBtn.disabled) show(deleteScreen, false);
+  };
+  $("deleteCloseBtn").onclick = closeDelete;
+  $("deleteCancelBtn").onclick = closeDelete;
+  deleteConfirmBtn.onclick = async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+    deleteStatus.textContent = "";
+    setBusy(deleteConfirmBtn, true);
+    $("deleteCancelBtn").disabled = true;
+    try {
+      await auth.deleteAccount();
+    } catch (error) {
+      deleteStatus.textContent = error.message;
+      return;
+    } finally {
+      setBusy(deleteConfirmBtn, false);
+      $("deleteCancelBtn").disabled = false;
+    }
+    // the copies on this device show the new author too
+    const anonymous = (world) =>
+      world.author.uid === user.uid ? { ...world, author: { uid: "", name: ANONYMOUS } } : world;
+    worlds.save(worlds.list().map(anonymous));
+    community = community.map(anonymous);
+    loginName.value = "";
+    show(deleteScreen, false);
+    refreshSettings();
+    showToast("<b>Account deleted</b><span>Your worlds stay, by Anonymous</span>");
   };
 
   // account chip in the Worlds header: tap to arm, tap again to sign out
@@ -1296,8 +1531,19 @@ window.addEventListener("load", function () {
   const communityStatus = $("communityStatus");
   let connection = "loading"; // loading | live | local | stale | error
   let connectionError = "";
+  const plural = (n) => `${n} world${n === 1 ? "" : "s"}`;
   const renderStatus = () => {
-    const count = `${community.length} world${community.length === 1 ? "" : "s"}`;
+    if (searchHits) {
+      communityStatus.className = "live-status";
+      communityStatus.textContent = {
+        searching: `Searching all worlds… ${plural(searchHits.length)} so far`,
+        short: "Type at least 2 letters",
+        done: `${plural(searchHits.length)} found`,
+        error: `Searched loaded worlds only (${searchError}) · ${plural(searchHits.length)}`,
+      }[searchState];
+      return;
+    }
+    const count = plural(community.length);
     communityStatus.className = connection === "live" ? "live-status on" : "live-status";
     communityStatus.textContent = {
       loading: "Loading worlds…",
@@ -1317,9 +1563,52 @@ window.addEventListener("load", function () {
       connection = "error";
       connectionError = error.message;
     }
-    renderCommunity();
+    if (searchHits) runSearch();
+    else renderCommunity();
   };
   $("communityRefresh").onclick = loadCommunity;
+
+  // ---------------------------------------------------------------- search
+
+  // the loaded worlds filter at once; the searchWorlds function adds every older match
+  const worldSearch = $("worldSearch");
+  let searchHits = null; // null: not searching
+  let searchState = "done"; // searching | short | done | error
+  let searchError = "";
+  let searchRun = 0;
+  let searchTimer = null;
+  const runSearch = async () => {
+    clearTimeout(searchTimer);
+    const query = worldSearch.value.trim();
+    const run = ++searchRun;
+    if (!searchTerms(query).length) {
+      searchHits = null;
+      renderCommunity();
+      return;
+    }
+    searchHits = matchWorlds(community, query);
+    searchState = searchTerms(query).join("").length < 2 ? "short" : "searching";
+    renderCommunity();
+    if (searchState === "short") return;
+    try {
+      const found = await repo.search(query);
+      if (run !== searchRun) return;
+      searchHits = matchWorlds(mergeWorlds(searchHits, found), query);
+      searchState = "done";
+    } catch (error) {
+      if (run !== searchRun) return;
+      searchState = "error";
+      searchError = error.message;
+    }
+    renderCommunity();
+  };
+  worldSearch.addEventListener("input", () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(runSearch, 350);
+  });
+  worldSearch.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") runSearch();
+  });
 
   // ---------------------------------------------------------- world cards
 
@@ -1400,7 +1689,7 @@ window.addEventListener("load", function () {
     const play = document.createElement("button");
     play.className = "btn btn-small";
     play.textContent = "Play";
-    play.onclick = () => requireLogin(() => startCustom(world));
+    play.onclick = () => requireLogin(() => startCustom(world), "worlds");
     actions.appendChild(play);
     if (onRemove) {
       const remove = document.createElement("button");
@@ -1424,13 +1713,20 @@ window.addEventListener("load", function () {
     renderStatus();
     const list = $("communityList");
     list.innerHTML = "";
-    if (!community.length) {
-      list.appendChild(emptyNote("No worlds yet. Make the first one in Create!"));
+    const shown = searchHits || community;
+    if (!shown.length) {
+      list.appendChild(
+        emptyNote(
+          searchHits
+            ? searchState === "searching"
+              ? "Searching…"
+              : `No worlds match "${worldSearch.value.trim()}".`
+            : "No worlds yet. Make the first one in Create!",
+        ),
+      );
       return;
     }
-    community.forEach((world) =>
-      list.appendChild(worldCard(world, { fresh: freshIds.has(world.id) })),
-    );
+    shown.forEach((world) => list.appendChild(worldCard(world, { fresh: freshIds.has(world.id) })));
   };
 
   const myWorlds = () => {
@@ -1479,6 +1775,8 @@ window.addEventListener("load", function () {
 
   const openCreator = (tab = "community") => {
     setCreateStatus("");
+    worldSearch.value = "";
+    searchHits = null;
     renderAccount();
     watchCommunity();
     selectTab(tab);
@@ -1522,14 +1820,25 @@ window.addEventListener("load", function () {
   };
   const paint = () => new Promise((resolve) => setTimeout(resolve, 30));
 
+  // while a world builds: the button spins, and the prompt and examples wait
+  const busyCreate = (busy) => {
+    setBusy(createBtn, busy);
+    $("createBtnLabel").textContent = busy ? "Building your world…" : "Build my world";
+    createPrompt.disabled = busy;
+    $("createExamples")
+      .querySelectorAll("button")
+      .forEach((chip) => (chip.disabled = busy));
+  };
+
   createBtn.onclick = () =>
-    requireLogin(async () => {
+    requireVerified(async () => {
       const prompt = createPrompt.value.trim();
       if (prompt.length < 3) {
         setCreateStatus("Describe your world first.");
         return;
       }
-      createBtn.disabled = true;
+      if (createBtn.disabled) return;
+      busyCreate(true);
       $("createResult").innerHTML = "";
       setCreateStatus("");
       try {
@@ -1569,7 +1878,7 @@ window.addEventListener("load", function () {
         setCreateStatus(`Couldn't build that world: ${buildError.message}`);
         createSteps.hidden = true;
       } finally {
-        createBtn.disabled = false;
+        busyCreate(false);
       }
     });
 
@@ -1585,6 +1894,8 @@ window.addEventListener("load", function () {
       premiumScreen,
       createScreen,
       loginScreen,
+      verifyScreen,
+      deleteScreen,
     ].some(isVisible);
 
   const keyDownUp = (event) => {

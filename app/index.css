@@ -308,6 +308,15 @@ canvas {
   opacity: 0.7;
   text-align: center;
 }
+.mode-timer {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
+}
+.mode-timer:empty {
+  display: none;
+}
 .mode-badge {
   position: absolute;
   top: 6px;
@@ -319,20 +328,23 @@ canvas {
   filter: saturate(0.55);
   opacity: 0.75;
 }
+/* score on the left, the settings / help / info row in the centre */
 .home-footer {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   width: min(720px, 100%);
   align-items: center;
-  justify-content: space-between;
 }
 #highScore {
   color: var(--gold);
   font-size: 18px;
 }
 .icon-row {
+  grid-column: 2;
   display: flex;
   gap: 8px;
   align-items: center;
+  justify-content: center;
 }
 
 /* ------------------------------------------------------------- pause / result */
@@ -404,8 +416,12 @@ canvas {
 #portalScreen {
   z-index: 12;
 }
-#loginScreen {
+#loginScreen,
+#deleteScreen {
   z-index: 13;
+}
+#verifyScreen {
+  z-index: 14;
 }
 .modal-container {
   --modal-padding: min(28px, 5vw);
@@ -1309,4 +1325,86 @@ canvas {
   .mode-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
+
+/* ------------------------------------------------------------------- spinner */
+
+.spinner {
+  display: none;
+  width: 1em;
+  height: 1em;
+  margin-right: 0.5em;
+  vertical-align: -0.15em;
+  border-radius: 50%;
+  border: 0.18em solid currentColor;
+  border-right-color: transparent;
+  animation: spin 0.7s linear infinite;
+}
+.busy .spinner {
+  display: inline-block;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 2s;
+  }
+}
+/* a busy button keeps its look (not the faded disabled one): it's working */
+.btn.busy[disabled] {
+  opacity: 0.85;
+}
+.create-prompt:disabled {
+  opacity: 0.6;
+  background: #f4ede0;
+}
+.chip:disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* -------------------------------------------------------------------- search */
+
+.search-box {
+  position: relative;
+  display: block;
+}
+.search-box .text-input {
+  padding-left: 36px;
+}
+.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  margin-top: -8px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  opacity: 0.45;
+  pointer-events: none;
+}
+.search-icon::after {
+  content: "";
+  position: absolute;
+  right: -5px;
+  bottom: -4px;
+  width: 6px;
+  height: 2px;
+  background: currentColor;
+  transform: rotate(45deg);
+}
+
+/* ----------------------------------------------------------- delete account */
+
+.delete-note {
+  font-size: 14px;
+  opacity: 0.8;
+}
+.btn-delete {
+  background: linear-gradient(#a8403f, #8a2f36);
+  box-shadow: 0 5px 0 #5e1f25;
 }
