@@ -329,6 +329,33 @@ test("fetch rejects when the backend does, and caches nothing for those uids", a
   assert.ok(map.has("a"));
 });
 
+test("after the player's own write, their row shows the new look without asking again", async () => {
+  const { backend, profiles } = setup({
+    docs: { u1: { skin: "mint", hat: "cap", companion: "none", seenDay: DAY } },
+  });
+  const before = await profiles.fetch(["u1", "u2"]);
+  assert.equal(before.get("u1").hat, "cap");
+  await profiles.sync("u1", worn({ hat: "crown" }), off);
+  const after = await profiles.fetch(["u1", "u2"]);
+  assert.equal(backend.gets.length, 1, "answered from the session cache");
+  assert.deepEqual(after.get("u1"), {
+    skin: "mint",
+    hat: "crown",
+    companion: "none",
+    seenDay: null,
+  });
+});
+
+test("a failed own write leaves the cached look as it was", async () => {
+  const { backend, profiles } = setup({
+    docs: { u1: { skin: "mint", hat: "cap", companion: "none" } },
+  });
+  await profiles.fetch(["u1"]);
+  backend.failSet = true;
+  await profiles.sync("u1", worn({ hat: "crown" }), on);
+  assert.equal((await profiles.fetch(["u1"])).get("u1").hat, "cap");
+});
+
 test("Settings has the last-online row, on by default", () => {
   assert.equal(createLastSeen(fakeStorage()).on(), true);
   const html = fs.readFileSync("app/index.html", "utf8");

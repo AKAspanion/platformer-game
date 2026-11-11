@@ -70,6 +70,8 @@ export function createProfiles({ backend, storage, now = Date.now }) {
     }
     writtenThisSession.add(uid);
     remember(uid, payload);
+    // the player's own row shows what was just written, not the look the board first read
+    cache.set(uid, cleanProfile(payload));
   }
 
   function sync(uid, worn, options = {}) {
