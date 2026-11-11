@@ -38,6 +38,9 @@ import { createPending, errorCode, isFinalRefusal } from "./daily/pending";
 import { shareText, shareRun } from "./daily/share";
 import { DAILY_LEVELS } from "./daily/rules.js";
 import { friendlyError } from "./firebase";
+import { endlessBoard } from "./modes/endless-board";
+import { createEndlessPending } from "./modes/endless-pending";
+import { MIN_LEVEL } from "./modes/endless-rules";
 import { firebaseAuthBackend } from "./firebase/auth";
 import { firestoreWorlds } from "./firebase/worlds";
 import { FirestoreRepository, mergeWorlds, starterWorlds } from "./worlds/repository";
@@ -331,14 +334,13 @@ window.addEventListener("load", function () {
 
   // ------------------------------------------------------------------ results
 
-  // the daily result panel: rank, streak, a note, and the Share / Leaderboard buttons
+  // the result panel's rank line, streak, a note, and the Share button
   let panelToken = 0;
-  const setPanelDaily = ({ rank, streak, note, share, leaderboard: board }) => {
+  const setPanelDaily = ({ rank, streak, note, share }) => {
     if (rank !== undefined) $("pauseRank").textContent = rank;
     if (streak !== undefined) $("pauseStreak").textContent = streak;
     if (note !== undefined) $("pauseNote").textContent = note;
     if (share !== undefined) $("shareBtn").style.display = share ? "block" : "none";
-    if (board !== undefined) $("leaderboardBtn").style.display = board ? "block" : "none";
   };
 
   const showPanel = ({
@@ -353,7 +355,7 @@ window.addEventListener("load", function () {
   }) => {
     panelToken += 1; // a result still arriving for the last panel must not write into this one
     $("reminderPrompt").hidden = true;
-    setPanelDaily({ rank: "", streak: "", note: "", share: daily, leaderboard: false });
+    setPanelDaily({ rank: "", streak: "", note: "", share: daily });
     pauseTitle.textContent = title;
     pauseTitle.className = `panel-title ${tone}`;
     pauseScore.textContent = score;
@@ -472,6 +474,13 @@ window.addEventListener("load", function () {
     },
   };
 
+  /** The endless run's clock: ticks played, 30 a second. */
+  const endless = {
+    ticks: 0,
+    seconds: () => Math.round(endless.ticks / 30),
+  };
+  const endlessPending = createEndlessPending();
+
   /** The boss rush run's clock: ticks played, 30 a second. */
   const rush = {
     ticks: 0,
@@ -500,14 +509,34 @@ window.addEventListener("load", function () {
       const sent = await leaderboard.submit(run);
       daily.result = { ...run, rank: sent.rank, total: sent.total };
       track("daily_complete", { score, seconds: run.seconds, rank: sent.rank });
-      if (token === panelToken)
-        setPanelDaily({ rank: `#${sent.rank} of ${sent.total}`, leaderboard: true });
+      if (token === panelToken) setPanelDaily({ rank: `#${sent.rank} of ${sent.total}` });
     } catch (error) {
       const code = errorCode(error);
       // refused runs can't be ranked later; a busy server (resource-exhausted) can take it later
       if (!isFinalRefusal(error)) pending.save(run);
       track("daily_complete", { score, seconds: run.seconds });
       if (token === panelToken) setPanelDaily({ rank: REFUSED[code] || OFFLINE });
+    }
+  };
+
+  /** Sends a finished endless run; shows "#12 of 340 all time", or keeps the run for the home screen. */
+  const submitEndless = async (run) => {
+    const token = panelToken;
+    setPanelDaily({ rank: "Sending your score…" });
+    try {
+      await auth.ensurePlayer();
+      const sent = await endlessBoard.submit(run);
+      track("endless_ranked", { level: run.level, score: run.score, rank: sent.rank });
+      if (token === panelToken) setPanelDaily({ rank: `#${sent.rank} of ${sent.total} all time` });
+    } catch (error) {
+      const code = errorCode(error);
+      if (!isFinalRefusal(error)) endlessPending.save(run);
+      if (token === panelToken) {
+        setPanelDaily({
+          rank:
+            code === "failed-precondition" ? REFUSED["invalid-argument"] : REFUSED[code] || OFFLINE,
+        });
+      }
     }
   };
 
@@ -520,6 +549,10 @@ window.addEventListener("load", function () {
       await pending.flush(async (run) => {
         await auth.ensurePlayer();
         await leaderboard.submit(run);
+      });
+      await endlessPending.flush(async (run) => {
+        await auth.ensurePlayer();
+        await endlessBoard.submit(run);
       });
     } finally {
       flushing = false;
@@ -545,6 +578,16 @@ window.addEventListener("load", function () {
     const inDaily = !!session && session.kind === "daily";
     if (inDaily) daily.levels[daily.index()] = "lost";
     const current = areaId;
+    // an endless run is ranked when it ends, from level 2 on
+    const endlessRun =
+      session && session.kind === "endless" && session.level(current) >= MIN_LEVEL
+        ? {
+            seed: Number(session.key),
+            level: session.level(current),
+            score,
+            seconds: endless.seconds(),
+          }
+        : null;
     const inSession = session;
     const level = LEVELS.find(({ id }) => id === current);
     retry = restarter(inSession, level);
@@ -561,6 +604,7 @@ window.addEventListener("load", function () {
         setPanelDaily({ note: "Finish all 5 levels to get on the leaderboard." });
         daily.result = { score, seconds: daily.seconds(), rank: null, total: null };
       }
+      if (endlessRun) submitEndless(endlessRun);
     }, 1400);
   });
 
@@ -763,6 +807,7 @@ window.addEventListener("load", function () {
         daily.ticks += 1;
         daily.watchHearts();
       }
+      if (session && session.kind === "endless" && loaded && !game.over) endless.ticks += 1;
       if (session && session.kind === "bossrush" && loaded && !game.over) rush.ticks += 1;
       if (loaded) {
         const { hearts } = game.world.player;
@@ -1299,6 +1344,7 @@ window.addEventListener("load", function () {
 
   const startEndless = () => {
     session = createEndlessSession();
+    endless.ticks = 0;
     track("mode_start", { mode: "endless" });
     loadWorld(session.startId, session.left, session.top);
   };
@@ -1324,7 +1370,7 @@ window.addEventListener("load", function () {
     try {
       session = createCustomSession(world);
     } catch (error) {
-      setCreateStatus(`Couldn't build that world: ${error.message}`);
+      setCreateStatus(`Couldn't build that world: ${friendlyError(error)}`);
       showToast(`Couldn't build that world`);
       return;
     }
@@ -2031,7 +2077,7 @@ window.addEventListener("load", function () {
       });
     } catch (error) {
       if (method === "google") tabStore.set(LOGIN_NEXT, null);
-      loginMessage(error.message);
+      loginMessage(friendlyError(error));
       return;
     } finally {
       busyLogin(false);
@@ -2078,7 +2124,7 @@ window.addEventListener("load", function () {
   // a Google sign-in that came back with an error
   auth.onError((error) => {
     openLogin(null, pendingLogin);
-    loginMessage(error.message);
+    loginMessage(friendlyError(error));
   });
 
   // ---------------------------------------------------------- verify email
@@ -2125,7 +2171,7 @@ window.addEventListener("load", function () {
         verifyMessage("Not verified yet. Open the link in the email, then try again.");
       }
     } catch (error) {
-      if (!quiet) verifyMessage(error.message);
+      if (!quiet) verifyMessage(friendlyError(error));
     } finally {
       if (!quiet) setBusy(verifyDoneBtn, false);
     }
@@ -2138,7 +2184,7 @@ window.addEventListener("load", function () {
       await auth.sendVerification();
       verifyMessage("Sent. Check your inbox.", true);
     } catch (error) {
-      verifyMessage(error.message);
+      verifyMessage(friendlyError(error));
     } finally {
       button.disabled = false;
     }
@@ -2187,32 +2233,59 @@ window.addEventListener("load", function () {
 
   const deleteConfirmBtn = $("deleteConfirmBtn");
   const deleteStatus = $("deleteStatus");
-  $("deleteAccountBtn").onclick = () => {
+  const deleteInput = $("deleteConfirmInput");
+  // the Delete button waits for DELETE, exactly as typed (capitals, no spaces)
+  const syncDeleteConfirm = () => {
+    deleteConfirmBtn.disabled = deleteInput.value !== "DELETE";
+  };
+  deleteInput.addEventListener("input", syncDeleteConfirm);
+  /** Opens the flow for a real account; an anonymous player is never offered it. */
+  const openDelete = () => {
     if (!auth.signedIn) return;
     $("deleteAccountName").textContent = auth.currentUser.displayName;
     deleteStatus.textContent = "";
+    deleteInput.value = "";
+    syncDeleteConfirm();
     show(deleteScreen, true);
   };
+  $("deleteAccountBtn").onclick = openDelete;
+  loginIntents["delete-account"] = openDelete;
+  let deleting = false;
   const closeDelete = () => {
-    if (!deleteConfirmBtn.disabled) show(deleteScreen, false);
+    if (!deleting) show(deleteScreen, false);
   };
   $("deleteCloseBtn").onclick = closeDelete;
   $("deleteCancelBtn").onclick = closeDelete;
   deleteConfirmBtn.onclick = async () => {
     const user = auth.signedIn ? auth.currentUser : null;
-    if (!user) return;
+    if (!user || deleteInput.value !== "DELETE") return;
     deleteStatus.textContent = "";
+    deleting = true;
     setBusy(deleteConfirmBtn, true);
     $("deleteCancelBtn").disabled = true;
     try {
       await auth.deleteAccount();
     } catch (error) {
-      deleteStatus.textContent = error.message;
+      deleteStatus.textContent = friendlyError(error);
       return;
     } finally {
+      deleting = false;
       setBusy(deleteConfirmBtn, false);
       $("deleteCancelBtn").disabled = false;
+      syncDeleteConfirm();
     }
+    // ?account=delete has done its job
+    const rest = new URLSearchParams(location.search);
+    if (rest.get("account") === "delete") {
+      rest.delete("account");
+      const query = rest.toString();
+      history.replaceState(
+        null,
+        "",
+        location.pathname + (query ? `?${query}` : "") + location.hash,
+      );
+    }
+    deleteInput.value = "";
     // the copies on this device show the new author too
     const anonymous = (world) =>
       world.author.uid === user.uid ? { ...world, author: { uid: "", name: ANONYMOUS } } : world;
@@ -2328,7 +2401,7 @@ window.addEventListener("load", function () {
     } catch (error) {
       if (run !== trendingRun) return;
       trending.status = "error";
-      trending.error = error.message;
+      trending.error = friendlyError(error);
     }
     renderCommunity();
     hydrate(trending.worlds);
@@ -2356,7 +2429,7 @@ window.addEventListener("load", function () {
         searching: `Searching all worlds… ${plural(searchHits.length)} so far`,
         short: "Type at least 2 letters",
         done: `${plural(searchHits.length)} found`,
-        error: `Searched loaded worlds only (${searchError}) · ${plural(searchHits.length)}`,
+        error: `Couldn't search all worlds, showing loaded ones · ${plural(searchHits.length)}`,
       }[searchState];
       return;
     }
@@ -2385,7 +2458,7 @@ window.addEventListener("load", function () {
       connection = list.stale ? "stale" : "live";
     } catch (error) {
       connection = "error";
-      connectionError = error.message;
+      connectionError = friendlyError(error);
     }
     if (searchHits) runSearch();
     else renderCommunity();
@@ -2403,7 +2476,6 @@ window.addEventListener("load", function () {
   const worldSearch = $("worldSearch");
   let searchHits = null; // null: not searching
   let searchState = "done"; // searching | short | done | error
-  let searchError = "";
   let searchRun = 0;
   let searchTimer = null;
   const runSearch = async () => {
@@ -2427,7 +2499,6 @@ window.addEventListener("load", function () {
     } catch (error) {
       if (run !== searchRun) return;
       searchState = "error";
-      searchError = error.message;
     }
     renderCommunity();
   };
@@ -2585,7 +2656,7 @@ window.addEventListener("load", function () {
           refresh();
           track("world_like", { liked });
         } catch (error) {
-          showToast(esc(error.message || "Couldn't like that world."));
+          showToast(esc(friendlyError(error)));
         } finally {
           heart.disabled = false;
         }
@@ -2750,7 +2821,7 @@ window.addEventListener("load", function () {
       // offline: the list shows its own error state
       if (connection !== "live") {
         connection = "error";
-        connectionError = error.message;
+        connectionError = friendlyError(error);
       }
       renderCommunity();
     }
@@ -2925,18 +2996,18 @@ window.addEventListener("load", function () {
           shared = "Shared with everyone.";
           community = mergeWorlds(community, [saved]);
         } catch (publishError) {
-          shared = `Saved on this device, not shared: ${publishError.message}`;
+          shared = `Saved on this device, not shared: ${friendlyError(publishError)}`;
         }
         worlds.add(saved);
         setStep(STEPS.length);
         const how =
           source === "ai"
             ? "Designed with AI."
-            : `AI designer unavailable (${error}), designed offline.`;
+            : `AI designer unavailable (${friendlyError({ message: error })}), designed offline.`;
         setCreateStatus(`"${world.name}" is ready. ${how} ${shared}`);
         $("createResult").appendChild(worldCard(saved, { fresh: true }));
       } catch (buildError) {
-        setCreateStatus(`Couldn't build that world: ${buildError.message}`);
+        setCreateStatus(`Couldn't build that world: ${friendlyError(buildError)}`);
         createSteps.hidden = true;
       } finally {
         busyCreate(false);
@@ -2971,16 +3042,25 @@ window.addEventListener("load", function () {
     status: $("leaderboardStatus"),
     list: $("leaderboardList"),
     retry: $("leaderboardRetryBtn"),
+    tab: "today",
     load: 0,
   };
 
-  const boardRow = (entry, { me = false, pinned = false } = {}) => {
+  /** The daily seed of the local day before today. */
+  const yesterdaySeed = () => {
+    const day = new Date();
+    day.setDate(day.getDate() - 1);
+    return dailySeed(day);
+  };
+
+  const boardRow = (entry, { me = false, pinned = false, endless: ranked = false } = {}) => {
     const row = document.createElement("li");
-    row.className = `lb-row${me ? " me" : ""}${pinned ? " pinned" : ""}`;
+    row.className = `lb-row${ranked ? " endless" : ""}${me ? " me" : ""}${pinned ? " pinned" : ""}`;
     // names come from other players: text only, never HTML
     [
       ["lb-rank", typeof entry.rank === "number" ? `#${entry.rank}` : entry.rank],
       ["lb-name", entry.name],
+      ...(ranked ? [["lb-level", `Lv ${entry.level}`]] : []),
       ["lb-score", String(entry.score)],
       ["lb-time", clock(entry.seconds)],
     ].forEach(([cls, text]) => {
@@ -2992,28 +3072,47 @@ window.addEventListener("load", function () {
     return row;
   };
 
+  /** The tab's board: { top(), mine(uid) } for the daily seeds and for endless. */
+  const boardSource = (tab) => {
+    if (tab === "endless") {
+      return { top: () => endlessBoard.top(TOP_LIMIT), mine: (uid) => endlessBoard.mine(uid) };
+    }
+    const seed = tab === "yesterday" ? yesterdaySeed() : dailySeed();
+    return {
+      top: () => leaderboard.top(seed, TOP_LIMIT),
+      mine: (uid) => leaderboard.mine(seed, uid),
+    };
+  };
+
   const loadLeaderboard = async () => {
     const load = ++board.load;
-    const seed = daily.seed;
+    const { tab } = board;
+    const source = boardSource(tab);
     board.list.replaceChildren();
     board.retry.style.display = "none";
     board.status.textContent = "Loading leaderboard…";
     try {
       const { uid } = await auth.ensurePlayer();
-      const rows = await leaderboard.top(seed, TOP_LIMIT);
+      const rows = await source.top();
       const inTop = rows.some((row) => row.uid === uid);
-      const mine = inTop ? null : await leaderboard.mine(seed, uid).catch(() => null);
+      const mine = inTop ? null : await source.mine(uid).catch(() => null);
       if (load !== board.load) return;
       if (!rows.length && !mine) {
-        board.status.textContent = "No scores yet today. Be the first!";
+        board.status.textContent = "No scores yet. Be the first!";
         return;
       }
       board.status.textContent = "";
-      rows.forEach((entry) => board.list.appendChild(boardRow(entry, { me: entry.uid === uid })));
+      const endlessTab = tab === "endless";
+      rows.forEach((entry) =>
+        board.list.appendChild(boardRow(entry, { me: entry.uid === uid, endless: endlessTab })),
+      );
       if (mine) {
         // outside the top 50: the exact place isn't known here, and a stale one would be wrong
         board.list.appendChild(
-          boardRow({ ...mine, rank: `${TOP_LIMIT}+` }, { me: true, pinned: true }),
+          boardRow(
+            { ...mine, rank: `${TOP_LIMIT}+` },
+            { me: true, pinned: true, endless: endlessTab },
+          ),
         );
       }
     } catch (error) {
@@ -3024,10 +3123,22 @@ window.addEventListener("load", function () {
     }
   };
 
-  $("leaderboardBtn").onclick = () => {
+  const selectBoard = (tab) => {
+    board.tab = tab;
+    document.querySelectorAll("#leaderboardTabs .tab").forEach((el) => {
+      el.classList.toggle("active", el.dataset.board === tab);
+      el.setAttribute("aria-selected", el.dataset.board === tab);
+    });
+    loadLeaderboard();
+  };
+  document.querySelectorAll("#leaderboardTabs .tab").forEach((el) => {
+    el.onclick = () => selectBoard(el.dataset.board);
+  });
+
+  $("leaderboardsBtn").onclick = () => {
     track("leaderboard_open", {});
     show(leaderboardScreen, true);
-    loadLeaderboard();
+    selectBoard("today");
   };
   board.retry.onclick = loadLeaderboard;
   $("leaderboardCloseBtn").onclick = () => {
@@ -3143,4 +3254,9 @@ window.addEventListener("load", function () {
   // a shared world link opens last, when every screen's code is ready
   const linked = linkedWorldId(location);
   if (linked) openLinkedWorld(linked);
+
+  // ?account=delete opens the delete-account flow, after signing in when needed
+  if (new URLSearchParams(location.search).get("account") === "delete") {
+    requireLogin(openDelete, "delete-account");
+  }
 });

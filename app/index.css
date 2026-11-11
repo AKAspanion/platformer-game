@@ -637,12 +637,19 @@ canvas {
   image-rendering: pixelated;
 }
 
+#leaderboardsBtn,
 #settingsBtn,
 #helpBtn,
 #infoBtn {
   width: var(--small-btn-size);
   height: var(--small-btn-size);
   cursor: pointer;
+}
+#leaderboardsBtn {
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23f6c453' stroke='%231d1a24' stroke-width='1.6' stroke-linejoin='round' d='M7 4h10v5a5 5 0 0 1-10 0zM7 6H4c0 3 1 4.5 3 5M17 6h3c0 3-1 4.5-3 5M12 14v3M8 20h8M9.5 17h5v3h-5z'/%3E%3C/svg%3E")
+      center center / 56% no-repeat,
+    url(images/small_btn.webp) center center / var(--small-btn-size) no-repeat;
 }
 #settingsBtn {
   background: url(images/settings_btn.webp) center center / var(--small-btn-size) no-repeat;
@@ -1503,6 +1510,14 @@ canvas {
 .lb-container {
   height: min(86vh, 640px);
 }
+.lb-tabs {
+  flex: none;
+  width: auto;
+  margin: 0 16px;
+}
+.lb-tabs .tab {
+  flex: 1;
+}
 .lb-body {
   display: flex;
   flex-direction: column;
@@ -1544,6 +1559,13 @@ canvas {
   bottom: 0;
   margin-top: 8px;
   box-shadow: 0 -2px 0 rgba(29, 26, 36, 0.2);
+}
+.lb-row.endless {
+  grid-template-columns: 3.2em minmax(0, 1fr) 3.6em auto 3.4em;
+}
+.lb-level {
+  text-align: right;
+  white-space: nowrap;
 }
 .lb-name {
   overflow: hidden;
