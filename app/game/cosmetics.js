@@ -71,6 +71,76 @@ export const FIREBALL_PALETTES = {
  */
 export const HAT_ANCHOR = { left: { x: -6, y: -29 }, right: { x: 6, y: -29 } };
 
+const OPAQUE = 128;
+
+/**
+ * The top of the head in a sprite frame: the first row with an opaque pixel,
+ * and the middle of the opaque pixels in it. `data` is RGBA. Null for an empty frame.
+ */
+export function headTop(data, width, height) {
+  for (let y = 0; y < height; y++) {
+    let sum = 0;
+    let count = 0;
+    for (let x = 0; x < width; x++) {
+      if (data[(y * width + x) * 4 + 3] >= OPAQUE) {
+        sum += x;
+        count += 1;
+      }
+    }
+    if (count) return { x: sum / count, y };
+  }
+  return null;
+}
+
+// Where the head top is in the frame the hat anchor was set for (Idle 1), by facing,
+// and how a sprite pixel maps to game units (frames are 204x142, drawn 60x40).
+export const HEAD_REF = { left: { x: 132.5, y: 10 }, right: { x: 70.5, y: 10 } };
+const FRAME_SCALE = { x: 60 / 204, y: 40 / 142 };
+const heads = new WeakMap(); // frame image -> head top (skins have the same geometry)
+
+/** How far the head is from the anchor frame's, in game units, for this frame. */
+export function headOffset(frame, direction) {
+  const none = { x: 0, y: 0 };
+  if (!frame || typeof document === "undefined") return none;
+  let head = heads.get(frame);
+  if (head === undefined) {
+    const width = frame.naturalWidth || frame.width;
+    const height = frame.naturalHeight || frame.height;
+    if (!width || !height) return none; // not loaded yet: try again next frame
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(frame, 0, 0);
+      head = headTop(ctx.getImageData(0, 0, width, height).data, width, height);
+    } catch (error) {
+      head = null;
+    }
+    heads.set(frame, head);
+  }
+  if (!head) return none;
+  const ref = HEAD_REF[direction < 0 ? "left" : "right"];
+  return { x: (head.x - ref.x) * FRAME_SCALE.x, y: (head.y - ref.y) * FRAME_SCALE.y };
+}
+
+/**
+ * Draws a hat on the dino's head. `ctx` is already at the dino's feet (and scaled
+ * and flipped like the dino); the game and the shop preview both draw through this
+ * so the hat sits in the same place in both.
+ */
+export function drawHat(ctx, hat, direction, frame = null) {
+  if (!hat || !hat.width) return;
+  const anchor = HAT_ANCHOR[direction < 0 ? "left" : "right"];
+  const head = headOffset(frame, direction);
+  ctx.save();
+  // hats are drawn facing right: mirror them when the dino faces left
+  ctx.translate(anchor.x - 6 + head.x + (direction < 0 ? 12 : 0), anchor.y - 12 + head.y);
+  if (direction < 0) ctx.scale(-1, 1);
+  ctx.drawImage(hat, 0, 0, 12, 12);
+  ctx.restore();
+}
+
 /** Recolours RGBA pixels in place: each source colour in the palette maps to its target. */
 export function shiftPixels(data, palette) {
   if (!palette || palette.length === 0) return;

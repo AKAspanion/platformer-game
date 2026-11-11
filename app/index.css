@@ -1791,3 +1791,14 @@ canvas {
     flex: 0 0 auto;
   }
 }
+
+/* the gold coin sprite, sized to the text */
+.coin-icon {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  margin-right: 0.3em;
+  vertical-align: -0.15em;
+  background: url("assets/sprites/coin/image%201.webp") center / contain no-repeat;
+  image-rendering: pixelated;
+}

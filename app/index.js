@@ -1,11 +1,5 @@
 import Game from "./game";
-import {
-  HAT_ANCHOR,
-  SKIN_PALETTES,
-  FIREBALL_PALETTES,
-  tintFrames,
-  hatImage,
-} from "./game/cosmetics";
+import { drawHat, SKIN_PALETTES, FIREBALL_PALETTES, tintFrames, hatImage } from "./game/cosmetics";
 import Screen from "./screen";
 import GameEngine from "./engine";
 import Controller from "./controller";
@@ -215,10 +209,11 @@ window.addEventListener("load", function () {
 
   // ------------------------------------------------- coins, achievements, save
 
-  const coinText = (n) => `🪙 ${n.toLocaleString("en-US")}`;
+  const COIN = '<span class="coin-icon" aria-hidden="true"></span>';
+  const coinText = (n) => `${COIN}${n.toLocaleString("en-US")}`;
   const renderBalance = () => {
-    $("walletBalance").textContent = coinText(wallet.balance());
-    $("shopBalance").textContent = coinText(wallet.balance());
+    $("walletBalance").innerHTML = coinText(wallet.balance());
+    $("shopBalance").innerHTML = coinText(wallet.balance());
   };
 
   // The account's save is merged in, then kept in step; it never shows an error.
@@ -750,14 +745,7 @@ window.addEventListener("load", function () {
     ctx.translate(feetX, feetY);
     ctx.scale(player.scaleX, player.scaleY);
     ctx.drawImage(frame, -6 + xOffset, -35, 60, 40);
-    const hat = dead ? null : player.hatImage;
-    if (hat && hat.width) {
-      const anchor = HAT_ANCHOR[player.direction < 0 ? "left" : "right"];
-      // hats are drawn facing right: mirror them when the dino faces left
-      ctx.translate(anchor.x - 6 + (player.direction < 0 ? 12 : 0), anchor.y - 12);
-      if (player.direction < 0) ctx.scale(-1, 1);
-      ctx.drawImage(hat, 0, 0, 12, 12);
-    }
+    if (!dead) drawHat(ctx, player.hatImage, player.direction, frame);
     ctx.restore();
 
     if (player.shield && !dead) {
@@ -1593,7 +1581,7 @@ window.addEventListener("load", function () {
     const reload = () => window.location.reload();
     Promise.race([cloud.reset(), new Promise((resolve) => setTimeout(resolve, 4000))]).then(
       reload,
-      reload
+      reload,
     );
   };
 
@@ -1634,15 +1622,17 @@ window.addEventListener("load", function () {
       FIREBALL_PALETTES[shopPick.fireball],
     );
     ctx.save();
-    ctx.translate(70, 118);
-    ctx.scale(3, 3);
+    // the dino's visible body spans x -17..15 and y -33..1 (game units), the tallest
+    // hat reaches y -41 and the flame ends near x 31: all inside 240x140 with a margin
+    ctx.translate(100, 125);
+    ctx.scale(2.8, 2.8);
     if (dino) ctx.drawImage(dino, -18, -35, 60, 40);
     const hat = hatImage(shopPick.hat);
     if (hat && !hat.complete) hat.addEventListener("load", drawPreview, { once: true });
-    else if (hat && hat.naturalWidth) ctx.drawImage(hat, 0, -41, 12, 12);
+    else if (hat && hat.naturalWidth) drawHat(ctx, hat, 1, dino);
     if (fire) {
       const ratio = (fire.naturalWidth || fire.width) / (fire.naturalHeight || fire.height) || 1;
-      ctx.drawImage(fire, 40, -24, 14 * ratio, 14);
+      ctx.drawImage(fire, 8, -20, 14 * ratio, 14); // its visible tip just past the snout
     }
     ctx.restore();
   };
@@ -1670,7 +1660,8 @@ window.addEventListener("load", function () {
       name.textContent = item.name;
       const state = document.createElement("span");
       state.className = "shop-item-state";
-      state.textContent = isWorn ? "Worn" : owned ? "Owned" : `🪙 ${num(item.price)}`;
+      if (isWorn || owned) state.textContent = isWorn ? "Worn" : "Owned";
+      else state.innerHTML = coinText(item.price);
       button.append(name, state);
       button.onclick = () => {
         shopPick[shopSlot] = item.id;
@@ -1687,10 +1678,10 @@ window.addEventListener("load", function () {
       const balance = wallet.balance();
       if (worn[shopSlot] === picked.id) label = "Worn";
       else if (wallet.owns(shopSlot, picked.id)) ((label = "Wear"), (can = true));
-      else if (balance >= picked.price) ((label = `Buy · ${num(picked.price)}`), (can = true));
-      else label = `Need ${num(picked.price - balance)} more`;
+      else if (balance >= picked.price) ((label = `Buy · ${coinText(picked.price)}`), (can = true));
+      else label = `Need ${coinText(picked.price - balance)} more`;
     }
-    shopActionBtn.textContent = label;
+    shopActionBtn.innerHTML = label;
     shopActionBtn.classList.toggle("cant", !can);
     shopActionBtn.setAttribute("aria-disabled", String(!can));
     drawPreview();
