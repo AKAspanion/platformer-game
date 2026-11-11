@@ -6,7 +6,7 @@ import World from "../app/game/world";
 import Game from "../app/game";
 import AudioController from "../app/controller/audio";
 import sfx, { loadSfx, resetSfxGap } from "../app/controller/sfx";
-import { preLoadAndFetch } from "../app/util";
+import { preLoadAndFetch, populateHelp, loadHelpIcons } from "../app/util";
 
 // These tests share one module graph (sprites are cached for the whole run, as
 // in the browser), so they run in order: home screen, a level, a boss, again.
@@ -40,6 +40,40 @@ test("home screen: no level music, sound effects, enemy or boss sprites", async 
   const asked = [...since(start), ...hrefs];
   const bad = asked.filter((src) => isAudio(src) || isEnemy(src));
   assert.deepEqual(bad, [], `home screen asked for ${bad.join(", ")}`);
+});
+
+test("help tip icons are requested when Help opens, not on the home screen", () => {
+  const imgs = [];
+  const element = (tag) => {
+    const el = tag === "img" ? new globalThis.Image() : {};
+    el.dataset = {};
+    el.style = {};
+    el.children = [];
+    el.appendChild = (child) => el.children.push(child);
+    el.append = (...kids) => el.children.push(...kids);
+    el.innerHTML = "";
+    if (tag === "img") imgs.push(el);
+    return el;
+  };
+  globalThis.document = {
+    getElementById: () => element("div"),
+    createElement: element,
+    createTextNode: (text) => ({ text }),
+    querySelectorAll: () => imgs.filter((img) => img.dataset.src),
+  };
+  try {
+    const start = mark();
+    populateHelp();
+    assert.deepEqual(since(start).filter(isEnemy), [], "no enemy sprite before Help opens");
+    loadHelpIcons();
+    const asked = since(start).filter(isEnemy);
+    assert.ok(
+      asked.some((s) => /beetle/.test(s)) && asked.some((s) => /pig/.test(s)),
+      asked.join(),
+    );
+  } finally {
+    delete globalThis.document;
+  }
 });
 
 test("Grassland 1 asks for its own music and only its enemy kinds", () => {

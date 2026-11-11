@@ -321,7 +321,7 @@ export const populateHelp = () => {
     const row = document.createElement("div");
     row.className = "flex-item help-item";
     const img = document.createElement("img");
-    img.src = `./assets/sprites/${icon}`;
+    img.dataset.src = `./assets/sprites/${icon}`; // requested when Help opens
     img.alt = "";
     row.appendChild(img);
     row.appendChild(document.createTextNode(text));
@@ -373,4 +373,12 @@ export const populateHelp = () => {
   });
 
   helpWrapper.appendChild(tipsSection);
+};
+
+/** Starts downloading the Help tips' icons; called when the Help screen opens. */
+export const loadHelpIcons = () => {
+  document.querySelectorAll("#helpWrapper img[data-src]").forEach((img) => {
+    img.src = img.dataset.src;
+    delete img.dataset.src;
+  });
 };

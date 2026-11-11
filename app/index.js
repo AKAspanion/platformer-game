@@ -13,6 +13,7 @@ import {
   setData,
   LEVELS,
   populateHelp,
+  loadHelpIcons,
   populateLinks,
   populatePortals,
   preLoadAndFetch,
@@ -1576,7 +1577,10 @@ window.addEventListener("load", function () {
   homeBtn.onclick = goHome;
   pauseBtn.onclick = pause;
 
-  $("helpBtn").onclick = () => show(helpScreen, true);
+  $("helpBtn").onclick = () => {
+    loadHelpIcons();
+    show(helpScreen, true);
+  };
   $("infoBtn").onclick = () => show(infoScreen, true);
   $("helpCloseBtn").onclick = () => show(helpScreen, false);
   $("infoCloseBtn").onclick = () => show(infoScreen, false);
