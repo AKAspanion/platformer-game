@@ -2,10 +2,13 @@ import { loadFirebase } from "./index";
 import { PROFILE_BATCH } from "../profiles/rules";
 
 /**
- * Player profiles in Firestore, as the plain backend app/profiles/index.js
- * expects: one document `players/{uid}` = { skin, hat, companion, seenDay? },
- * readable by anyone signed in, writable only by its own account (see
- * firestore.rules). Errors propagate; app/profiles swallows or surfaces them.
+ * Player profiles, as the plain backend app/profiles/index.js expects. Each
+ * player writes only its own document `players/{uid}` = { skin, hat,
+ * companion, seenDay? } (see firestore.rules). No client reads that collection,
+ * the owner included: profiles are read only through the getProfiles function
+ * (functions/src/profiles.js), which hands out those four fields and never a
+ * document's create or update time. Errors propagate; app/profiles swallows or
+ * surfaces them.
  */
 export const firestoreProfiles = {
   /** A full replace (no merge), so a removed seenDay really goes. */
@@ -15,18 +18,13 @@ export const firestoreProfiles = {
     await setDoc(doc(fb.db, "players", uid), profile);
   },
 
-  /** One query per call; the caller batches (uids.length <= PROFILE_BATCH). */
+  /** One getProfiles call per batch; the caller batches (uids.length <= PROFILE_BATCH). */
   async getMany(uids) {
     if (uids.length === 0) return [];
     const fb = await loadFirebase();
-    const { collection, documentId, getDocs, limit, query, where } = fb.storeApi;
-    const snap = await getDocs(
-      query(
-        collection(fb.db, "players"),
-        where(documentId(), "in", uids.slice(0, PROFILE_BATCH)),
-        limit(PROFILE_BATCH),
-      ),
-    );
-    return snap.docs.map((d) => ({ uid: d.id, data: d.data() }));
+    const call = fb.functionsApi.httpsCallable(fb.functions, "getProfiles");
+    const { data } = await call({ uids: uids.slice(0, PROFILE_BATCH) });
+    const found = data && typeof data === "object" && !Array.isArray(data) ? data : {};
+    return Object.keys(found).map((uid) => ({ uid, data: found[uid] }));
   },
 };

@@ -27,7 +27,7 @@ Every player with an account, anonymous accounts included, has a small public pr
 - Your worn skin, hat and companion.
 - The UTC day you last opened the Game (a date only, never a time).
 
-It holds nothing else: no name, email address or time of day. The profile is public: it is shown to every player on the leaderboards, next to your display name.
+It holds nothing else: no name, email address or time of day. The profile is public: it is shown to every player on the leaderboards, next to your display name. Players' devices never read the stored profile itself: the leaderboard asks our server for the profiles of the players it shows, and gets back only the skin, hat, companion and day above, never when the profile was created or last changed.
 
 To hide when you were last online, open Settings in the Game and switch off "Show when I was last online": the day is then deleted and none is stored until you switch it on again. Your worn skin, hat and companion stay shown.
 

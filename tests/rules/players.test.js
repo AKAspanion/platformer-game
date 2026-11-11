@@ -220,19 +220,50 @@ test("a client cannot delete its own profile", async () => {
   await assertFails(deleteDoc(doc(nobody(), "players/u1")));
 });
 
-test("anyone gets a profile, signed in or not", async () => {
+// Firestore hands every reader a document's create and update times, so no
+// client reads players/{uid} at all: boards ask the getProfiles function.
+const readers = () => [
+  ["a stranger", as("u2")],
+  ["the owner", as("u1")],
+  ["an anonymous account", anonymous("a1")],
+  ["no account", nobody()],
+];
+
+test("nobody gets a profile directly, the owner included", async () => {
   await seed("players/u1", valid({ seenDay: today() }));
-  await assertSucceeds(getDoc(doc(nobody(), "players/u1")));
-  await assertSucceeds(getDoc(doc(as("u2"), "players/u1")));
+  for (const [who, db] of readers()) {
+    await assertFails(getDoc(doc(db, "players/u1")), `${who} got players/u1`);
+  }
 });
 
-test("a players query needs a limit of at most 30", async () => {
+test("nobody lists profiles, at any limit", async () => {
   await seed("players/u1", valid());
-  const players = collection(nobody(), "players");
-  await assertSucceeds(getDocs(query(players, limit(PROFILE_BATCH))));
-  await assertSucceeds(getDocs(query(players, limit(1))));
-  await assertFails(getDocs(query(players, limit(PROFILE_BATCH + 1))));
-  await assertFails(getDocs(players));
+  for (const [who, db] of readers()) {
+    const players = collection(db, "players");
+    await assertFails(getDocs(query(players, limit(PROFILE_BATCH))), `${who} listed 30`);
+    await assertFails(getDocs(query(players, limit(1))), `${who} listed 1`);
+    await assertFails(getDocs(players), `${who} listed all`);
+  }
+});
+
+test("nobody reads a profile over REST, so no create or update time leaks", async () => {
+  await seed("players/u1", valid({ seenDay: today() }));
+  const host = process.env.FIRESTORE_EMULATOR_HOST;
+  const base = `http://${host}/v1/projects/${PROJECT}/databases/(default)/documents/players`;
+  for (const url of [`${base}/u1`, base]) {
+    const response = await fetch(url);
+    const body = await response.text();
+    assert.equal(response.status, 403, `${url} answered ${response.status}`);
+    assert.doesNotMatch(body, /createTime|updateTime/);
+  }
+});
+
+test("the owner still creates and replaces its profile with reads closed", async () => {
+  const db = as("u1");
+  await assertSucceeds(setDoc(doc(db, "players/u1"), valid({ seenDay: today() })));
+  await assertSucceeds(setDoc(doc(db, "players/u1"), valid({ hat: "crown" })));
+  await assertSucceeds(updateDoc(doc(db, "players/u1"), { skin: "gold" }));
+  await assertFails(deleteDoc(doc(db, "players/u1")));
 });
 
 // --- the rest of the rules still hold

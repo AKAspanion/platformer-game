@@ -9,6 +9,8 @@
  *                            -> { rank, total, best, improved }  the daily challenge's leaderboard
  *   submitEndlessScore({ seed, level, score, seconds })
  *                            -> { rank, total, best, improved }  the endless mode's leaderboard
+ *   getProfiles({ uids })    -> { [uid]: { skin, hat, companion, seenDay? } }
+ *                                           up to 30 players' leaderboard looks
  *   recordWorldPlay({ worldId, kind }) -> { counted }   a play or finish, once per account per day
  *   toggleWorldLike({ worldId })       -> { liked, likes }
  *   pickWorldOfWeek                    scheduled, Mondays 00:00 UTC
@@ -57,6 +59,8 @@ import { worldLink } from "./shared/worlds/community.js";
 import { handleSubmitDaily, outranks } from "./src/daily.js";
 import { handleSetReminders, handleSendReminders } from "./src/reminders.js";
 import { handleSubmitEndless } from "./src/endless.js";
+import { handleGetProfiles } from "./src/profiles.js";
+import { PROFILE_FIELDS } from "./shared/profiles/rules.js";
 import { compareRuns } from "./shared/modes/endless-rules.js";
 import { createDesigner, Anthropic } from "./src/designer.js";
 
@@ -228,6 +232,22 @@ const board = {
 
 export const submitEndlessScore = callable({ timeoutSeconds: 20 }, (request) =>
   handleSubmitEndless(request, { board, limiter }),
+);
+
+// players/{uid}: each player's leaderboard look, written by its own account
+// (firestore.rules) and read only here, so no client ever sees a document's
+// create or update time. Only the profile fields are read, and only data()
+// leaves this adapter.
+const playerProfiles = {
+  async getAll(uids) {
+    const refs = uids.map((uid) => db.collection("players").doc(uid));
+    const snaps = await db.getAll(...refs, { fieldMask: PROFILE_FIELDS });
+    return snaps.filter((snap) => snap.exists).map((snap) => ({ uid: snap.id, data: snap.data() }));
+  },
+};
+
+export const getProfiles = callable({ timeoutSeconds: 15 }, (request) =>
+  handleGetProfiles(request, { profiles: playerProfiles }),
 );
 
 const accounts = {
