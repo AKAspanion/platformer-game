@@ -112,26 +112,20 @@
           </button>
         </div>
         <div class="wallet-row">
-          <span id="walletBalance" class="coin-chip" aria-label="Coins"
-            ><span class="coin-icon" aria-hidden="true"></span>0</span
-          >
-          <button id="shopBtn" class="btn btn-small">Shop</button>
+          <button id="shopBtn" class="btn btn-small shop-btn" aria-label="Shop, 0 coins">
+            Shop<span id="walletBalance" class="shop-coins" aria-hidden="true"
+              ><span class="coin-icon" aria-hidden="true"></span>0</span
+            >
+          </button>
           <button id="achievementsBtn" class="btn btn-small">Achievements</button>
         </div>
-      </div>
-      <div class="home-cards">
-        <section id="questCard" class="home-card" aria-label="Quests">
-          <div class="card-title">Quests <span id="questKeys" class="quest-keys"></span></div>
-          <div id="questList" class="quest-list"></div>
-        </section>
-        <section id="nestCard" class="home-card" aria-label="Nest">
-          <div class="card-title">Nest</div>
-          <div id="nestList" class="nest-list"></div>
-        </section>
       </div>
       <div class="home-footer">
         <div class="icon-row">
           <div id="leaderboardsBtn" role="button" aria-label="Leaderboards"></div>
+          <div id="questsBtn" role="button" aria-label="Quests">
+            <span id="questsBadge" class="badge" aria-hidden="true" hidden></span>
+          </div>
           <div id="settingsBtn" role="button" aria-label="Settings"></div>
           <div id="helpBtn" role="button" aria-label="Help"></div>
           <div id="infoBtn" role="button" aria-label="Info"></div>
@@ -185,6 +179,25 @@
       </div>
     </div>
 
+    <div id="questsScreen" class="flex-item modal-screen">
+      <div class="flex-item modal-container modal-narrow">
+        <div class="flex-item modal-header">
+          <div class="modal-title">Quests</div>
+          <div id="questsCloseBtn" class="close-btn" role="button" aria-label="Close"></div>
+        </div>
+        <div class="modal-content-wrapper quests-body">
+          <section id="questCard" class="home-card" aria-label="Quests">
+            <div class="card-title">Quests <span id="questKeys" class="quest-keys"></span></div>
+            <div id="questList" class="quest-list"></div>
+          </section>
+          <section id="nestCard" class="home-card" aria-label="Nest">
+            <div class="card-title">Nest</div>
+            <div id="nestList" class="nest-list"></div>
+          </section>
+        </div>
+      </div>
+    </div>
+
     <div id="settingsScreen" class="flex-item modal-screen">
       <div class="flex-item modal-container">
         <div class="flex-item modal-header">
@@ -227,6 +240,10 @@
               <button data-value="auto">Auto</button><button data-value="s">S</button
               ><button data-value="m">M</button><button data-value="l">L</button>
             </div>
+          </div>
+          <div class="setting-row" id="layoutRow">
+            <span>Button layout</span>
+            <button id="customizeLayoutBtn" class="btn btn-small">Customize layout</button>
           </div>
           <div class="setting-row">
             <span>Control opacity</span>
@@ -416,6 +433,18 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <div id="layoutEditor" aria-label="Customize layout">
+      <div class="layout-bar">
+        <div class="layout-hint">Drag the buttons where you want them</div>
+        <div class="layout-buttons">
+          <button id="layoutSaveBtn" class="btn btn-small">Save</button>
+          <button id="layoutResetBtn" class="btn btn-small btn-danger">Reset</button>
+          <button id="layoutCancelBtn" class="btn btn-small">Cancel</button>
+        </div>
+      </div>
+      <div class="layout-field"></div>
     </div>
 
     <div id="verifyScreen" class="flex-item modal-screen">

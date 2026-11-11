@@ -158,9 +158,10 @@ test("a corrupt wallet reads as a fresh one", () => {
 
 test("the catalogue matches the spec table and each slot has one free item", () => {
   const table = {
-    skin: "classic:Classic:0 mint:Mint:200 sunset:Sunset:300 midnight:Midnight:500 ghost:Ghost:750 gold:Gold:1000",
-    hat: "none:No hat:0 cap:Cap:150 party:Party hat:200 viking:Viking:400 wizard:Wizard:500 crown:Crown:600",
-    fireball: "classic:Classic:0 blue:Blue flame:250 green:Green flame:250 purple:Purple flame:400",
+    skin: "classic:Classic:0 mint:Mint:200 sunset:Sunset:300 ocean:Ocean:350 lava:Lava:400 midnight:Midnight:500 candy:Candy:600 ghost:Ghost:750 gold:Gold:1000",
+    hat: "none:No hat:0 cap:Cap:150 party:Party hat:200 cowboy:Cowboy:300 viking:Viking:400 tophat:Top hat:450 wizard:Wizard:500 pirate:Pirate:550 crown:Crown:600",
+    fireball:
+      "classic:Classic:0 blue:Blue flame:250 green:Green flame:250 crimson:Crimson flame:300 pink:Pink flame:300 ice:Ice flame:350 purple:Purple flame:400 gold:Gold flame:450 shadow:Shadow flame:600",
     companion:
       "none:None:0 hatchling:Hatchling:0 ptero:Ptero Chick:0 trike:Mini Trike:0 stego:Tiny Stego:0 raptor:Baby Raptor:0 ankylo:Little Anky:0 golden:Golden Hatchling:0 crystal:Crystal Drake:0",
   };

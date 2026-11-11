@@ -20,6 +20,12 @@ Signing in is optional and only needed for the Worlds feature (creating and shar
 
 You can sign out at any time in Settings, and delete your account there too: your account and its sign-in details are deleted, and the worlds you shared stay public but are credited to "Anonymous" with no account identifier. To remove a world you shared, contact us at the address below.
 
+### Leaderboards
+
+When you finish a daily challenge or an endless run, your best run goes on that leaderboard (one per day for the daily challenge, one for all time for endless), anonymous accounts included. Each entry is stored in Cloud Firestore (Google) and holds an account identifier, the name shown on the board (your display name, or a generated name such as "Swift Raptor 42" for an anonymous account), your score and your time in seconds, and for endless the level you reached and that run's level seed. New entries store no date or time of day of the run. Our server keeps a few times for itself, never shown to players: entries saved before this change still carry when they were last improved, a run's start and finish times are kept for about three days to check that the run is genuine, and recent submission times are kept to limit how often scores can be sent.
+
+The leaderboards are public: every player sees the top 50 entries' names, scores, times and endless levels, each with its account identifier so the board can show that player's profile. Players' devices never read the stored entries themselves: the Game asks our server for a board and gets back only the top 50 and your own entry, with only those fields: never the level seed, and never when an entry was created or last changed. The top 50 is refreshed at most once a minute, so watching a board can't tell exactly when someone improved. Deleting your account in Settings deletes your entries too.
+
 ### Leaderboard Profile
 
 Every player with an account, anonymous accounts included, has a small public profile, stored in Cloud Firestore (Google) so other players can see it on the leaderboards. It holds:

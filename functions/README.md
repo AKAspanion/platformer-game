@@ -37,9 +37,17 @@ kept in `limits/{uid}` (functions only).
 | Play counts, daily and endless | any account, anonymous included                         |
 | Rank a daily or endless run    | a run ticket from `startRun`, issued when the run began |
 | Search worlds                  | any signed-in account                                   |
+| See the daily or endless board | anyone, signed out included (App Check still applies)   |
 
 Likes decide the world of the week, which is why throwaway anonymous accounts can't give
 them.
+
+**Boards** (`src/boards.js`): no client reads `daily/{seed}/scores` or `endless`
+(`firestore.rules`), because Firestore hands every reader a document's create and update
+times. `getDailyBoard({ seed })` (yesterday's, today's or tomorrow's UTC day, as
+`submitDailyScore` takes) and `getEndlessBoard()` return `{ top, me }`: the top 50 best
+first and the caller's own entry (null signed out or with none), each only `uid`, `name`,
+`score`, `seconds` and, for endless, `level`, read with a field mask. Entries store no time.
 
 **Run tickets** (`src/runs.js`): a ranked daily or endless run starts with `startRun`,
 which stores `runs/{ticket}` (account, mode, seed, start time; closed to clients, deleted
@@ -126,6 +134,6 @@ console → App Check → Apps → ⋮ → Manage debug tokens) and put it in `.
 game only uses it on localhost. The emulators don't check App Check, so `?emulators=1`
 needs neither.
 
-Firestore reads from the game (worlds, boards, stats) are not covered by this: turning on
+Firestore reads from the game (worlds, stats) are not covered by this: turning on
 App Check enforcement for Cloud Firestore in the Firebase console would cover them too,
 but only after step 2 has been live for a while.

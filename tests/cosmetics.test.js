@@ -120,3 +120,40 @@ test("headTop finds the first opaque row and the middle of its pixels", () => {
   assert.deepEqual(headTop(data, width, height), { x: 3, y: 1 });
   assert.equal(headTop(new Uint8ClampedArray(width * height * 4), width, height), null);
 });
+
+test("the shop has 9 skins, 9 hats and 9 fireballs, counting the free one", () => {
+  ["skin", "hat", "fireball"].forEach((slot) => {
+    assert.equal(CATALOG[slot].length, 9, slot);
+    assert.equal(new Set(CATALOG[slot].map(({ id }) => id)).size, 9, `${slot} ids are unique`);
+  });
+});
+
+test("every hat has a sprite file and every skin and fireball has a palette", () => {
+  CATALOG.hat
+    .filter(({ id }) => id !== "none")
+    .forEach(({ id }) => {
+      assert.ok(fs.existsSync(`app/assets/sprites/hats/${id}.webp`), `hat ${id}`);
+      assert.ok(hatImage(id), `hatImage ${id}`);
+    });
+  CATALOG.skin
+    .filter(({ id }) => id !== "classic")
+    .forEach(({ id }) => assert.ok(SKIN_PALETTES[id].length > 0, `skin ${id}`));
+  CATALOG.fireball
+    .filter(({ id }) => id !== "classic")
+    .forEach(({ id }) => assert.ok(FIREBALL_PALETTES[id].length > 0, `fireball ${id}`));
+});
+
+test("every slot is sorted by price, the free item first, ties by name", () => {
+  Object.entries(CATALOG).forEach(([slot, items]) => {
+    assert.equal(items[0].price, 0, `${slot} starts with its free item`);
+    for (let i = 1; i < items.length; i++) {
+      assert.ok(
+        items[i - 1].price <= items[i].price,
+        `${slot}: ${items[i].id} after ${items[i - 1].id}`,
+      );
+      if (slot !== "companion" && items[i - 1].price === items[i].price && i > 1) {
+        assert.ok(items[i - 1].name < items[i].name, `${slot}: ${items[i].id} ties by name`);
+      }
+    }
+  });
+});

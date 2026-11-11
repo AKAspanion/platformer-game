@@ -169,8 +169,9 @@ test("submitDaily stores only the validated fields under the caller's uid", asyn
     name: "Ana",
     score: 100,
     seconds: 60,
-    updatedAt: NOW,
   });
+  // no time is stored: nothing reads one, and a board entry never carries one (spec 4.4)
+  assert.equal("updatedAt" in (await scores.get(SEED, "u1")), false);
 });
 
 test("submitDaily keeps each player's best run", async () => {

@@ -5,7 +5,7 @@ Generates the game's procedural pixel art (needs Pillow):
     (4 idle + 3 spit frames), and the spitter's seed
   - attack frames (crouch, flash, lunge, bite) for every walking enemy
   - power-up icons (heart, shield, triple fire, wings) and HUD hearts
-  - the shop's hats (cap, party, viking, wizard, crown), 12x12 at 1x
+  - the shop's hats (cap, party, viking, wizard, crown, cowboy, top hat, pirate), 12x12 at 1x
   - the egg icon and the 8 hatchable companions (2 frames each)
 
     python3 scripts/generate-sprites.py && python3 scripts/generate-enemy-death.py
@@ -379,6 +379,40 @@ def hat_crown():
     return outline(img)
 
 
+def hat_cowboy():
+    img, d = canvas(12, 12)
+    felt, band = (170, 110, 60, 255), (110, 65, 35, 255)
+    d.rectangle((3, 3, 8, 8), fill=felt)  # crown
+    d.point((5, 3), fill=felt)
+    d.rectangle((3, 7, 8, 7), fill=band)
+    d.rectangle((0, 9, 11, 9), fill=felt)  # wide brim
+    d.point((0, 8), fill=felt)
+    d.point((11, 8), fill=felt)
+    d.point((4, 5), fill=(220, 170, 110, 255))
+    return outline(img)
+
+
+def hat_tophat():
+    img, d = canvas(12, 12)
+    d.rectangle((3, 2, 8, 8), fill=(55, 55, 70, 255))
+    d.rectangle((1, 9, 10, 10), fill=(40, 40, 52, 255))  # brim
+    d.rectangle((3, 7, 8, 7), fill=(200, 50, 60, 255))  # band
+    d.point((4, 4), fill=(140, 140, 160, 255))
+    d.point((4, 5), fill=(140, 140, 160, 255))
+    return outline(img)
+
+
+def hat_pirate():
+    img, d = canvas(12, 12)
+    black, trim = (45, 40, 55, 255), (240, 205, 80, 255)
+    d.polygon([(0, 9), (2, 4), (5, 2), (9, 4), (11, 9)], fill=black)  # bicorne
+    d.rectangle((1, 8, 10, 9), fill=trim)
+    d.point((5, 5), fill=(245, 245, 240, 255))  # skull
+    d.rectangle((4, 6, 6, 6), fill=(245, 245, 240, 255))
+    d.point((4, 4), fill=(110, 105, 125, 255))
+    return outline(img)
+
+
 def hats():
     """12x12 pixel hats facing right, at 1x: the game mirrors them for left."""
     os.makedirs(HATS, exist_ok=True)
@@ -388,6 +422,9 @@ def hats():
         ("viking", hat_viking),
         ("wizard", hat_wizard),
         ("crown", hat_crown),
+        ("cowboy", hat_cowboy),
+        ("tophat", hat_tophat),
+        ("pirate", hat_pirate),
     ):
         art().save(os.path.join(HATS, f"{name}.webp"), lossless=True)
 

@@ -1,10 +1,11 @@
 import { loadFirebase, friendlyError } from "./index";
 
 /**
- * The endless leaderboard in Firestore and its callable function, as the plain
- * backend app/modes/endless-board.js expects. Reads go straight to Firestore
- * (public, see firestore.rules); runs are written only by the
- * submitEndlessScore function (functions/index.js).
+ * The endless leaderboard's callable functions, as the plain backend
+ * app/modes/endless-board.js expects. No client reads the board documents
+ * (firestore.rules: Firestore would hand every reader their create and update
+ * times): the board comes from the getEndlessBoard function, and runs are
+ * written only by the submitEndlessScore function (functions/index.js).
  */
 
 // the code stays on the error: the game tells "offline" from "refused" by it
@@ -12,33 +13,16 @@ const asError = (error) => {
   throw Object.assign(new Error(friendlyError(error)), { code: error && error.code });
 };
 
+async function call(name, data) {
+  const fb = await loadFirebase().catch(asError);
+  const callable = fb.functionsApi.httpsCallable(fb.functions, name);
+  const result = await callable(data).catch(asError);
+  return result.data;
+}
+
 export const firestoreEndless = {
-  async call(name, data) {
-    const fb = await loadFirebase().catch(asError);
-    const call = fb.functionsApi.httpsCallable(fb.functions, name);
-    const result = await call(data).catch(asError);
-    return result.data;
-  },
+  call,
 
-  /** The best runs first: higher level, then higher score, then the shorter time. */
-  async list(count) {
-    const fb = await loadFirebase().catch(asError);
-    const { query, collection, orderBy, limit, getDocs } = fb.storeApi;
-    const top = query(
-      collection(fb.db, "endless"),
-      orderBy("level", "desc"),
-      orderBy("score", "desc"),
-      orderBy("seconds", "asc"),
-      limit(count),
-    );
-    const snap = await getDocs(top).catch(asError);
-    return snap.docs.map((d) => d.data());
-  },
-
-  async get(uid) {
-    const fb = await loadFirebase().catch(asError);
-    const { doc, getDoc } = fb.storeApi;
-    const snap = await getDoc(doc(fb.db, "endless", uid)).catch(asError);
-    return snap.exists() ? snap.data() : null;
-  },
+  /** getEndlessBoard: { top, me }, the top 50 best first and the caller's own entry. */
+  board: () => call("getEndlessBoard", {}),
 };

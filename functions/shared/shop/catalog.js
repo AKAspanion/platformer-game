@@ -1,6 +1,6 @@
 // GENERATED from app/shop/catalog.js by scripts/sync-functions-shared.js. Do not edit.
 /**
- * The shop's catalogue: four slots, one free item each (owned and worn from
+ * The shop's catalogue: four slots, one free item each (always first), every slot sorted by price, cheapest first (owned and worn from
  * the start). Companions cost nothing and can only be hatched. Cosmetics change looks only, never speed, jumps, hearts, damage
  * or score.
  */
@@ -9,7 +9,10 @@ export const CATALOG = {
     { id: "classic", name: "Classic", price: 0 },
     { id: "mint", name: "Mint", price: 200 },
     { id: "sunset", name: "Sunset", price: 300 },
+    { id: "ocean", name: "Ocean", price: 350 },
+    { id: "lava", name: "Lava", price: 400 },
     { id: "midnight", name: "Midnight", price: 500 },
+    { id: "candy", name: "Candy", price: 600 },
     { id: "ghost", name: "Ghost", price: 750 },
     { id: "gold", name: "Gold", price: 1000 },
   ],
@@ -17,15 +20,23 @@ export const CATALOG = {
     { id: "none", name: "No hat", price: 0 },
     { id: "cap", name: "Cap", price: 150 },
     { id: "party", name: "Party hat", price: 200 },
+    { id: "cowboy", name: "Cowboy", price: 300 },
     { id: "viking", name: "Viking", price: 400 },
+    { id: "tophat", name: "Top hat", price: 450 },
     { id: "wizard", name: "Wizard", price: 500 },
+    { id: "pirate", name: "Pirate", price: 550 },
     { id: "crown", name: "Crown", price: 600 },
   ],
   fireball: [
     { id: "classic", name: "Classic", price: 0 },
     { id: "blue", name: "Blue flame", price: 250 },
     { id: "green", name: "Green flame", price: 250 },
+    { id: "crimson", name: "Crimson flame", price: 300 },
+    { id: "pink", name: "Pink flame", price: 300 },
+    { id: "ice", name: "Ice flame", price: 350 },
     { id: "purple", name: "Purple flame", price: 400 },
+    { id: "gold", name: "Gold flame", price: 450 },
+    { id: "shadow", name: "Shadow flame", price: 600 },
   ],
   companion: [
     { id: "none", name: "None", price: 0 },

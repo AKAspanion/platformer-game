@@ -13,6 +13,10 @@
  *                            -> { rank, total, best, improved }  the endless mode's leaderboard
  *   getProfiles({ uids })    -> { [uid]: { skin, hat, companion, seenDay? } }
  *                                           up to 30 players' leaderboard looks
+ *   getDailyBoard({ seed })  -> { top, me }  the day's top 50 and the caller's own entry,
+ *                                           each { uid, name, score, seconds }
+ *   getEndlessBoard()        -> { top, me }  the endless top 50 and the caller's own entry,
+ *                                           each { uid, name, level, score, seconds }
  *   recordWorldPlay({ worldId, kind }) -> { counted }   a play or finish, once per account per day
  *   toggleWorldLike({ worldId })       -> { liked, likes }
  *   pickWorldOfWeek                    scheduled, Mondays 00:00 UTC
@@ -27,7 +31,8 @@
  * All are callable functions: the Firebase SDK in the game sends the
  * player's ID token, so request.auth is the verified user (or null).
  * Players read the shared worlds straight from Firestore (see firestore.rules);
- * only these functions write them.
+ * only these functions write them. The boards and profiles are never read by a
+ * client: Firestore would hand it each document's create and update times.
  *
  * Config:
  *   ANTHROPIC_API_KEY  secret:  firebase functions:secrets:set ANTHROPIC_API_KEY
@@ -65,6 +70,13 @@ import { handleSubmitDaily, outranks } from "./src/daily.js";
 import { handleSetReminders, handleSendReminders } from "./src/reminders.js";
 import { handleSubmitEndless } from "./src/endless.js";
 import { handleGetProfiles } from "./src/profiles.js";
+import {
+  handleGetDailyBoard,
+  handleGetEndlessBoard,
+  createBoardCache,
+  DAILY_FIELDS,
+  ENDLESS_FIELDS,
+} from "./src/boards.js";
 import { PROFILE_FIELDS } from "./shared/profiles/rules.js";
 import { handleStartRun } from "./src/runs.js";
 import { compareRuns } from "./shared/modes/endless-rules.js";
@@ -303,6 +315,58 @@ const playerProfiles = {
 
 export const getProfiles = callable({ timeoutSeconds: 15 }, (request) =>
   handleGetProfiles(request, { profiles: playerProfiles }),
+);
+
+// daily/{seed}/scores/{uid} and endless/{uid} are read only here
+// (firestore.rules), with a field mask of the fields a board shows, so no
+// stored time and no document create or update time leaves this adapter:
+// only the document id and data().
+const rowsOf = (snap) => snap.docs.map((d) => ({ uid: d.id, data: d.data() }));
+const rowOf = ([snap]) => (snap.exists ? { uid: snap.id, data: snap.data() } : null);
+
+const boardReads = {
+  daily: {
+    async top(seed, count) {
+      const best = scoresOf(seed).orderBy("score", "desc").orderBy("seconds", "asc");
+      return rowsOf(
+        await best
+          .limit(count)
+          .select(...DAILY_FIELDS)
+          .get(),
+      );
+    },
+    async get(seed, uid) {
+      return rowOf(await db.getAll(scoresOf(seed).doc(uid), { fieldMask: DAILY_FIELDS }));
+    },
+  },
+  endless: {
+    async top(count) {
+      const best = endlessBoard
+        .orderBy("level", "desc")
+        .orderBy("score", "desc")
+        .orderBy("seconds", "asc");
+      return rowsOf(
+        await best
+          .limit(count)
+          .select(...ENDLESS_FIELDS)
+          .get(),
+      );
+    },
+    async get(uid) {
+      return rowOf(await db.getAll(endlessBoard.doc(uid), { fieldMask: ENDLESS_FIELDS }));
+    },
+  },
+};
+const boardLog = (message) => logger.warn(message);
+// one per instance: a board's top is kept 60 s, so polling can't time an improvement
+const boardCache = createBoardCache();
+
+export const getDailyBoard = callable({ timeoutSeconds: 15 }, (request) =>
+  handleGetDailyBoard(request, { scores: boardReads.daily, log: boardLog, cache: boardCache }),
+);
+
+export const getEndlessBoard = callable({ timeoutSeconds: 15 }, (request) =>
+  handleGetEndlessBoard(request, { board: boardReads.endless, log: boardLog, cache: boardCache }),
 );
 
 /** Deletes every document `query` matches, 400 per batch. */

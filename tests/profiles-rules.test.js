@@ -25,7 +25,17 @@ test("constants", () => {
 
 test("PROFILE_IDS come from the shop catalogue", () => {
   assert.deepEqual(PROFILE_IDS.skin, ids("skin"));
-  assert.deepEqual(PROFILE_IDS.skin, ["classic", "mint", "sunset", "midnight", "ghost", "gold"]);
+  assert.deepEqual(PROFILE_IDS.skin, [
+    "classic",
+    "mint",
+    "sunset",
+    "ocean",
+    "lava",
+    "midnight",
+    "candy",
+    "ghost",
+    "gold",
+  ]);
   assert.deepEqual(PROFILE_IDS.hat, ids("hat"));
   assert.deepEqual(PROFILE_IDS.companion, ids("companion"));
   assert.equal(PROFILE_IDS.companion[0], "none");

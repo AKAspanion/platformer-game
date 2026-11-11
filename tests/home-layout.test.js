@@ -36,12 +36,3 @@ test("the mode cards go two to a row only below 561 px wide", () => {
     assert.match(query, /^\(max-width:\s*560px\)$/, `a 2-column mode grid under "${query}"`);
   });
 });
-
-test("the cards column of a landscape phone never scrolls inside itself", () => {
-  const landscape = mediaBlocks().find(
-    ({ query }) => query === "(max-height: 499px) and (min-width: 560px)",
-  );
-  assert.ok(landscape, "the landscape home block exists");
-  const rules = declarations(landscape.body, ".home-cards").join(";");
-  assert.doesNotMatch(rules, /overflow(-y)?:\s*(auto|scroll|hidden)/);
-});

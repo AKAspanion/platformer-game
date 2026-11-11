@@ -13,6 +13,8 @@
   --sal: env(safe-area-inset-left, 0px);
   /* touch button size, set from the screen size in JS (see sizeControls) */
   --ctrl: 64px;
+  /* pause is a touch button as big as the others; without touch it is 40 px (see .no-touch) */
+  --pause-size: var(--ctrl);
   --small-btn-size: 52px;
 }
 
@@ -119,7 +121,6 @@ canvas {
   background: url(images/right_btn.webp) center center / 100% no-repeat;
 }
 #fireBtn {
-  margin-bottom: calc(var(--ctrl) * 0.5);
   background: url(images/small_btn.webp) center center / 100% no-repeat;
 }
 .fire-dot {
@@ -139,19 +140,93 @@ canvas {
   transform: translateX(-50%);
 }
 #pauseBtn {
-  width: var(--ctrl);
-  height: var(--ctrl);
+  width: var(--pause-size);
+  height: var(--pause-size);
   cursor: pointer;
   opacity: var(--ctrl-idle, 0.45);
-  background: url(images/pause_btn.webp) center center / 100% no-repeat;
+  background: url(images/pause_btn.webp) center center / var(--pause-size) no-repeat;
 }
 #pauseBtn:active {
   opacity: var(--ctrl-pressed, 0.75);
+}
+.no-touch {
+  --pause-size: 40px;
 }
 /* without touch, pause is the only on-screen control: not a faint touch button */
 .no-touch #pauseBtn,
 .no-touch #pauseBtn:active {
   opacity: 1;
+}
+
+/* the layout editor (Settings -> Customize layout): a light scrim over the game, five handles to drag */
+#layoutEditor {
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+  visibility: hidden;
+  font-family: var(--font);
+  color: var(--ink);
+  background: rgba(255, 247, 232, 0.55);
+}
+.layout-bar {
+  position: absolute;
+  top: calc(var(--sat) + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  max-width: 94%;
+  padding: 8px 12px;
+  border-radius: 14px;
+  background: rgba(255, 247, 232, 0.92);
+  box-shadow: 0 2px 8px rgba(29, 26, 36, 0.25);
+}
+.layout-hint {
+  font-size: 15px;
+  text-align: center;
+}
+.layout-buttons {
+  display: flex;
+  gap: 8px;
+}
+.layout-bar button {
+  min-width: 88px;
+  min-height: 44px;
+}
+.layout-handle {
+  position: fixed;
+  opacity: 1;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  border-radius: 100%;
+  outline: 2px dashed rgba(29, 26, 36, 0.55);
+  outline-offset: 2px;
+}
+.layout-handle.dragging {
+  cursor: grabbing;
+  transform: scale(1.06);
+}
+.layout-handle[data-id="leftBtn"] {
+  background: url(images/left_btn.webp) center center / 100% no-repeat;
+}
+.layout-handle[data-id="rightBtn"] {
+  background: url(images/right_btn.webp) center center / 100% no-repeat;
+}
+.layout-handle[data-id="jumpBtn"] {
+  background: url(images/up_btn.webp) center center / 100% no-repeat;
+}
+.layout-handle[data-id="fireBtn"] {
+  background: url(images/small_btn.webp) center center / 100% no-repeat;
+}
+.layout-handle[data-id="pauseBtn"] {
+  background: url(images/pause_btn.webp) center center / 100% no-repeat;
+}
+/* the layout can only be changed on a touch device */
+.no-touch #layoutRow {
+  display: none;
 }
 
 /* ------------------------------------------------------------------- buttons */
@@ -520,7 +595,8 @@ canvas {
 #world1Screen,
 #loginScreen,
 #deleteScreen,
-#leaderboardScreen {
+#leaderboardScreen,
+#questsScreen {
   z-index: 13;
 }
 #verifyScreen {
@@ -644,6 +720,7 @@ canvas {
 }
 
 #leaderboardsBtn,
+#questsBtn,
 #settingsBtn,
 #helpBtn,
 #infoBtn {
@@ -653,6 +730,10 @@ canvas {
 }
 #leaderboardsBtn {
   background: url(images/leaderboards_btn.webp) center center / var(--small-btn-size) no-repeat;
+}
+#questsBtn {
+  position: relative;
+  background: url(images/quests_btn.webp) center center / var(--small-btn-size) no-repeat;
 }
 #settingsBtn {
   background: url(images/settings_btn.webp) center center / var(--small-btn-size) no-repeat;
@@ -930,9 +1011,11 @@ canvas {
 }
 .tabs {
   display: flex;
+  align-items: flex-end;
   gap: 6px;
   width: 100%;
-  padding: 2px 0 6px;
+  /* the tabs sit on the line, no gap */
+  padding: 2px 0 0;
   border-bottom: 2px solid #eee4d3;
 }
 .tab {
@@ -1637,8 +1720,30 @@ canvas {
   color: var(--ink);
   background: #eee4d3;
 }
+/* the home balance rides inside the Shop button */
+.shop-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.shop-coins {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.9em;
+  color: var(--gold);
+  background: rgba(29, 26, 36, 0.45);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-transform: none;
+}
+/* one height on every screen: this beats the short-screen .btn and .btn-small rules */
 .wallet-row .btn-small {
-  font-size: 15px;
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  min-height: 0;
+  padding: 0 14px;
+  font-size: 14px;
   background: rgba(255, 255, 255, 0.14);
 }
 .setting-note {
@@ -1968,7 +2073,7 @@ canvas {
   position: fixed;
   z-index: 9;
   /* above the pause button, never under it */
-  bottom: calc(var(--sab) + var(--ctrl) * 1.18 + 8px);
+  bottom: calc(var(--sab) + var(--ctrl) * 0.18 + var(--pause-size) + 8px);
   left: 50%;
   max-width: min(520px, calc(100vw - 32px));
   padding: 8px 16px;
@@ -2032,54 +2137,79 @@ canvas {
 
 /* ------------------------------------------- short screens: compact home and menus */
 
-/* A landscape phone (667 x 375, 844 x 390): about 25% smaller, taps stay 44 px tall. */
+/* A landscape phone (667 x 375, 844 x 390): drawn small with tight padding, so the
+   content gets the room; every button keeps an invisible 44 px touch area. */
 @media (max-height: 499px) {
   .screen {
-    padding: calc(var(--sat) + 6px) calc(var(--sar) + 12px) calc(var(--sab) + 6px)
-      calc(var(--sal) + 12px);
+    padding: calc(var(--sat) + 4px) calc(var(--sar) + 8px) calc(var(--sab) + 4px)
+      calc(var(--sal) + 8px);
+  }
+  .modal-screen {
+    padding: calc(var(--sat) + 4px) calc(var(--sar) + 6px) calc(var(--sab) + 4px)
+      calc(var(--sal) + 6px);
+  }
+  .modal-container {
+    --modal-padding: 12px;
+    width: min(900px, 98%);
+    height: 100%;
+    border-radius: 14px;
+  }
+  .modal-header {
+    padding-bottom: 4px;
+  }
+  .modal-title {
+    font-size: clamp(18px, 4.4vmin, 22px);
+  }
+  .modal-content-wrapper {
+    padding-top: 4px;
+  }
+  .close-btn {
+    width: 32px;
+    height: 32px;
+    background-size: 32px;
   }
   .home-logo {
-    font-size: clamp(26px, 7vmin, 40px);
+    font-size: clamp(22px, 6vmin, 34px);
   }
   .home-logo span {
-    letter-spacing: 3px;
+    letter-spacing: 2px;
   }
   .home-sub {
-    margin-top: 4px;
-    font-size: 12px;
+    margin-top: 2px;
+    font-size: 11px;
   }
   .home-main {
-    gap: 6px;
+    gap: 4px;
   }
   .btn {
-    min-height: 44px;
-    padding: 8px 21px;
-    font-size: 15px;
+    min-height: 34px;
+    padding: 6px 16px;
+    font-size: 14px;
   }
   #playBtn {
-    padding: 8px 48px;
-    font-size: clamp(18px, 4vmin, 22px);
+    padding: 6px 40px;
+    font-size: clamp(16px, 3.6vmin, 20px);
   }
   .btn-small {
-    min-height: 44px;
-    padding: 6px 12px;
-    font-size: 13px;
+    min-height: 30px;
+    padding: 4px 12px;
+    font-size: 12px;
   }
   .mode-grid {
-    gap: 8px;
+    gap: 6px;
   }
   .mode-card {
-    min-height: 44px;
-    padding: 6px 6px;
-    border-radius: 12px;
+    min-height: 0;
+    padding: 4px 6px;
+    border-radius: 10px;
   }
   .mode-icon {
-    width: clamp(28px, 6vmin, 38px);
-    height: clamp(28px, 6vmin, 38px);
+    width: clamp(24px, 5vmin, 30px);
+    height: clamp(24px, 5vmin, 30px);
     margin-bottom: 0;
   }
   .mode-name {
-    font-size: clamp(12px, 2.6vmin, 14px);
+    font-size: clamp(11px, 2.4vmin, 13px);
   }
   .mode-info {
     font-size: 10px;
@@ -2088,31 +2218,33 @@ canvas {
     gap: 6px;
   }
   .coin-chip {
-    padding: 4px 10px;
-    font-size: 13px;
+    padding: 2px 8px;
+    font-size: 12px;
   }
   #leaderboardsBtn,
+  #questsBtn,
   #settingsBtn,
   #helpBtn,
   #infoBtn {
-    --small-btn-size: 44px;
+    --small-btn-size: 36px;
   }
   .icon-row {
-    gap: 6px;
+    gap: 8px;
   }
   .setting-row {
-    min-height: 44px;
-    padding: 6px 4px;
-    font-size: 15px;
+    min-height: 40px;
+    padding: 2px 4px;
+    font-size: 14px;
   }
-  /* tabs, segmented buttons, chips and links: a small look, a 44 px hit area */
   .tab,
   .segmented button,
   .account-chip,
   .chip,
   .seg-btn,
   .link-btn {
-    min-height: 44px;
+    min-height: 30px;
+    padding: 4px 12px;
+    font-size: 13px;
   }
   .link-btn {
     display: inline-flex;
@@ -2120,22 +2252,90 @@ canvas {
   }
   .delete-btn,
   .like-btn {
-    min-width: 44px;
-    min-height: 44px;
+    min-width: 32px;
+    min-height: 32px;
   }
   .text-input {
+    min-height: 38px;
+    padding: 6px 10px;
+    font-size: 14px;
+  }
+  /* small to look at, 44 px to touch: an invisible strip over each button */
+  .btn,
+  .btn-small,
+  .mode-card,
+  .tab,
+  .segmented button,
+  .account-chip,
+  .chip,
+  .seg-btn,
+  .link-btn,
+  .delete-btn,
+  .close-btn,
+  .like-btn,
+  #leaderboardsBtn,
+  #questsBtn,
+  #settingsBtn,
+  #helpBtn,
+  #infoBtn {
+    position: relative;
+  }
+  .btn::after,
+  .btn-small::after,
+  .mode-card::after,
+  .tab::after,
+  .segmented button::after,
+  .account-chip::after,
+  .chip::after,
+  .seg-btn::after,
+  .link-btn::after,
+  .delete-btn::after,
+  .close-btn::after,
+  .like-btn::after,
+  #leaderboardsBtn::after,
+  #questsBtn::after,
+  #settingsBtn::after,
+  #helpBtn::after,
+  #infoBtn::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 44px);
+    height: 44px;
     min-height: 44px;
+    transform: translate(-50%, -50%);
   }
 }
 
 /* ------------------------------------------------ quests, nest and the hatch card */
 
-.home-cards {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+/* a count on the corner of an icon; it sits inside the icon row's gap, never past the footer */
+.badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  box-sizing: border-box;
+  border-radius: 9px;
+  background: var(--gold);
+  color: #1d1a24;
+  font-size: 12px;
+  font-weight: bold;
+  line-height: 18px;
+  text-align: center;
+  pointer-events: none;
+}
+.badge[hidden] {
+  display: none;
+}
+
+.quests-body {
+  display: flex;
+  flex-direction: column;
   gap: 12px;
-  width: min(720px, 100%);
-  margin: 12px 0;
 }
 .home-card {
   min-width: 0;
@@ -2214,6 +2414,31 @@ canvas {
 .nest-row.ready {
   color: var(--gold);
 }
+/* the cards sit on the cream Quests panel: dark text, tinted tracks */
+#questsScreen .home-card {
+  color: var(--ink);
+  background: rgba(29, 26, 36, 0.05);
+  border-color: rgba(29, 26, 36, 0.1);
+}
+#questsScreen .card-title,
+#questsScreen .nest-row.ready {
+  color: var(--red-dark);
+}
+#questsScreen .quest-keys {
+  color: var(--ink);
+}
+#questsScreen .quest-bar {
+  background: rgba(29, 26, 36, 0.12);
+}
+#questsScreen .quest-fill {
+  background: #e3a600;
+}
+#questsScreen .quest-row.done .quest-fill {
+  background: #3fa34d;
+}
+#questsScreen .quest-coins {
+  color: #9a6b00;
+}
 .card-note {
   font-size: 12px;
   opacity: 0.75;
@@ -2229,69 +2454,4 @@ canvas {
 }
 #hatchTitle {
   font-size: clamp(20px, 4vmin, 30px);
-}
-
-@media (max-width: 560px) {
-  .home-cards {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-/* A landscape phone: the cards stand in a column beside the title, play and modes. */
-@media (max-height: 499px) and (min-width: 560px) {
-  .home-screen {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(210px, 38%);
-    grid-template-rows: auto minmax(0, 1fr) auto;
-    column-gap: 12px;
-    align-items: stretch;
-    justify-items: center;
-  }
-  .home-hero {
-    grid-column: 1;
-    grid-row: 1;
-  }
-  .home-main {
-    grid-column: 1;
-    grid-row: 2;
-    align-self: center;
-    width: 100%;
-  }
-  .home-footer {
-    grid-column: 1;
-    grid-row: 3;
-  }
-  .home-cards {
-    grid-column: 2;
-    grid-row: 1 / 4;
-    grid-template-columns: minmax(0, 1fr);
-    align-content: center;
-    gap: 5px;
-    width: 100%;
-    margin: 0;
-  }
-  /* the four mode cards stay in one row (they sit two to a row only under 561 px) */
-  .mode-grid {
-    gap: 6px;
-  }
-  .mode-card {
-    padding: 4px 2px;
-  }
-  .home-card {
-    padding: 5px 10px;
-  }
-  .card-title {
-    margin-bottom: 3px;
-    font-size: 13px;
-  }
-  .quest-list,
-  .nest-list {
-    gap: 3px;
-  }
-  .quest-text {
-    font-size: 12px;
-  }
-  .nest-row {
-    font-size: 12px;
-  }
 }

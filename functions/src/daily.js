@@ -70,13 +70,13 @@ export async function handleSubmitDaily(
     const stored = await scores.get(seed, auth.uid);
     const better = !stored || outranks(run, stored);
     if (better) {
-      // uid, name and time come from the server, never from the request
+      // uid and name come from the server, never from the request; no time is
+      // stored, so a board entry can't carry one (spec 4.4)
       await scores.set(seed, auth.uid, {
         uid: auth.uid,
         name: boardName(auth),
         score,
         seconds,
-        updatedAt: now(),
       });
     }
     return {

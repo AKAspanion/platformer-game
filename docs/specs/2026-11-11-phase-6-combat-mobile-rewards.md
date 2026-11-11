@@ -81,7 +81,8 @@ Rules from earlier phases that hold here:
 ### 2.3 Compact home and menus
 
 - "On screens under 500 px tall, buttons, gaps, padding and type on the home screen and in menus are about 25% smaller. Mode cards stay in one row on screens 561 px wide and up, and sit two to a row only below that."
-- "Tap targets stay at least 44 px tall."
+- "Tap targets stay at least 44 px tall to touch. Buttons, tabs and chips may be drawn smaller (about 30 px) with an invisible 44 px touch area; Settings rows stay at least 40 px and text fields at least 38 px." (Changed after the build at the developer's request: the menus looked bigger on a phone, not smaller.)
+- "On short screens the padding around screens and inside menus is tight, so the content gets the room."
 - Done means: "At 667 × 375 and 844 × 390, everything on the home screen fits without scrolling." Before-and-after screenshots at both sizes go in the PR.
 - Screens taller than 500 px look as they do today.
 
@@ -110,7 +111,22 @@ dropped.
 - "Story levels already shipped keep their layouts (best times, stars and ghosts depend on them)." The new placement and the rule apply to levels generated at play time: daily, endless and community worlds. Story levels keep today's placement (`placement: "v1"`), so the committed areas still equal the generator's output.
 - Test: the Sunny Coral Reef record's 5 non-boss levels each have floating platforms; a sweep over many seeds and every theme finds no generated level under the rule.
 
+### 2.6 Control sizes and a custom layout
+
+Added after the build at the developer's request.
+
+- "On a touch device the pause button is the same size as the arrow and fire buttons. Without touch it stays 40 px."
+- "The fire button sits on the same bottom line as the other touch buttons, not raised above it."
+- "Settings → Touch buttons has a "Customize layout" button, shown only on a touch device. It opens a full-screen editor over the game's backdrop that shows the five controls (left, right, fire, jump, pause) where they are now."
+- "In the editor each control can be dragged anywhere on screen with a finger. A control always stays fully on screen, inside the safe area (notches and gesture bars)."
+- "The editor has three buttons: "Save" keeps the layout, "Reset" puts every control back where it starts, and "Cancel" leaves without changing anything."
+- "A saved layout is kept on this device only (screens differ between devices), not in cloud save, and survives a reload. Each control's place is stored as a share of the screen's width and height, so it follows rotation and resizing, and is pulled back on screen if it would fall off."
+- "With no saved layout, the controls sit where they do by default."
+- "The first-open hint and the touch buttons keep working the same in a custom layout; only their positions change."
+
 ## 3. Track C: rewards
+
+The shop has 9 of each: skins, hats and fireballs, counting Classic / No hat, sorted by price, cheapest first.
 
 ### 3.1 Achievements
 
@@ -149,7 +165,7 @@ Eggs:
 Hatching:
 
 - "An egg hatches 24 hours after it was found, by the device's clock, whether or not the game is open."
-- "The home screen shows the nest: each egg with the time left ("Hatches in 5h"), or "Ready!"."
+- "The nest shows each egg with the time left ("Hatches in 5h"), or "Ready!"." The Nest card lives in the Quests panel (see 3.3).
 - "When the home screen opens and an egg is due, a card shows "Your egg hatched! Meet <name>." with Wear and Later buttons. Several due eggs hatch one after another."
 - "An egg hatches into one of 8 companions: 6 common and 2 rare. Each hatch has a 10% chance of a rare one. A companion the player already owns pays 100 coins instead."
 
@@ -176,7 +192,9 @@ Quests:
 - Mode quests: "Finish today's daily challenge", "Reach endless level 5", "Finish a community world level", "Finish a story level", "Finish boss rush".
 - "A quest pays its coins once, when it is finished, with a toast "✅ <quest> · +<coins>"."
 - "Quests count in every mode except where a quest names its mode."
-- The home screen has a Quests card: three rows with progress bars ("5 / 8") and the coins each pays.
+- The Quests card has three rows with progress bars ("5 / 8") and the coins each pays. It and the Nest card live in a "Quests" panel, opened from a Quests icon in the home footer, right after the Leaderboards icon. The home screen itself shows neither card; the hatch card still shows there.
+- The Quests icon carries a badge with the number of today's quests not yet finished (3, 2, 1); with all three done there is no badge. Its label says the count ("Quests, 2 to do"). The badge updates when the home screen shows, when the panel closes, and at local midnight (3 again).
+- Changed after the build, at the developer's request: the cards were first on the home screen.
 
 Weekly chest:
 
@@ -214,6 +232,16 @@ the wallet, they are trusted to the client.
 - "Only the day is stored, never a time."
 - "Settings has a switch "Show when I was last online", on by default. It belongs to the account and syncs through cloud save, so turning it off on one device turns it off on all of them. Turning it off deletes `seenDay` from the profile, and no device writes `seenDay` until it is on again. Worn items still update the avatar. A row with no `seenDay` shows no status."
 - `PRIVACY.md` says what the profile holds, that it is public, and how to hide last online.
+
+### 4.4 Board privacy
+
+Added after the build at the developer's request: the daily and endless board entries (phase 1) were public Firestore documents carrying an `updatedAt` time in milliseconds, and Firestore exposes every document's create and update times, so anyone could read when each improving run happened, whatever "Show when I was last online" says.
+
+- "Nobody reads the daily or endless board documents directly: the rules allow no client read or list of `daily/{seed}/scores` or `endless`."
+- "Boards come from Cloud Functions that return, for each entry, only what the board shows: the uid, the name, the score, the time in seconds, and for endless the level reached. Never `updatedAt` or a document's create or update time."
+- "A board call returns the top 50 and the caller's own entry (signed in, anonymous included); it never returns another player's entry outside the top 50."
+- "The server keeps each board's top 50 for 60 seconds, so polling a board can't time a top player's improvement more finely than that. The caller's own entry is always current." (Added after the security review.)
+- "Ranking, the pinned row, the error copy and the offline behaviour stay as phase 1 and the fixes-and-leaderboards spec describe them."
 
 ## 5. Analytics
 

@@ -5,6 +5,8 @@ import GameEngine from "./engine";
 import Controller from "./controller";
 import MouseInput from "./controller/mouse-input";
 import { controlOpacity } from "./controller/opacity";
+import { normalizeLayout } from "./controller/layout";
+import { applyControlLayout, mountLayoutEditor } from "./controller/layout-ui";
 import { MAX_HEARTS, POWERUP_TICKS } from "./game/player";
 import { loadIcons } from "./game/powerups";
 
@@ -35,7 +37,8 @@ import { requestSpec, worlds } from "./creator";
 import { auth } from "./auth";
 import { reminders } from "./reminders/push.js";
 import { createPrompt as createReminderPrompt } from "./reminders/prompt.js";
-import { leaderboard, TOP_LIMIT } from "./daily/leaderboard";
+import { leaderboard } from "./daily/leaderboard";
+import { boardView, BOARD_FAILED } from "./daily/board-view";
 import { createStreak } from "./daily/streak";
 import { createPending, errorCode, isFinalRefusal } from "./daily/pending";
 import { shareText, shareRun } from "./daily/share";
@@ -74,6 +77,7 @@ import {
   createQuests,
   claimChest,
   payFinished,
+  questsLabel,
   metEnemies,
   unlockedModes,
   CHEST_KEYS,
@@ -95,7 +99,7 @@ import {
   bossRushOpen,
   bossesBeaten,
 } from "./progress/unlocks";
-import { CATALOG, FREE, itemOf, isHatchOnly } from "./shop/catalog";
+import { CATALOG, FREE, itemOf, isHatchOnly, COMPANION_IDS } from "./shop/catalog";
 import { ACHIEVEMENTS } from "./achievements/catalog";
 import { newlyEarned, progressToward } from "./achievements/check";
 import { createSecretSession } from "./modes/secret";
@@ -196,6 +200,14 @@ const safeArea = () => {
   };
 };
 
+/** The custom touch-button layout from Settings (touch devices only), or the CSS default. */
+const applyLayout = () => {
+  applyControlLayout(
+    isTouchesEnabled ? normalizeLayout(settings.get("controlLayout")) : null,
+    safeArea(),
+  );
+};
+
 /** Landscape lock: the manifest asks for it; fullscreen + lock helps in a browser. */
 const lockLandscape = () => {
   if (!isTouchesEnabled) return;
@@ -245,6 +257,13 @@ window.addEventListener("load", function () {
   const eggsFoundNow = new Set(); // found this session: gone even when the save can't be written
   const follower = createFollower();
   let wornCompanion = "none"; // the companion drawn in this level
+  // test hosts only (localhost, ?debug previews): ?companion=trike wears it this session, saved nowhere
+  const testCompanion = (() => {
+    const id = canToggleLocally()
+      ? new URLSearchParams(window.location.search).get("companion")
+      : null;
+    return id && COMPANION_IDS.includes(id) ? id : null;
+  })();
   let bossBounced = false; // a fireball bounced off a boss shield in this level
   const earnings = createEarnings();
   const isCampaignLevel = (id) => !session && LEVELS.some((l) => l.id === id);
@@ -289,8 +308,10 @@ window.addEventListener("load", function () {
   const COIN = '<span class="coin-icon" aria-hidden="true"></span>';
   const coinText = (n) => `${COIN}${n.toLocaleString("en-US")}`;
   const renderBalance = () => {
-    $("walletBalance").innerHTML = coinText(wallet.balance());
-    $("shopBalance").innerHTML = coinText(wallet.balance());
+    const balance = wallet.balance();
+    $("walletBalance").innerHTML = coinText(balance);
+    $("shopBtn").setAttribute("aria-label", `Shop, ${balance.toLocaleString("en-US")} coins`);
+    $("shopBalance").innerHTML = coinText(balance);
   };
 
   // The player's look (and last-online day) follows the account: written each time cloud save
@@ -868,7 +889,7 @@ window.addEventListener("load", function () {
     applyWornLook();
     bossBounced = false;
     follower.reset();
-    wornCompanion = wallet.worn().companion || "none";
+    wornCompanion = testCompanion || wallet.worn().companion || "none";
     companionFrames(wornCompanion); // asks again for a sprite that failed to load
     if (session && session.kind === "endless") {
       const reached = session.level(areaId);
@@ -887,6 +908,7 @@ window.addEventListener("load", function () {
 
   const resize = () => {
     sizeControls();
+    applyLayout();
     const inset = safeArea();
     const width = document.documentElement.clientWidth - inset.left - inset.right;
     const height = document.documentElement.clientHeight - inset.top - inset.bottom;
@@ -1901,6 +1923,15 @@ window.addEventListener("load", function () {
     $("questKeys").textContent = `🔑 ${quests.keys()} / ${CHEST_KEYS}`;
   };
 
+  /** The badge on the Quests icon: today's quests still to do, none shown when all are done. */
+  const renderQuestsBadge = () => {
+    const left = quests.remaining();
+    const badge = $("questsBadge");
+    badge.textContent = String(left);
+    badge.hidden = left <= 0;
+    $("questsBtn").setAttribute("aria-label", questsLabel(left));
+  };
+
   // ---------------------------------------------------- the hatch card
 
   const hatchScreen = $("hatchScreen");
@@ -1950,6 +1981,7 @@ window.addEventListener("load", function () {
     renderBalance();
     renderNest();
     renderQuests();
+    renderQuestsBadge();
     const premium = isPremium();
     document.querySelectorAll(".mode-card.premium").forEach((card) => {
       card.classList.toggle("locked", !premium);
@@ -2218,6 +2250,20 @@ window.addEventListener("load", function () {
       refreshSettings();
     };
   });
+  const layoutEditor = mountLayoutEditor({
+    root: $("layoutEditor"),
+    getLayout: () => normalizeLayout(settings.get("controlLayout")),
+    safeArea,
+    onSave: (layout) => {
+      settings.set("controlLayout", layout);
+      applyLayout();
+    },
+    onClose: () => show(settingsScreen, true),
+  });
+  $("customizeLayoutBtn").onclick = () => {
+    show(settingsScreen, false);
+    layoutEditor.open();
+  };
   setOpacity.querySelectorAll("button").forEach((b) => {
     b.onclick = () => {
       settings.set("controlOpacity", b.dataset.value);
@@ -3731,16 +3777,11 @@ window.addEventListener("load", function () {
     return row;
   };
 
-  /** The tab's board: { top(), mine(uid) } for the daily seeds and for endless. */
+  /** The tab's board: load() -> { rows, mine }, one function call (spec 4.4). */
   const boardSource = (tab) => {
-    if (tab === "endless") {
-      return { top: () => endlessBoard.top(TOP_LIMIT), mine: (uid) => endlessBoard.mine(uid) };
-    }
+    if (tab === "endless") return { load: () => endlessBoard.load() };
     const seed = dailySeed();
-    return {
-      top: () => leaderboard.top(seed, TOP_LIMIT),
-      mine: (uid) => leaderboard.mine(seed, uid),
-    };
+    return { load: () => leaderboard.load(seed) };
   };
 
   /** Dinos and last-online on the rows already showing: one read for the whole board, never blocking it. */
@@ -3767,30 +3808,15 @@ window.addEventListener("load", function () {
     board.status.textContent = "Loading leaderboard…";
     try {
       const { uid } = await auth.ensurePlayer();
-      const rows = await source.top();
-      const inTop = rows.some((row) => row.uid === uid);
-      const mine = inTop ? null : await source.mine(uid).catch(() => null);
+      const view = boardView(await source.load(), uid);
       if (load !== board.load) return;
-      if (!rows.length && !mine) {
-        board.status.textContent = "No scores yet. Be the first!";
-        return;
-      }
-      board.status.textContent = "";
+      board.status.textContent = view.status;
+      if (!view.rows.length) return;
       const endlessTab = tab === "endless";
-      const shown = rows.map((entry) => ({
+      const shown = view.rows.map(({ entry, me, pinned }) => ({
         uid: entry.uid,
-        el: boardRow(entry, { me: entry.uid === uid, endless: endlessTab }),
+        el: boardRow(entry, { me, pinned, endless: endlessTab }),
       }));
-      if (mine) {
-        // outside the top 50: the exact place isn't known here, and a stale one would be wrong
-        shown.push({
-          uid,
-          el: boardRow(
-            { ...mine, rank: `${TOP_LIMIT}+` },
-            { me: true, pinned: true, endless: endlessTab },
-          ),
-        });
-      }
       shown.forEach(({ el }) => board.list.appendChild(el));
       // never blocks the board: a drawing that throws leaves the classic dinos, and a log line
       paintLooks(load, shown).catch((error) =>
@@ -3799,7 +3825,7 @@ window.addEventListener("load", function () {
     } catch (error) {
       if (load !== board.load) return;
       console.warn("Leaderboard failed:", friendlyError(error));
-      board.status.textContent = "Leaderboard didn't load.";
+      board.status.textContent = BOARD_FAILED;
       board.retry.style.display = "inline-block";
     }
   };
@@ -3821,6 +3847,15 @@ window.addEventListener("load", function () {
     show(leaderboardScreen, true);
     selectBoard("today");
   };
+  $("questsBtn").onclick = () => {
+    renderNest();
+    renderQuests();
+    show($("questsScreen"), true);
+  };
+  $("questsCloseBtn").onclick = () => {
+    show($("questsScreen"), false);
+    renderQuestsBadge();
+  };
   board.retry.onclick = loadLeaderboard;
   $("leaderboardCloseBtn").onclick = () => {
     board.load += 1;
@@ -3838,6 +3873,7 @@ window.addEventListener("load", function () {
       shopScreen,
       $("achievementsScreen"),
       settingsScreen,
+      $("layoutEditor"),
       premiumScreen,
       world1Screen,
       createScreen,
@@ -3845,6 +3881,7 @@ window.addEventListener("load", function () {
       verifyScreen,
       deleteScreen,
       leaderboardScreen,
+      $("questsScreen"),
     ].some(isVisible);
 
   const keyDownUp = (event) => {
