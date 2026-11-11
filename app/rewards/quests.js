@@ -223,6 +223,11 @@ const chestOf = (state) =>
     ? { rewardId: chestRewardId(state.week), eggWeek: state.week }
     : null;
 
+/** Pays each finished quest through the wallet; returns the ones that paid (a paid reward id pays nothing). */
+export function payFinished(finished, wallet) {
+  return finished.filter(({ pick, rewardId }) => wallet.reward(rewardId, pick.coins));
+}
+
 /**
  * Opens a due chest: 500 coins and one egg. The wallet's reward id for the week pays it once, on
  * this device and across devices, so a chest that was already paid does nothing. True when it paid.

@@ -70,6 +70,7 @@ import { createNest, hatchLabel, DUPLICATE_COINS } from "./rewards/eggs";
 import {
   createQuests,
   claimChest,
+  payFinished,
   metEnemies,
   unlockedModes,
   CHEST_KEYS,
@@ -367,12 +368,12 @@ window.addEventListener("load", function () {
   /** One thing the player did: advances the day's quests, pays and toasts what it finished. */
   const recordFeat = (feat) => {
     const { finished, chest } = quests.record(feat, questMode());
-    finished.forEach(({ pick, rewardId }) => {
-      wallet.reward(rewardId, pick.coins);
+    const paid = payFinished(finished, wallet);
+    paid.forEach(({ pick }) => {
       queueToast(`<b>✅ ${esc(pick.text)} · +${coinText(pick.coins)}</b>`);
       track("quest_complete", { quest: pick.id });
     });
-    return openChest(chest) || finished.length > 0;
+    return openChest(chest) || finished.length > 0; // finished quests changed the save, paid or not
   };
 
   /** This frame's events, the world's feats and coins: stats, eggs and quests. */

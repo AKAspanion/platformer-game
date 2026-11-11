@@ -13,6 +13,7 @@ import {
   pickQuests,
   createQuests,
   claimChest,
+  payFinished,
   CHEST_COINS,
 } from "../app/rewards/quests";
 import { createNest } from "../app/rewards/eggs";
@@ -607,4 +608,21 @@ test("a merge never moves the day backwards", () => {
       assert.equal(merged.day, day);
       assert.deepEqual(merged.progress, [3]);
     });
+});
+
+test("only a quest whose reward id was not paid before is paid and reported", () => {
+  const wallet = createWallet(memoryStorage(), "dev");
+  const finished = [
+    { pick: pick("defeat", 0, 1, "kill", "Defeat 1 enemies"), rewardId: "q1a" },
+    { pick: pick("coins", 1, 1, "coin", "Collect 1 coins"), rewardId: "q1b" },
+  ];
+  assert.equal(wallet.reward("q1a", 50), true, "paid on another device, before a merge");
+  const before = wallet.balance();
+  const paid = payFinished(finished, wallet);
+  assert.deepEqual(
+    paid.map((f) => f.rewardId),
+    ["q1b"],
+  );
+  assert.equal(wallet.balance(), before + QUEST_COINS[1]);
+  assert.deepEqual(payFinished(finished, wallet), [], "a second pass pays and reports nothing");
 });
