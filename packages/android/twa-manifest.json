@@ -24,7 +24,7 @@
   "fullScopeUrl": "https://dino.spanion.in/",
   "shortcuts": [],
   "features": {},
-  "appVersion": "2.0.0",
+  "appVersion": "1.0.0",
   "appVersionCode": 1,
   "generatorApp": "bubblewrap-cli",
   "signingKey": {
