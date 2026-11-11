@@ -1543,9 +1543,10 @@ canvas {
 }
 .lb-row {
   display: grid;
-  grid-template-columns: 3.2em minmax(0, 1fr) auto 3.4em;
-  gap: 8px;
+  grid-template-columns: 3.2em 40px minmax(0, 1fr) auto 3.4em 4em;
+  gap: 6px;
   align-items: center;
+  min-height: 44px;
   padding: 8px 10px;
   border-radius: 10px;
   font-size: 16px;
@@ -1564,7 +1565,23 @@ canvas {
   box-shadow: 0 -2px 0 rgba(29, 26, 36, 0.2);
 }
 .lb-row.endless {
-  grid-template-columns: 3.2em minmax(0, 1fr) 3.6em auto 3.4em;
+  grid-template-columns: 3.2em 40px minmax(0, 1fr) 3.6em auto 3.4em 4em;
+}
+.lb-avatar {
+  display: block;
+  width: 40px;
+  height: 28px;
+}
+.lb-avatar canvas {
+  display: block;
+  width: 40px;
+  height: 28px;
+}
+.lb-seen {
+  font-size: 12px;
+  text-align: right;
+  white-space: nowrap;
+  opacity: 0.7;
 }
 .lb-level {
   text-align: right;

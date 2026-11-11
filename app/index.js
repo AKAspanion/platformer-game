@@ -82,6 +82,8 @@ import { readLocal, writeLocal, resetLocal } from "./progress/save";
 import { createCloudSave } from "./progress/cloud";
 import { firestoreSaves } from "./firebase/saves";
 import { profiles } from "./profiles";
+import { avatarCanvas, rowLooks, loadProfiles } from "./profiles/avatar";
+import { dayNumber } from "./profiles/rules";
 import {
   SECRET_STARS,
   campaignStars,
@@ -3650,14 +3652,17 @@ window.addEventListener("load", function () {
     // names come from other players: text only, never HTML
     [
       ["lb-rank", typeof entry.rank === "number" ? `#${entry.rank}` : entry.rank],
+      ["lb-avatar", ""],
       ["lb-name", entry.name],
       ...(ranked ? [["lb-level", `Lv ${entry.level}`]] : []),
       ["lb-score", String(entry.score)],
       ["lb-time", clock(entry.seconds)],
+      ["lb-seen", ""],
     ].forEach(([cls, text]) => {
       const cell = document.createElement("span");
       cell.className = cls;
       cell.textContent = text;
+      if (cls === "lb-avatar") cell.appendChild(avatarCanvas(null)); // the classic dino until profiles arrive
       row.appendChild(cell);
     });
     return row;
@@ -3673,6 +3678,21 @@ window.addEventListener("load", function () {
       top: () => leaderboard.top(seed, TOP_LIMIT),
       mine: (uid) => leaderboard.mine(seed, uid),
     };
+  };
+
+  /** Dinos and last-online on the rows already showing: one read for the whole board, never blocking it. */
+  const paintLooks = async (load, shown) => {
+    const found = await loadProfiles([...new Set(shown.map((row) => row.uid))], {
+      fetch: (list) => profiles.fetch(list),
+      isCurrent: () => load === board.load,
+    });
+    if (!found) return;
+    const looks = rowLooks(shown, found, dayNumber(Date.now()));
+    looks.forEach((look, i) => {
+      const { el } = shown[i];
+      el.querySelector(".lb-avatar").replaceChildren(avatarCanvas(look.profile));
+      el.querySelector(".lb-seen").textContent = look.seen;
+    });
   };
 
   const loadLeaderboard = async () => {
@@ -3694,18 +3714,22 @@ window.addEventListener("load", function () {
       }
       board.status.textContent = "";
       const endlessTab = tab === "endless";
-      rows.forEach((entry) =>
-        board.list.appendChild(boardRow(entry, { me: entry.uid === uid, endless: endlessTab })),
-      );
+      const shown = rows.map((entry) => ({
+        uid: entry.uid,
+        el: boardRow(entry, { me: entry.uid === uid, endless: endlessTab }),
+      }));
       if (mine) {
         // outside the top 50: the exact place isn't known here, and a stale one would be wrong
-        board.list.appendChild(
-          boardRow(
+        shown.push({
+          uid,
+          el: boardRow(
             { ...mine, rank: `${TOP_LIMIT}+` },
             { me: true, pinned: true, endless: endlessTab },
           ),
-        );
+        });
       }
+      shown.forEach(({ el }) => board.list.appendChild(el));
+      paintLooks(load, shown);
     } catch (error) {
       if (load !== board.load) return;
       console.warn("Leaderboard failed:", friendlyError(error));
