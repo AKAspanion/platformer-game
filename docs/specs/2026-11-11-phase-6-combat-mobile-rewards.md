@@ -149,7 +149,7 @@ Eggs:
 Hatching:
 
 - "An egg hatches 24 hours after it was found, by the device's clock, whether or not the game is open."
-- "The home screen shows the nest: each egg with the time left ("Hatches in 5h"), or "Ready!"."
+- "The nest shows each egg with the time left ("Hatches in 5h"), or "Ready!"." The Nest card lives in the Quests panel (see 3.3).
 - "When the home screen opens and an egg is due, a card shows "Your egg hatched! Meet <name>." with Wear and Later buttons. Several due eggs hatch one after another."
 - "An egg hatches into one of 8 companions: 6 common and 2 rare. Each hatch has a 10% chance of a rare one. A companion the player already owns pays 100 coins instead."
 
@@ -176,7 +176,9 @@ Quests:
 - Mode quests: "Finish today's daily challenge", "Reach endless level 5", "Finish a community world level", "Finish a story level", "Finish boss rush".
 - "A quest pays its coins once, when it is finished, with a toast "✅ <quest> · +<coins>"."
 - "Quests count in every mode except where a quest names its mode."
-- The home screen has a Quests card: three rows with progress bars ("5 / 8") and the coins each pays.
+- The Quests card has three rows with progress bars ("5 / 8") and the coins each pays. It and the Nest card live in a "Quests" panel, opened from a Quests icon in the home footer, right after the Leaderboards icon. The home screen itself shows neither card; the hatch card still shows there.
+- The Quests icon carries a badge with the number of today's quests not yet finished (3, 2, 1); with all three done there is no badge. Its label says the count ("Quests, 2 to do"). The badge updates when the home screen shows, when the panel closes, and at local midnight (3 again).
+- Changed after the build, at the developer's request: the cards were first on the home screen.
 
 Weekly chest:
 
@@ -214,6 +216,15 @@ the wallet, they are trusted to the client.
 - "Only the day is stored, never a time."
 - "Settings has a switch "Show when I was last online", on by default. It belongs to the account and syncs through cloud save, so turning it off on one device turns it off on all of them. Turning it off deletes `seenDay` from the profile, and no device writes `seenDay` until it is on again. Worn items still update the avatar. A row with no `seenDay` shows no status."
 - `PRIVACY.md` says what the profile holds, that it is public, and how to hide last online.
+
+### 4.4 Board privacy
+
+Added after the build at the developer's request: the daily and endless board entries (phase 1) were public Firestore documents carrying an `updatedAt` time in milliseconds, and Firestore exposes every document's create and update times, so anyone could read when each improving run happened, whatever "Show when I was last online" says.
+
+- "Nobody reads the daily or endless board documents directly: the rules allow no client read or list of `daily/{seed}/scores` or `endless`."
+- "Boards come from Cloud Functions that return, for each entry, only what the board shows: the uid, the name, the score, the time in seconds, and for endless the level reached. Never `updatedAt` or a document's create or update time."
+- "A board call returns the top 50 and the caller's own entry (signed in, anonymous included); it never returns another player's entry outside the top 50."
+- "Ranking, the pinned row, the error copy and the offline behaviour stay as phase 1 and the fixes-and-leaderboards spec describe them."
 
 ## 5. Analytics
 
