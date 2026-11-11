@@ -61,3 +61,7 @@ jobs:
           --only hosting,functions,firestore:rules,firestore:indexes
           --non-interactive --force
           --message "${{ github.sha }}"
+
+      # a lost invoker permission shows as a 403 before any player sees it
+      - name: Check the functions are public
+        run: node scripts/check-functions-public.js https://asia-south1-dinos-adventure.cloudfunctions.net

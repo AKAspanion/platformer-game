@@ -7,6 +7,8 @@
  *   searchWorlds({ query })  -> { worlds }  every shared world matching a search
  *   submitDailyScore({ seed, score, seconds })
  *                            -> { rank, total, best, improved }  the daily challenge's leaderboard
+ *   submitEndlessScore({ seed, level, score, seconds })
+ *                            -> { rank, total, best, improved }  the endless mode's leaderboard
  *   recordWorldPlay({ worldId, kind }) -> { counted }   a play or finish, once per account per day
  *   toggleWorldLike({ worldId })       -> { liked, likes }
  *   pickWorldOfWeek                    scheduled, Mondays 00:00 UTC
@@ -15,7 +17,8 @@
  *                            -> { on, devices }  turns the daily reminder on or off for a device
  *   sendReminders            scheduled hourly; sends the 18:00 local reminder
  *   deleteAccount()          -> { worlds }  deletes the caller; their worlds become "Anonymous",
- *                                           their daily scores, save and reminders are deleted
+ *                                           their daily scores, endless entry, save and
+ *                                           reminders are deleted
  *
  * All are callable functions: the Firebase SDK in the game sends the
  * player's ID token, so request.auth is the verified user (or null).
@@ -53,6 +56,8 @@ import { sanitizeWorld } from "./shared/spec.js";
 import { worldLink } from "./shared/worlds/community.js";
 import { handleSubmitDaily, outranks } from "./src/daily.js";
 import { handleSetReminders, handleSendReminders } from "./src/reminders.js";
+import { handleSubmitEndless } from "./src/endless.js";
+import { compareRuns } from "./shared/modes/endless-rules.js";
 import { createDesigner, Anthropic } from "./src/designer.js";
 
 // invoker "public": anyone may reach the functions (the game calls them from the
@@ -189,6 +194,42 @@ export const submitDailyScore = callable({ timeoutSeconds: 20 }, (request) =>
   handleSubmitDaily(request, { scores, limiter }),
 );
 
+// endless/{uid}: one best run per player, ever
+const endlessBoard = db.collection("endless");
+
+const board = {
+  async get(uid) {
+    const snap = await endlessBoard.doc(uid).get();
+    return snap.exists ? snap.data() : null;
+  },
+  // keeps the better run if two submissions race: a worse one never overwrites
+  async set(uid, entry) {
+    const ref = endlessBoard.doc(uid);
+    await db.runTransaction(async (transaction) => {
+      const snap = await transaction.get(ref);
+      if (!snap.exists || compareRuns(entry, snap.data()) < 0) transaction.set(ref, entry);
+    });
+  },
+  async rankOf(entry) {
+    const [higher, better, faster] = await Promise.all([
+      countOf(endlessBoard.where("level", ">", entry.level)),
+      countOf(endlessBoard.where("level", "==", entry.level).where("score", ">", entry.score)),
+      countOf(
+        endlessBoard
+          .where("level", "==", entry.level)
+          .where("score", "==", entry.score)
+          .where("seconds", "<", entry.seconds),
+      ),
+    ]);
+    return higher + better + faster + 1;
+  },
+  count: () => countOf(endlessBoard),
+};
+
+export const submitEndlessScore = callable({ timeoutSeconds: 20 }, (request) =>
+  handleSubmitEndless(request, { board, limiter }),
+);
+
 const accounts = {
   async anonymizeWorlds(uid, author) {
     const snap = await db.collection("worlds").where("author.uid", "==", uid).get();
@@ -208,6 +249,9 @@ const accounts = {
       snap.docs.forEach((d) => batch.delete(d.ref));
       await batch.commit();
     }
+  },
+  async deleteEndless(uid) {
+    await endlessBoard.doc(uid).delete();
   },
   async deleteSave(uid) {
     await db.collection("saves").doc(uid).delete();
