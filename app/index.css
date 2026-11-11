@@ -273,9 +273,12 @@ canvas {
 .btn-danger {
   background: #6b2b33;
 }
-/* a link that looks like a button (Settings → Privacy, Terms) */
+/* a link that looks like a button (Settings → Privacy, Terms). Flex centres the
+   text when a short-screen rule gives it a min-height, as a <button> does itself. */
 a.btn {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-family: var(--font);
   line-height: normal;
   text-decoration: none;
