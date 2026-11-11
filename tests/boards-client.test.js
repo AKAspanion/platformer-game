@@ -248,7 +248,8 @@ test("PRIVACY.md says what a board entry holds and that no time of a run leaves 
     policy.indexOf("### Leaderboard Profile"),
   );
   assert.ok(section.length > 0, "a Leaderboards section before the profile");
-  assert.match(section, /No date or time of day of the run is stored\./);
+  assert.match(section, /New entries store no date or time of day of the run\./);
+  assert.match(section, /never shown to players/);
   assert.match(section, /never when an entry was created or last changed/);
   assert.match(section, /top 50 and your own entry/);
   assert.match(section, /Deleting your account in Settings deletes your entries too\./);
