@@ -19,6 +19,7 @@ import {
   preLoadAndFetch,
 } from "./util";
 import { settings, vibrate } from "./util/settings";
+import { COMBO_WINDOW } from "./game/combo";
 import { track, armAnalytics, setAnalyticsEnabled, appOpenParams } from "./analytics";
 import { isPremium, setPremium, readPremiumFromUrl, canToggleLocally } from "./util/premium";
 import {
@@ -598,6 +599,7 @@ window.addEventListener("load", function () {
 
   // GAME
   const game = new Game((score) => {
+    reportCombo();
     track("level_fail", { mode: modeName(), level_id: areaId, seconds: areaSeconds() });
     const best = recordRun(score);
     const inDaily = !!session && session.kind === "daily";
@@ -632,6 +634,13 @@ window.addEventListener("load", function () {
       if (endlessRun) submitEndless(endlessRun);
     }, 1400);
   });
+
+  /** A level is over: its best combo is reported once if it reached 5. */
+  const reportCombo = () => {
+    const { combo } = game.world;
+    if (combo.best >= 5) track("combo_best", { mode: modeName(), combo: combo.best });
+    combo.resetLevel();
+  };
 
   const finishRun = () => {
     paused = true;
@@ -795,6 +804,7 @@ window.addEventListener("load", function () {
     }
 
     if (portal) {
+      reportCombo();
       if (session && session.kind === "daily" && portal.direction > 0) daily.levelDone();
       if (session && portal.direction > 0) {
         track("level_complete", {
@@ -1319,6 +1329,23 @@ window.addEventListener("load", function () {
     ctx.fillStyle = "#ffffff";
     ctx.fillText(score, width - 50, 14);
 
+    // the combo, left of the score, with a bar that drains as the window closes
+    const { combo } = game.world;
+    if (combo.count >= 2) {
+      const scoreWidth = ctx.measureText(score).width;
+      const text = `${combo.count} \u00b7 x${combo.multiplier}`;
+      const right = width - 50 - scoreWidth - 8;
+      const textWidth = ctx.measureText(text).width;
+      ctx.fillStyle = "rgba(0,0,0,0.45)";
+      ctx.fillText(text, right + 1, 15);
+      ctx.fillStyle = combo.multiplier > 1 ? "#ffd84d" : "#ffffff";
+      ctx.fillText(text, right, 14);
+      ctx.fillStyle = "rgba(0,0,0,0.35)";
+      ctx.fillRect(right - textWidth, 17, textWidth, 2);
+      ctx.fillStyle = combo.multiplier > 1 ? "#ffd84d" : "#ffffff";
+      ctx.fillRect(right - textWidth, 17, Math.max(1, (textWidth * combo.left) / COMBO_WINDOW), 2);
+    }
+
     ctx.drawImage(coins.frameSets.coin[0], width - 17, 5, 10, 10);
     ctx.fillStyle = "rgba(0,0,0,0.45)";
     ctx.fillText(String(totalCoins), width - 19, 15);
@@ -1330,6 +1357,10 @@ window.addEventListener("load", function () {
   const render = () => {
     screen.drawBackground();
     const ctx = screen.buffer;
+    // the world shakes, the HUD doesn't; with the setting off nothing moves
+    const shake = settings.get("shake") ? game.world.effects.shakeOffset() : { x: 0, y: 0 };
+    ctx.save();
+    ctx.translate(shake.x, shake.y);
 
     const {
       map,
@@ -1408,6 +1439,7 @@ window.addEventListener("load", function () {
     if (game.world.bossArea) drawGates(ctx);
 
     game.world.effects.draw(ctx);
+    ctx.restore();
     drawHud(ctx);
 
     screen.render();
@@ -1552,6 +1584,7 @@ window.addEventListener("load", function () {
   };
 
   const goHome = () => {
+    reportCombo();
     clearMouse();
     controller.releaseAll();
     paused = true;
@@ -1735,6 +1768,7 @@ window.addEventListener("load", function () {
   const setVibration = $("setVibration");
   const setAnalytics = $("setAnalytics");
   const setGhost = $("setGhost");
+  const setShake = $("setShake");
   const setControls = $("setControls");
   const setPremiumDev = $("setPremiumDev");
 
@@ -1744,6 +1778,7 @@ window.addEventListener("load", function () {
     setVibration.checked = !!settings.get("vibration");
     setAnalytics.checked = settings.get("analytics") !== false;
     setGhost.checked = settings.get("ghost") !== false;
+    setShake.checked = settings.get("shake") !== false;
     $("vibrationRow").style.display = navigator.vibrate ? "flex" : "none";
     setControls.querySelectorAll("button").forEach((b) => {
       b.classList.toggle("active", b.dataset.value === settings.get("controlSize"));
@@ -1778,6 +1813,7 @@ window.addEventListener("load", function () {
   };
   setSound.onchange = () => (settings.soundMuted = !setSound.checked);
   setAnalytics.onchange = () => setAnalyticsEnabled(setAnalytics.checked);
+  setShake.onchange = () => settings.set("shake", setShake.checked);
   setGhost.onchange = () => {
     settings.set("ghost", setGhost.checked);
     ghostOn = setGhost.checked;

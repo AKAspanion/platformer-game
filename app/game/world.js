@@ -7,6 +7,7 @@ import Enemies, { enemyTypes, enemyImages } from "./enemies";
 import PowerUps from "./powerups";
 import Collider from "./collider";
 import Effects from "./effects";
+import Combo from "./combo";
 import Fireballs from "./fireballs";
 import Projectiles, { SEED_IMAGES } from "./projectiles";
 import { walkerShoots, storyDifficulty } from "../pcg/generator";
@@ -93,6 +94,7 @@ export default class World {
     this.fireballs = new Fireballs();
     this.projectiles = new Projectiles();
     this.effects = new Effects();
+    this.combo = new Combo();
     // game events for the shell (vibration, HUD): drained by the caller each frame
     this.events = [];
 
@@ -204,6 +206,7 @@ export default class World {
     }
     // what spits or lobs seeds needs those sprites (a boss may lob them too)
     if (this.boss || needsOf(data).seed) this.projectiles.load();
+    this.combo.resetLevel();
     this.areaTicks = 0; // time spent in this area (stars: target time)
 
     this.portals = data.portals.map((p) => new Portal(p));
@@ -238,12 +241,40 @@ export default class World {
     this.collectedCoins = "";
     this.collectedPowerups = "";
     this.events = [];
+    this.combo.resetLevel();
 
     this.player.reset();
   }
 
   get score() {
     return this.totalEnemies * 100 + this.totalCoins * 20 + this.bonus;
+  }
+
+  /**
+   * A kill or coin worth `points`: steps the combo and puts the multiplier's
+   * extra into the bonus. Returns the points it came to.
+   */
+  comboScore(points) {
+    const { multiplier, count, tierUp } = this.combo.step();
+    this.bonus += points * (multiplier - 1);
+    sfx(`combo-${Math.min(count, 8)}`);
+    if (tierUp) {
+      sfx("combo-chime");
+      this.emit("combo-up");
+    }
+    if (tierUp || multiplier >= 3) this.effects.shake(2, 6);
+    return points * multiplier;
+  }
+
+  /** A coin picked up: 20 points, multiplied by the combo. */
+  scoreCoin() {
+    this.totalCoins += 1;
+    return this.comboScore(20);
+  }
+
+  /** The combo ends: a heart was lost. */
+  endCombo() {
+    this.combo.end();
   }
 
   emit(type) {
@@ -428,9 +459,10 @@ export default class World {
     this.killedEnemies += `${enemy.id},`;
     this.totalEnemies += 1;
     this.bonus += enemy.score - 100;
+    const points = this.comboScore(enemy.score);
 
     this.effects.enemyDeath(x, y, direction);
-    this.effects.popup(`+${enemy.score}`, x, enemy.getTop() - 2, "#ffe066");
+    this.effects.popup(`+${points}`, x, enemy.getTop() - 2, "#ffe066");
     this.effects.hitStop(2);
     this.emit("kill");
 
@@ -490,6 +522,7 @@ export default class World {
       life: 9,
     });
     this.effects.hitStop(3);
+    this.endCombo();
     this.emit("hurt");
     AudioController.play("hurt");
   }
@@ -499,6 +532,7 @@ export default class World {
     const { player } = this;
     if (player.invulnerable <= 0) {
       player.hearts = Math.max(0, player.hearts - 1);
+      this.endCombo();
       if (player.hearts === 0) {
         this.die(onGameOver, "fall");
         return;
@@ -526,6 +560,7 @@ export default class World {
     this.player.velocityY = -10;
     this.player.velocityX = 0;
     this.player.invulnerable = 0;
+    this.endCombo();
     this.emit("death");
     this.onPlayerDead(onGameOver, audio);
   }
@@ -719,8 +754,9 @@ export default class World {
       this.killedEnemies += `${boss.id},`;
       this.totalEnemies += 1;
       this.bonus += 1000 - 100;
+      const points = this.comboScore(1000);
       for (let i = 0; i < 3; i++) this.effects.enemyDeath(x + (i - 1) * 12, y, direction);
-      this.effects.popup("+1000", x, boss.getTop() - 6, "#ffe066");
+      this.effects.popup(`+${points}`, x, boss.getTop() - 6, "#ffe066");
       this.effects.popup(`${boss.name} defeated!`, this.width / 2, 60, "#ffffff");
       this.effects.hitStop(8);
       // minions flee with their boss
@@ -790,6 +826,8 @@ export default class World {
       }
     }
 
+    this.effects.tickShake();
+
     // hit-stop: freeze the world for a couple of ticks when something is hit
     if (this.effects.freeze > 0) {
       this.effects.freeze -= 1;
@@ -797,6 +835,7 @@ export default class World {
     }
 
     this.effects.update();
+    this.combo.tick();
     this.areaTicks += 1;
     if (this.musicSwap > 0 && --this.musicSwap === 0) this.switchTrack(this.areaTheme);
 
@@ -831,7 +870,7 @@ export default class World {
           coin.getCenterX() + coin.offsetX,
           coin.getCenterY() + coin.offsetY,
         );
-        this.totalCoins += 1;
+        this.scoreCoin();
       }
     }
 

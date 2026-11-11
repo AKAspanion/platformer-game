@@ -6,6 +6,7 @@ import { getData, setData } from "./index";
  */
 const DEFAULTS = {
   vibration: true,
+  shake: true, // the screen shakes on combo tiers and heavy kills
   ghost: true, // show the kept ghost of the fastest run on campaign levels
   analytics: true, // anonymous usage stats (Google Analytics); see PRIVACY.md
   controlSize: "auto", // auto | s | m | l
@@ -52,6 +53,7 @@ const PATTERNS = {
   armor: [10, 30, 10],
   powerup: [15, 40, 15],
   shield: [40],
+  "combo-up": [12, 30, 12],
 };
 
 export const vibrate = (event) => {

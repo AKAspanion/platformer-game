@@ -1,6 +1,6 @@
 /**
  * Short-lived visual feedback: pixel particles, floating score text and
- * hit-stop. (No screen shake.) Everything is in world pixels and ticks (30 per second).
+ * hit-stop and screen shake. Everything is in world pixels and ticks (30 per second).
  */
 export default class Effects {
   constructor(random = Math.random) {
@@ -12,6 +12,8 @@ export default class Effects {
     this.particles = [];
     this.texts = [];
     this.freeze = 0;
+    this.shakePx = 0;
+    this.shakeLeft = 0;
   }
 
   /** Burst of square pixels from (x, y). */
@@ -97,6 +99,24 @@ export default class Effects {
 
   hitStop(ticks = 2) {
     this.freeze = Math.max(this.freeze, ticks);
+  }
+
+  /** Shake the screen by `px` pixels for `ticks` ticks (the bigger shake wins). */
+  shake(px, ticks) {
+    this.shakePx = Math.max(this.shakeLeft > 0 ? this.shakePx : 0, px);
+    this.shakeLeft = Math.max(this.shakeLeft, ticks);
+  }
+
+  /** Counts the shake down; the world calls it every tick, hit-stop or not. */
+  tickShake() {
+    if (this.shakeLeft > 0) this.shakeLeft -= 1;
+  }
+
+  /** Where to draw the world this tick: {0, 0} when nothing shakes. */
+  shakeOffset() {
+    if (this.shakeLeft <= 0) return { x: 0, y: 0 };
+    const sign = this.shakeLeft % 2 ? 1 : -1;
+    return { x: sign * this.shakePx, y: (this.shakeLeft % 3 === 0 ? 1 : -1) * (this.shakePx / 2) };
   }
 
   update() {
