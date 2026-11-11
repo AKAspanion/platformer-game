@@ -820,7 +820,8 @@ function buildLevelOnce(input, seed, dropped) {
 
   // Walkers far enough from the portals may shoot (a flag: no random numbers drawn).
   enemies.forEach((en) => {
-    if (kindOf(en.type) === "walker" && walkerShoots(en.left, level.difficulty, en.sway)) en.shoots = true;
+    if (kindOf(en.type) === "walker" && walkerShoots(en.left, level.difficulty, en.sway))
+      en.shoots = true;
   });
 
   // Power-ups on top of floating platforms with no enemy on them.

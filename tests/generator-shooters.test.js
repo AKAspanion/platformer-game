@@ -113,7 +113,11 @@ test("every shooting walker passes walkerShoots; no spitter or flyer shoots", ()
         assert.ok(walkerShoots(enemy.left, difficulty, enemy.sway), `${enemy.id} at ${enemy.left}`);
       } else {
         assert.equal(enemy.shoots, undefined);
-        assert.equal(walkerShoots(enemy.left, difficulty, enemy.sway), false, `${enemy.id} at ${enemy.left}`);
+        assert.equal(
+          walkerShoots(enemy.left, difficulty, enemy.sway),
+          false,
+          `${enemy.id} at ${enemy.left}`,
+        );
       }
     });
   });
@@ -132,7 +136,10 @@ function assertShooterClear(enemy, where) {
   const [lo, hi] = reachableCentres(enemy);
   ARRIVALS.forEach((x) => {
     const nearest = x < lo ? lo - x : x > hi ? x - hi : 0;
-    assert.ok(nearest > SHOOT_MAX, `${where} ${enemy.id} (${enemy.type}) reaches ${nearest}px of ${x}`);
+    assert.ok(
+      nearest > SHOOT_MAX,
+      `${where} ${enemy.id} (${enemy.type}) reaches ${nearest}px of ${x}`,
+    );
   });
 }
 
