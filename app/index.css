@@ -121,7 +121,6 @@ canvas {
   background: url(images/right_btn.webp) center center / 100% no-repeat;
 }
 #fireBtn {
-  margin-bottom: calc(var(--ctrl) * 0.5);
   background: url(images/small_btn.webp) center center / 100% no-repeat;
 }
 .fire-dot {

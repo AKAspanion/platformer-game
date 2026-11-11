@@ -62,3 +62,14 @@ test("the hint clears the pause button at either size", () => {
   assert.ok(hintBottoms.length > 0, "a .hint rule places it");
   for (const body of hintBottoms) assert.match(body, /bottom:[^;]*var\(--pause-size\)/);
 });
+
+test("the fire button sits on the same bottom line as jump and the arrows", () => {
+  const fire = ruleFor("#fireBtn");
+  assert.ok(fire, "a rule for the fire button");
+  assert.doesNotMatch(fire, /margin-bottom|margin:|bottom:|transform:|translate/);
+  assert.match(
+    css,
+    /\.controller-actions,\s*\.controller-arrows\s*\{[^{}]*align-items:\s*flex-end/,
+    "the row aligns its buttons to the bottom",
+  );
+});
