@@ -30,28 +30,33 @@ jobs:
       name: production
       url: https://dino.spanion.in
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
         with:
-          node-version: 24
-          cache: yarn
+          node-version-file: .nvmrc
+          cache: pnpm
+          cache-dependency-path: |
+            pnpm-lock.yaml
+            functions/pnpm-lock.yaml
 
       - name: Install
         run: |
-          yarn install --frozen-lockfile
-          npm ci --prefix functions
+          pnpm install --frozen-lockfile
+          pnpm --dir functions install --frozen-lockfile
 
       - name: Build
-        run: yarn build
+        run: pnpm build
 
-      - uses: google-github-actions/auth@v2
+      - uses: google-github-actions/auth@v3
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DINOS_ADVENTURE }}
 
       - name: Deploy
         run: >
-          npx --yes firebase-tools@15
+          pnpm dlx firebase-tools@15
           deploy --project dinos-adventure
           --only hosting,functions,firestore:rules,firestore:indexes
           --non-interactive --force

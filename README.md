@@ -7,7 +7,19 @@ Game is made entirly using `Vanilla JS`, `HTML5 Canvas`, and
 <br />
 Game is also mobile responsive and can be installed on mobile/desktop as a PWA.<br /><br />
 
-![Dino's Adventure](https://github.com/AKAspanion/platformer-game/blob/master/demo.gif?raw=true)
+![Dino's Adventure: Grasslands, Iceland, Desert, Graveyard and Factory, with the Sand Chameleon and Mecha Beetle boss fights](demo.gif)
+
+## Screenshots
+
+| Home                                            | Level select                                            |
+| ----------------------------------------------- | ------------------------------------------------------- |
+| ![Home screen](docs/screenshots/home.png)       | ![Level select](docs/screenshots/levels.png)            |
+| **Iceland**                                     | **Desert**                                              |
+| ![Iceland](docs/screenshots/iceland.png)        | ![Desert](docs/screenshots/desert.png)                  |
+| **Graveyard**                                   | **Factory**                                             |
+| ![Graveyard](docs/screenshots/graveyard.png)    | ![Factory](docs/screenshots/factory.png)                |
+| **Boss: Bat Lord**                              | **Boss: Mecha Beetle**                                  |
+| ![Bat Lord](docs/screenshots/boss-bat-lord.png) | ![Mecha Beetle](docs/screenshots/boss-mecha-beetle.png) |
 
 ## Live
 
@@ -18,11 +30,12 @@ update.
 
 ## Locally
 
-Clone the repo and run
+Needs Node.js 26 (`.nvmrc`) and [pnpm](https://pnpm.io) (the version in `package.json`'s
+`packageManager`). Clone the repo and run
 
 ```bash
-npm run install
-npm run serve
+pnpm install
+pnpm serve
 ```
 
 Game will launch at `http://localhost:2108/`
@@ -84,7 +97,7 @@ in `app/pcg/generator.js`, which the game also runs in the browser. Story levels
 written to `app/areas` with
 
 ```bash
-yarn levels
+pnpm levels
 ```
 
 which also renders the level-select thumbnails (`scripts/generate-thumbnails.py`).
@@ -141,8 +154,8 @@ player opens Worlds (or signed in before), so the game itself starts as fast as 
 ### Firebase locally
 
 ```bash
-yarn emulators   # Auth, Firestore, Functions (+ Hosting) emulators
-yarn dev         # then open http://localhost:2108/?emulators=1
+pnpm emulators   # Auth, Firestore, Functions (+ Hosting) emulators
+pnpm dev         # then open http://localhost:2108/?emulators=1
 ```
 
 The dev server proxies the emulators, so the game, Auth, Firestore and Functions share
@@ -161,7 +174,7 @@ The bat, beetle, spitter plant, attack poses, power-up icons and 8-frame death
 animations are generated pixel art (Python 3 with Pillow):
 
 ```bash
-yarn sprites
+pnpm sprites
 ```
 
 ## Music and sound
@@ -171,11 +184,11 @@ Graveyard, `lab` for the Factory). Boss arenas switch to a battle theme per boss
 (`boss-<kind>.mp3`); after the win a fanfare plays and the world's track comes back.
 Enemies have their own attack and death sounds, and every boss move, roar, projectile and
 gate has a sound. The boss music and sound effects are synthesized chiptune made by
-`yarn audio` (`scripts/generate-audio.py`, needs ffmpeg for the MP3s).
+`pnpm audio` (`scripts/generate-audio.py`, needs ffmpeg for the MP3s).
 
 ## Tests
 
-`yarn test` runs headless tests (esbuild + `node:test`): combat, hearts and pits,
+`pnpm test` runs headless tests (esbuild + `node:test`): combat, hearts and pits,
 power-ups, enemy attacks and the new enemies, Dino animation states, level integrity for
 every story level (spawns, portals, footing, coins), the generator across all themes and
 difficulties, daily/endless/custom modes, the world creator (spec validation, generated

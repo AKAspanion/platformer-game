@@ -13,29 +13,34 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
         with:
-          node-version: 24
-          cache: yarn
+          node-version-file: .nvmrc
+          cache: pnpm
+          cache-dependency-path: |
+            pnpm-lock.yaml
+            functions/pnpm-lock.yaml
 
       - name: Install
-        run: yarn install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Lint
-        run: yarn lint
+        run: pnpm lint
 
       - name: Tests
-        run: yarn test
+        run: pnpm test
 
       - name: Functions share the game's world validation
         run: node scripts/sync-functions-shared.js --check
 
       - name: Functions load
         run: |
-          npm ci --prefix functions
-          npm run check --prefix functions
+          pnpm --dir functions install --frozen-lockfile
+          pnpm --dir functions check
 
       - name: Build
-        run: yarn build
+        run: pnpm build

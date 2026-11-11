@@ -1,0 +1,5 @@
+# Dependency install scripts pnpm may run (all others are blocked).
+allowBuilds:
+  esbuild: true
+  "@firebase/util": false
+  protobufjs: false

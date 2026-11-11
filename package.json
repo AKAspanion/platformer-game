@@ -1,13 +1,14 @@
 {
   "name": "platformer-game",
   "version": "0.0.1",
+  "private": true,
   "main": "index.js",
   "scripts": {
     "build": "webpack --mode production",
     "dev": "webpack serve",
     "dep": "gh-pages -d dist",
     "deploy": "gh-pages -d dist",
-    "predeploy": "yarn && yarn build",
+    "predeploy": "pnpm install && pnpm build",
     "serve": "webpack-dashboard -m -c green -t react -- webpack serve",
     "format": "prettier --write .",
     "levels": "node scripts/generate-levels.js && prettier --write app/areas && python3 scripts/generate-thumbnails.py",
@@ -20,6 +21,10 @@
   },
   "author": "Ankit Kumar Pandit",
   "license": "MIT",
+  "packageManager": "pnpm@12.18.0",
+  "engines": {
+    "node": ">=26"
+  },
   "keywords": [
     "game",
     "2d-game",
@@ -37,6 +42,7 @@
   "devDependencies": {
     "clean-webpack-plugin": "^4.0.0",
     "copy-webpack-plugin": "^14.0.0",
+    "esbuild": "^0.28.2",
     "esbuild-loader": "^4.5.0",
     "eslint": "^10.14.0",
     "eslint-webpack-plugin": "^6.0.0",

@@ -7,8 +7,8 @@ import { firebaseConfig, FUNCTIONS_REGION } from "./config";
  *   const fb = await loadFirebase();
  *   fb.auth / fb.db / fb.functions and the modules (fb.authApi, fb.storeApi, fb.functionsApi)
  *
- * Local development against the emulators: run `yarn emulators` and
- * `yarn dev`, open the game with ?emulators=1 (remembered until
+ * Local development against the emulators: run `pnpm emulators` and
+ * `pnpm dev`, open the game with ?emulators=1 (remembered until
  * ?emulators=0). The dev server proxies the emulators (webpack.config.js), so
  * everything is on the game's own origin.
  */
