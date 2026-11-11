@@ -8,14 +8,19 @@ import { enemyTypes } from "../app/game/enemies";
 import { createCustomSession } from "../app/modes";
 import { buildLevel, validate } from "../app/pcg/generator";
 import { OPTIONS, specFromPrompt, sanitizeWorld, newWorld } from "../app/worlds/spec";
-import { LocalRepository, FirestoreRepository, mergeWorlds } from "../app/worlds/repository";
+import {
+  LocalRepository,
+  FirestoreRepository,
+  mergeWorlds,
+  starterWorlds,
+} from "../app/worlds/repository";
 import { buildEnemy, buildBossFrames, enemySize } from "../app/gen/creatures";
 import { buildTiles, buildBackground, buildObjects, buildLiquid } from "../app/gen/scenery";
 import { composeTrack, creatureSounds, bossSounds, encodeWav, RATE } from "../app/gen/audio";
 import { buildWorld, previewWorld } from "../app/gen";
 import { getSkin, audioSrc } from "../app/util/registry";
 import { createAuth } from "../app/auth";
-import { mockAuthBackend } from "../app/auth/mock";
+import { mockAuthBackend, verifyEmail } from "../app/auth/mock";
 import { tick } from "./helpers";
 
 const world = (prompt, seed = 7) => ({
@@ -325,7 +330,67 @@ test("sign-in: checks input, restores the session, signs out", async () => {
   await assert.rejects(none.signInWithGoogle(), /isn't available/);
 });
 
+test("sign-in: new email accounts verify, Google ones don't; accounts can be deleted", async () => {
+  localStorage.removeItem("mock_auth");
+  const auth = createAuth(mockAuthBackend());
+  await auth.ready(100);
+  await assert.rejects(auth.sendVerification(), /Sign in/);
+  await assert.rejects(auth.deleteAccount(), /Sign in/);
+
+  const user = await auth.signInWithEmail({
+    email: "v@b.co",
+    password: "secret1",
+    name: "Vee",
+    create: true,
+  });
+  assert.equal(user.emailVerified, false);
+  assert.ok(auth.needsVerification());
+  await auth.sendVerification();
+  assert.ok(auth.needsVerification(await auth.reload()), "not until the link is opened");
+  verifyEmail("v@b.co");
+  const fresh = await auth.reload();
+  assert.equal(fresh.emailVerified, true);
+  assert.equal(auth.needsVerification(), false);
+
+  const seen = [];
+  auth.onAuthStateChanged((u) => seen.push(u && u.uid));
+  await auth.deleteAccount();
+  assert.equal(auth.currentUser, null);
+  assert.deepEqual(seen, [user.uid, null]);
+  await assert.rejects(
+    auth.signInWithEmail({ email: "v@b.co", password: "secret1" }),
+    /Wrong/,
+    "the account is gone",
+  );
+
+  const google = await auth.signInWithGoogle();
+  assert.equal(auth.needsVerification(google), false);
+  assert.equal(auth.needsVerification(null), false);
+});
+
 // --------------------------------------------------------- repository
+
+test("repositories search every world", async () => {
+  localStorage.removeItem("shared_worlds");
+  const local = new LocalRepository();
+  const hits = await local.search("snowy behemoth");
+  assert.deepEqual(
+    hits.map((w) => w.id),
+    ["starter-frost"],
+  );
+  assert.deepEqual(await local.search(""), []);
+
+  const queries = [];
+  const remote = new FirestoreRepository({
+    search: async (query) => {
+      queries.push(query);
+      return [{ id: "!" }, ...starterWorlds().slice(0, 2)];
+    },
+  });
+  const found = await remote.search("x".repeat(100));
+  assert.equal(queries[0].length, 60, "queries are capped");
+  assert.equal(found.length, 2, "bad worlds are dropped");
+});
 
 test("local repository: starter worlds, newest first, live", async () => {
   localStorage.removeItem("shared_worlds");

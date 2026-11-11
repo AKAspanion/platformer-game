@@ -5,12 +5,14 @@
  *
  *   handleDesign({ auth, data: { prompt } }, { design, limiter })  -> { spec }
  *   handlePublish({ auth, data: { world } }, { store, limiter })   -> { world }
+ *   handleSearch({ auth, data: { query } }, { allWorlds })         -> { worlds }
+ *   handleDeleteAccount({ auth }, { accounts })                    -> { worlds }
  *
  * `auth` is the callable's request.auth ({ uid, token }), null when signed out.
  * Errors are ApiError with a callable error code (index.js turns them into
  * HttpsError, which the game shows to the player).
  */
-import { sanitizeWorld, cleanText } from "../shared/spec.js";
+import { sanitizeWorld, cleanText, matchWorlds, searchTerms, ANONYMOUS } from "../shared/spec.js";
 
 export class ApiError extends Error {
   constructor(code, message) {
@@ -29,11 +31,25 @@ const signedIn = (auth) => {
   return auth;
 };
 
+/**
+ * Email + password accounts confirm their address before creating worlds
+ * (Google accounts are verified by Google). The game asks for it first; this
+ * is the check that counts.
+ */
+const verified = (auth) => {
+  const token = auth.token || {};
+  const provider = token.firebase && token.firebase.sign_in_provider;
+  if (provider === "password" && token.email_verified !== true) {
+    throw new ApiError("permission-denied", "Verify your email to create worlds.");
+  }
+  return auth;
+};
+
 /** The name shown on a user's worlds: the token's display name, never the email. */
 export const authorName = (auth) => cleanText(auth && auth.token && auth.token.name, 20, "Someone");
 
 export async function handleDesign({ auth, data }, { design, limiter }) {
-  const user = signedIn(auth);
+  const user = verified(signedIn(auth));
   const prompt = String((data && data.prompt) || "")
     .trim()
     .slice(0, MAX_PROMPT);
@@ -52,7 +68,7 @@ export async function handleDesign({ auth, data }, { design, limiter }) {
 }
 
 export async function handlePublish({ auth, data }, { store, limiter, now = Date.now }) {
-  const user = signedIn(auth);
+  const user = verified(signedIn(auth));
   const world = sanitizeWorld(data && data.world);
   if (!world) throw new ApiError("invalid-argument", "That world can't be shared.");
   if (await limiter(user.uid, "publish", LIMITS.publish)) {
@@ -63,6 +79,33 @@ export async function handlePublish({ auth, data }, { store, limiter, now = Date
   world.createdAt = now();
   await store.create(world); // ApiError("already-exists") when the id is taken
   return { world };
+}
+
+export const MAX_RESULTS = 30;
+
+/** Every shared world matching `query` (allWorlds() -> raw[], cached by index.js). */
+export async function handleSearch({ auth, data }, { allWorlds }) {
+  signedIn(auth);
+  const query = String((data && data.query) || "").slice(0, 60);
+  if (searchTerms(query).join("").length < 2) {
+    throw new ApiError("invalid-argument", "Type at least 2 letters to search.");
+  }
+  const worlds = (await allWorlds()).map(sanitizeWorld).filter(Boolean);
+  return { worlds: matchWorlds(worlds, query, MAX_RESULTS) };
+}
+
+/**
+ * Deletes the caller's account. Their worlds stay shared, credited to
+ * "Anonymous" with no account behind them; then their rate limits and the
+ * account itself go. `accounts`: anonymizeWorlds(uid, author) -> count,
+ * deleteData(uid), deleteUser(uid).
+ */
+export async function handleDeleteAccount({ auth }, { accounts }) {
+  const user = signedIn(auth);
+  const worlds = await accounts.anonymizeWorlds(user.uid, { uid: "", name: ANONYMOUS });
+  await accounts.deleteData(user.uid);
+  await accounts.deleteUser(user.uid);
+  return { worlds };
 }
 
 /**

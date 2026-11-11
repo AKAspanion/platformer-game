@@ -591,3 +591,50 @@ export function newWorld(spec, user, { now = Date.now(), random = Math.random } 
     createdAt: now,
   });
 }
+
+// ---------------------------------------------------------------------- search
+
+/** The name a world shows once its creator deleted their account. */
+export const ANONYMOUS = "Anonymous";
+
+const fold = (text) =>
+  String(text || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "");
+
+/** A search box's words, lowercased and without accents (at most 6). */
+export const searchTerms = (query) =>
+  fold(String(query || "").slice(0, 60))
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean)
+    .slice(0, 6);
+
+/**
+ * Worlds whose name, creator, tagline or boss contain every word of `query`,
+ * names that start with it first, then newest first. The game filters the
+ * worlds it has loaded with it, and the searchWorlds function all of them.
+ */
+export function matchWorlds(list, query, max = Infinity) {
+  const terms = searchTerms(query);
+  if (!terms.length) return [];
+  return list
+    .map((world) => {
+      if (!world || typeof world !== "object") return null;
+      const name = fold(world.name);
+      const text = [
+        name,
+        fold(world.author && world.author.name),
+        fold(world.tagline),
+        fold(world.spec && world.spec.boss && world.spec.boss.name),
+      ].join(" ");
+      if (!terms.every((term) => text.includes(term))) return null;
+      const rank =
+        (name.startsWith(terms[0]) ? 2 : 0) + (terms.every((t) => name.includes(t)) ? 1 : 0);
+      return { world, rank };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.rank - a.rank || (b.world.createdAt || 0) - (a.world.createdAt || 0))
+    .slice(0, max)
+    .map((hit) => hit.world);
+}

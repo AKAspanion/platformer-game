@@ -99,6 +99,7 @@
           <button class="mode-card premium" data-mode="daily">
             <span class="mode-icon icon-daily"></span><span class="mode-name">Daily</span
             ><span class="mode-info" id="dailyInfo">5 new levels a day</span
+            ><span class="mode-timer" id="dailyTimer" aria-live="off"></span
             ><span class="mode-badge">★</span>
           </button>
           <button class="mode-card premium" data-mode="endless">
@@ -166,6 +167,10 @@
               <button id="accountBtn" class="btn btn-small"></button>
             </div>
           </div>
+          <div class="setting-row" id="deleteAccountRow">
+            <span>Delete account</span>
+            <button id="deleteAccountBtn" class="btn btn-small btn-danger">Delete</button>
+          </div>
           <div class="setting-row">
             <span>Premium</span>
             <div class="setting-value">
@@ -230,6 +235,19 @@
             <span id="communityStatus" class="live-status"></span>
             <button id="communityRefresh" class="chip">Refresh</button>
           </div>
+          <label class="search-box">
+            <span class="search-icon" aria-hidden="true"></span>
+            <input
+              id="worldSearch"
+              class="text-input"
+              type="search"
+              maxlength="60"
+              autocomplete="off"
+              enterkeyhint="search"
+              placeholder="Search all worlds by name, creator or boss"
+              aria-label="Search all worlds"
+            />
+          </label>
           <div id="communityList" class="world-list"></div>
         </div>
         <div class="modal-content-wrapper create-body tab-panel" data-panel="create" hidden>
@@ -245,7 +263,10 @@
             placeholder="e.g. A frozen fortress full of bats and armoured beetles, ruled by an ice dragon"
           ></textarea>
           <div class="chip-row" id="createExamples"></div>
-          <button id="createBtn" class="btn btn-primary">Build my world</button>
+          <button id="createBtn" class="btn btn-primary">
+            <span class="spinner" aria-hidden="true"></span
+            ><span id="createBtnLabel">Build my world</span>
+          </button>
           <ol id="createSteps" class="create-steps" hidden></ol>
           <div id="createStatus" class="create-status" role="status" aria-live="polite"></div>
           <div id="createResult"></div>
@@ -264,20 +285,10 @@
         </div>
         <div class="modal-content-wrapper login-body">
           <p class="login-lead">Sign in to create worlds and play the ones others share.</p>
-          <label class="field">
-            <span>Your name (shown on your worlds)</span>
-            <input
-              id="loginName"
-              class="text-input"
-              maxlength="20"
-              autocomplete="nickname"
-              placeholder="Optional with Google: your first name"
-            />
-          </label>
           <button id="loginGoogleBtn" class="btn btn-google">
             <span class="g-logo" aria-hidden="true">G</span>Continue with Google
           </button>
-          <div class="login-or"><span>or</span></div>
+          <div class="login-or"><span>or with email</span></div>
           <label class="field">
             <span>Email</span>
             <input
@@ -298,6 +309,16 @@
               minlength="6"
             />
           </label>
+          <label class="field">
+            <span>Your name (for a new account, shown on your worlds)</span>
+            <input
+              id="loginName"
+              class="text-input"
+              maxlength="20"
+              autocomplete="nickname"
+              placeholder="e.g. Ana"
+            />
+          </label>
           <div class="login-row">
             <button id="loginEmailBtn" class="btn btn-secondary">Sign in</button>
             <button id="loginCreateBtn" class="btn btn-secondary">Create account</button>
@@ -307,6 +328,56 @@
           <div class="premium-note">
             Only your name is shown to other players, never your email.
           </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="verifyScreen" class="flex-item modal-screen">
+      <div class="flex-item modal-container modal-narrow">
+        <div class="flex-item modal-header">
+          <div class="modal-title">Verify your email</div>
+          <div id="verifyCloseBtn" class="close-btn" role="button" aria-label="Close"></div>
+        </div>
+        <div class="modal-content-wrapper login-body">
+          <p class="login-lead">
+            We sent a link to <b id="verifyEmail"></b>. Open it to verify your address, then come
+            back here to create worlds.
+          </p>
+          <button id="verifyDoneBtn" class="btn btn-primary">
+            <span class="spinner" aria-hidden="true"></span><span>I've verified</span>
+          </button>
+          <div class="login-row">
+            <button id="verifyResendBtn" class="btn btn-secondary">Send it again</button>
+            <button id="verifySwitchBtn" class="btn btn-secondary">Use another account</button>
+          </div>
+          <div id="verifyStatus" class="login-error" role="status"></div>
+          <div class="premium-note">Can't find it? Check your spam folder.</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="deleteScreen" class="flex-item modal-screen">
+      <div class="flex-item modal-container modal-narrow">
+        <div class="flex-item modal-header">
+          <div class="modal-title">Delete account</div>
+          <div id="deleteCloseBtn" class="close-btn" role="button" aria-label="Close"></div>
+        </div>
+        <div class="modal-content-wrapper login-body">
+          <p class="login-lead">
+            Delete <b id="deleteAccountName"></b>'s account? You'll be signed out and can't sign in
+            with it again.
+          </p>
+          <p class="delete-note">
+            The worlds you shared stay in Community for everyone to play, shown as by
+            <b>Anonymous</b>. Your progress on this device is kept.
+          </p>
+          <div class="login-row">
+            <button id="deleteCancelBtn" class="btn btn-secondary">Cancel</button>
+            <button id="deleteConfirmBtn" class="btn btn-primary btn-delete">
+              <span class="spinner" aria-hidden="true"></span><span>Delete account</span>
+            </button>
+          </div>
+          <div id="deleteStatus" class="login-error" role="alert"></div>
         </div>
       </div>
     </div>

@@ -10,11 +10,16 @@ import { cleanName, validEmail } from "./names";
  *   auth.use(backend)                       pick the backend (once, at start)
  *   auth.start()                            restore the session (loads Firebase)
  *   auth.ready(ms)                          -> resolves once the session is known (or after ms)
- *   auth.currentUser                        -> { uid, displayName, email, provider } | null
+ *   auth.currentUser                        -> { uid, displayName, email, provider, emailVerified } | null
  *   auth.onAuthStateChanged(cb)             -> unsubscribe()
- *   auth.signInWithGoogle({ name })         -> user (null while a redirect takes over)
- *   auth.signInWithEmail({ email, password, name, create })
+ *   auth.onError(cb)                        -> unsubscribe()  (a Google redirect that failed)
+ *   auth.signInWithGoogle()                 -> user (null while a redirect takes over)
+ *   auth.signInWithEmail({ email, password, name, create })   (create also sends a verify email)
+ *   auth.needsVerification(user)            -> true for an email account not verified yet
+ *   auth.sendVerification()                 sends the verify email again
+ *   auth.reload()                           -> the user, fresh from the server
  *   auth.resetPassword(email)
+ *   auth.deleteAccount()                    -> { worlds }  (their worlds stay, as "Anonymous")
  *   auth.signOut()
  *
  * The functions get the player's verified ID token from the Firebase SDK
@@ -31,6 +36,8 @@ export function createAuth(initial = null) {
   let markKnown;
   const knownPromise = new Promise((resolve) => (markKnown = resolve));
   const listeners = new Set();
+  const errorListeners = new Set();
+  const fail = (error) => errorListeners.forEach((cb) => cb(error));
 
   // the backend reports a change and the sign-in call returns it: tell listeners once
   const set = (user) => {
@@ -69,7 +76,7 @@ export function createAuth(initial = null) {
     start() {
       if (!started) {
         started = Promise.resolve()
-          .then(() => need().start(set))
+          .then(() => need().start(set, fail))
           .catch(() => {
             // offline or blocked: signed out for now, the next start() retries
             started = null;
@@ -96,6 +103,11 @@ export function createAuth(initial = null) {
       return () => listeners.delete(cb);
     },
 
+    onError(cb) {
+      errorListeners.add(cb);
+      return () => errorListeners.delete(cb);
+    },
+
     async signInWithGoogle({ name } = {}) {
       if (name && cleanName(name).length < 2)
         throw new Error("Pick a name with at least 2 letters.");
@@ -113,6 +125,27 @@ export function createAuth(initial = null) {
           throw new Error("Use a password with at least 6 characters.");
       }
       return set(await need().signInWithEmail({ email: address, password, name, create }));
+    },
+
+    needsVerification(user = current) {
+      return !!user && user.provider === "email" && !user.emailVerified;
+    },
+
+    async sendVerification() {
+      if (!current) throw new Error("Sign in first.");
+      await need().sendVerification();
+    },
+
+    async reload() {
+      if (!current) return null;
+      return set(await need().reload());
+    },
+
+    async deleteAccount() {
+      if (!current) throw new Error("Sign in first.");
+      const result = await need().deleteAccount();
+      set(null);
+      return result;
     },
 
     async resetPassword(email) {

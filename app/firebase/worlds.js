@@ -65,6 +65,14 @@ export const firestoreWorlds = {
     return result.data.world;
   },
 
+  /** Every shared world matching `query` (the searchWorlds function). */
+  async search(query) {
+    const fb = await loadFirebase().catch(asError);
+    const call = fb.functionsApi.httpsCallable(fb.functions, "searchWorlds");
+    const result = await call({ query }).catch(asError);
+    return result.data.worlds;
+  },
+
   async design(prompt) {
     const fb = await loadFirebase().catch(asError);
     const call = fb.functionsApi.httpsCallable(fb.functions, "designWorld", { timeout: 70000 });
