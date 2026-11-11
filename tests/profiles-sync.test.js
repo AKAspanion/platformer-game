@@ -3,7 +3,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { createProfiles } from "../app/profiles";
-import { settings } from "../app/util/settings";
+import { createLastSeen } from "../app/progress/last-seen";
 import { DAY_MS, PROFILE_BATCH } from "../app/profiles/rules";
 
 const DAY = 20000;
@@ -241,8 +241,7 @@ test("fetch rejects when the backend does, and caches nothing for those uids", a
 });
 
 test("Settings has the last-online row, on by default", () => {
-  localStorage.removeItem("settings");
-  assert.equal(settings.get("lastSeen"), true);
+  assert.equal(createLastSeen(fakeStorage()).on(), true);
   const html = fs.readFileSync("app/index.html", "utf8");
   assert.match(html, /Show when I was last online[\s\S]*?id="setLastSeen"/);
 });

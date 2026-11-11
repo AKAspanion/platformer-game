@@ -29,7 +29,7 @@ Every player with an account, anonymous accounts included, has a small public pr
 
 It holds nothing else: no name, email address or time of day. The profile is public: it is shown to every player on the leaderboards, next to your display name. Players' devices never read the stored profile itself: the leaderboard asks our server for the profiles of the players it shows, and gets back only the skin, hat, companion and day above, never when the profile was created or last changed.
 
-To hide when you were last online, open Settings in the Game and switch off "Show when I was last online": the day is then deleted and none is stored until you switch it on again. Your worn skin, hat and companion stay shown.
+To hide when you were last online, open Settings in the Game and switch off "Show when I was last online": the day is then deleted and none is stored until you switch it on again. The switch belongs to your account, not to one device: it is saved with your account's progress, so every device you play on with that account follows it as soon as it syncs that progress, and erasing your progress doesn't turn it back on. Your worn skin, hat and companion stay shown.
 
 Deleting your account in Settings deletes your profile too.
 

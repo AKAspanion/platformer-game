@@ -4,8 +4,8 @@
  *
  * Existing keys keep their names and shapes ("campaign", "mode_records",
  * "high_score", "daily_streak"); new ones are "wallet", "achievements",
- * "stats" and "device_id". Every read survives blocked or corrupt storage and
- * every write fails silently.
+ * "stats", "last_seen" and "device_id". Every read survives blocked or corrupt
+ * storage and every write fails silently.
  */
 import { FREE, SLOTS } from "../shop/catalog";
 
@@ -22,6 +22,7 @@ const KEYS = {
   stats: "stats",
   nest: "nest",
   quests: "quests",
+  lastSeen: "last_seen",
   device: "device_id",
   resetAt: "progress_reset_at",
 };
@@ -197,6 +198,18 @@ export function normalizeQuests(raw) {
   };
 }
 
+/**
+ * "Show when I was last online", an account setting: { on, changedAt }. On
+ * until the player turns it off; anything unreadable is the default.
+ */
+export function normalizeLastSeen(raw) {
+  const value = isObject(raw) ? raw : {};
+  return {
+    on: value.on !== false,
+    changedAt: isCount(value.changedAt) ? value.changedAt : 0,
+  };
+}
+
 export function emptyProgress() {
   return {
     v: SAVE_VERSION,
@@ -211,6 +224,7 @@ export function emptyProgress() {
     stats: normalizeStats(null),
     nest: normalizeNest(null),
     quests: normalizeQuests(null),
+    lastSeen: normalizeLastSeen(null),
   };
 }
 
@@ -229,6 +243,7 @@ function normalize(raw) {
     stats: normalizeStats(p.stats),
     nest: normalizeNest(p.nest),
     quests: normalizeQuests(p.quests),
+    lastSeen: normalizeLastSeen(p.lastSeen),
   };
 }
 
@@ -289,6 +304,7 @@ export function readLocal(storage = defaultStorage()) {
     stats: load(storage, KEYS.stats, identity),
     nest: load(storage, KEYS.nest, identity),
     quests: load(storage, KEYS.quests, identity),
+    lastSeen: load(storage, KEYS.lastSeen, identity),
     resetAt: load(storage, KEYS.resetAt, identity),
   });
 }
@@ -313,13 +329,19 @@ export function writeLocal(progress, storage = defaultStorage()) {
   store(storage, KEYS.stats, p.stats);
   store(storage, KEYS.nest, p.nest);
   store(storage, KEYS.quests, p.quests);
+  store(storage, KEYS.lastSeen, p.lastSeen);
   store(storage, KEYS.resetAt, p.resetAt);
 }
 
-/** Erases every key cloud save carries, keeps device_id, and stamps resetAt = now. Returns the empty Progress. */
+/**
+ * Erases every key cloud save carries, keeps device_id and the last-online
+ * switch (a setting, not progress: a reset never turns it back on), and stamps
+ * resetAt = now. Returns the empty Progress.
+ */
 export function resetLocal(storage = defaultStorage(), now = Date.now()) {
   const empty = { ...emptyProgress(), resetAt: now };
   if (!storage) return empty;
+  empty.lastSeen = load(storage, KEYS.lastSeen, normalizeLastSeen);
   writeLocal(empty, storage);
   return readLocal(storage);
 }
@@ -428,7 +450,11 @@ function mergeNest(a, b) {
   const byId = new Map();
   [...a.eggs, ...b.eggs].forEach((egg) => {
     const have = byId.get(egg.id);
-    if (!have || egg.foundAt < have.foundAt || (egg.foundAt === have.foundAt && cmp(egg, have) < 0)) {
+    if (
+      !have ||
+      egg.foundAt < have.foundAt ||
+      (egg.foundAt === have.foundAt && cmp(egg, have) < 0)
+    ) {
       byId.set(egg.id, egg);
     }
   });
@@ -468,14 +494,25 @@ function mergeQuests(a, b) {
   return { day, picks, progress, week: laterWeek ? laterWeek.week : a.week, weekDone, played };
 }
 
+/** The later change wins; on a tie, off (the private choice). */
+function mergeLastSeen(a, b) {
+  if (a.changedAt !== b.changedAt) return a.changedAt > b.changedAt ? a : b;
+  return { on: a.on && b.on, changedAt: a.changedAt };
+}
+
 /** Merged, never overwritten: see spec section 1. Order of arguments never matters. */
 export function mergeProgress(a, b) {
   const x = normalize(a);
   const y = normalize(b);
-  // The later reset wins outright: what the other side holds predates it.
+  // The later reset wins outright: what the other side holds predates it. The
+  // last-online switch is a setting, not progress, so it merges either way.
   if (x.resetAt !== y.resetAt) {
     const winner = x.resetAt > y.resetAt ? x : y;
-    return { ...winner, updatedAt: Math.max(x.updatedAt, y.updatedAt) };
+    return {
+      ...winner,
+      updatedAt: Math.max(x.updatedAt, y.updatedAt),
+      lastSeen: mergeLastSeen(x.lastSeen, y.lastSeen),
+    };
   }
   return {
     v: SAVE_VERSION,
@@ -490,6 +527,7 @@ export function mergeProgress(a, b) {
     stats: mergeStats(x.stats, y.stats),
     nest: mergeNest(x.nest, y.nest),
     quests: mergeQuests(x.quests, y.quests),
+    lastSeen: mergeLastSeen(x.lastSeen, y.lastSeen),
   };
 }
 

@@ -7,7 +7,6 @@ import { getData, setData } from "./index";
 const DEFAULTS = {
   vibration: true,
   shake: true, // the screen shakes when the dino loses a heart
-  lastSeen: true, // the profile shows the day the player was last online
   ghost: false, // show the kept ghost of the fastest run on campaign levels
   analytics: true, // anonymous usage stats (Google Analytics); see PRIVACY.md
   controlSize: "auto", // auto | s | m | l

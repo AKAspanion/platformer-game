@@ -6,7 +6,9 @@ import { firestoreProfiles } from "../firebase/profiles";
  *
  * sync() writes only this player's own profile, and only when it differs from
  * the last one written from this device for that uid, so reopening the game on
- * the same day writes nothing. A failed write is swallowed: nothing is shown,
+ * the same day writes nothing. A profile without seenDay is written at least
+ * once a session all the same: another device may have written a seenDay since
+ * this one last wrote, and the switch being off must clear it. A failed write is swallowed: nothing is shown,
  * the "last written" record stays as it was, and the next open or change tries
  * again. fetch() reads any number of profiles in batches and caches them for
  * the session; a failed read rejects and caches nothing.
@@ -24,6 +26,7 @@ export function createProfiles({ backend, storage, now = Date.now }) {
   // writes one after another, so two quick changes can't race each other
   let chain = Promise.resolve();
   const cache = new Map(); // uid -> clean profile, or null when it has no document
+  const writtenThisSession = new Set(); // uids this session has written a profile for
 
   const lastWritten = () => {
     try {
@@ -46,12 +49,14 @@ export function createProfiles({ backend, storage, now = Date.now }) {
     if (typeof uid !== "string" || !uid) return;
     const payload = profilePayload(worn, { showLastSeen: !!showLastSeen, now: now() });
     const last = lastWritten();
-    if (last && last.uid === uid && sameProfile(last.payload, payload)) return;
+    const trusted = Object.hasOwn(payload, "seenDay") || writtenThisSession.has(uid);
+    if (trusted && last && last.uid === uid && sameProfile(last.payload, payload)) return;
     try {
       await backend.set(uid, payload);
     } catch (error) {
       return; // offline or refused: the record stays, so the next open or change retries
     }
+    writtenThisSession.add(uid);
     remember(uid, payload);
   }
 

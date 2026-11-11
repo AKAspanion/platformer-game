@@ -64,6 +64,7 @@ import {
 import { createOnboarding } from "./onboarding/onboarding";
 import { createCampaign, starsFor, targetTime, starCount, STAR } from "./campaign";
 import { createWallet } from "./progress/wallet";
+import { createLastSeen } from "./progress/last-seen";
 import { createStats } from "./progress/stats";
 import { featsFrom } from "./rewards/feed";
 import { createNest, hatchLabel, DUPLICATE_COINS } from "./rewards/eggs";
@@ -231,6 +232,7 @@ window.addEventListener("load", function () {
   const icons = loadIcons();
   let campaign = createCampaign();
   const wallet = createWallet();
+  const lastSeen = createLastSeen(); // "Show when I was last online": the account's, via cloud save
   const stats = createStats();
   const nest = createNest();
   const quests = createQuests(undefined, undefined, () => {
@@ -2072,7 +2074,7 @@ window.addEventListener("load", function () {
     setAnalytics.checked = settings.get("analytics") !== false;
     setGhost.checked = settings.get("ghost") !== false;
     setShake.checked = settings.get("shake") !== false;
-    setLastSeen.checked = settings.get("lastSeen") !== false;
+    setLastSeen.checked = lastSeen.on();
     $("vibrationRow").style.display = navigator.vibrate ? "flex" : "none";
     setControls.querySelectorAll("button").forEach((b) => {
       b.classList.toggle("active", b.dataset.value === settings.get("controlSize"));
@@ -2112,7 +2114,11 @@ window.addEventListener("load", function () {
   setAnalytics.onchange = () => setAnalyticsEnabled(setAnalytics.checked);
   setShake.onchange = () => settings.set("shake", setShake.checked);
   setLastSeen.onchange = () => {
-    settings.set("lastSeen", setLastSeen.checked);
+    // the account's setting: send the save now so the other devices get it on their next merge
+    if (lastSeen.set(setLastSeen.checked)) {
+      cloud.changed();
+      cloud.flush();
+    }
     syncProfile();
   };
   setGhost.onchange = () => {
@@ -2521,7 +2527,7 @@ window.addEventListener("load", function () {
   // nothing loads. Never shows an error.
   function syncProfile() {
     if (!cloudUid) return;
-    profiles.sync(cloudUid, wallet.worn(), { showLastSeen: settings.get("lastSeen") !== false });
+    profiles.sync(cloudUid, wallet.worn(), { showLastSeen: lastSeen.on() });
   }
   const syncCloud = () => {
     if (!playerActed) return;
