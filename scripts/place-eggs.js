@@ -7,7 +7,7 @@
  *   node scripts/place-eggs.js --dir <areas folder> --hand-spots <json file>
  *
  * Generated levels get the spot `eggSpot` picks (app/rewards/egg-spot.js);
- * the hand-made ones (Grassland 1-3, Iceland 1-2) use HAND_SPOTS. A spot that
+ * the hand-made ones use HAND_SPOTS where they have one. A spot that
  * fails `eggReachable` stops the script and names the area.
  * scripts/generate-levels.js runs this after it writes the generated areas.
  */
@@ -17,12 +17,11 @@ const path = require("path");
 /** The non-boss story areas: Grassland 1-3, Iceland 1-2, then generated 9-24 and 26/28/30/32. */
 const STORY_AREAS = [1, 2, 3, 7, 8, ...range(9, 24), 26, 28, 30, 32];
 
-/** Hand-picked spots for the hand-made levels: on a high platform, clear of coins and enemies. */
+/**
+ * Hand-picked spots for the hand-made levels. Grassland 1-3 and Iceland 1 sat on the ground or
+ * next to the spawn, so they take the spot `eggSpot` picks; Iceland 2's stays, on a high platform.
+ */
 const HAND_SPOTS = {
-  1: { left: 15.25, top: 1.1 },
-  2: { left: 7.25, top: 3.1 },
-  3: { left: 16.25, top: 1.1 },
-  7: { left: 15.25, top: 4.1 },
   8: { left: 8.25, top: 1.1 },
 };
 

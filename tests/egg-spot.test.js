@@ -94,58 +94,114 @@ test("a hand spot inside a solid tile stops the script and names the area", () =
   assert.match(run.stderr, /area 1\b/);
 });
 
-test("200 generated daily areas get a reachable spot clear of everything", () => {
+const SPAWN_COL = 2.5; // the dino enters at 40 px (story) or 24 px (daily): 2.5 tiles at most
+const MIN_FROM_SPAWN = 5;
+
+/** Whether the egg's own tile (the one above its surface) holds something from these lists. */
+const onSomething = (area, spot, keys = ["coins", "powerups", "enemies"]) => {
+  const row = Math.floor(spot.top);
+  const col = Math.floor(spot.left);
+  return keys.some((key) =>
+    (area[key] || []).some(({ left, top }) => Math.floor(left) === col && Math.floor(top) === row),
+  );
+};
+
+const isFloating = (area, spot) =>
+  area.areaMap[Math.round(spot.top + 0.9) + 1][Math.floor(spot.left)] === 0;
+
+/** Whether a reachable tile with room, 5+ tiles from the spawn, holds nothing (floating tops only when asked). */
+function freeTile(area, { floatingOnly, coins = true }) {
+  return area.collisonMap.some((line, r) =>
+    line.some((v, c) => {
+      if (typeof v !== "string" || !v.includes("t")) return false;
+      if (r < 2 || c < SPAWN_COL + MIN_FROM_SPAWN || c >= COLS - 3) return false;
+      if (floatingOnly && area.areaMap[r + 1][c]) return false;
+      if (area.areaMap[r - 1][c] || area.areaMap[r - 2][c]) return false;
+      const object = area.objectsMap?.[r - 1]?.[c];
+      if (area.world === 3 && object?.[0]?.id === 15) return false; // spikes
+      const spot = { left: c + 0.25, top: r - 0.9 };
+      const keys = coins ? undefined : ["powerups", "enemies"];
+      return !onSomething(area, spot, keys) && eggReachable(area, spot);
+    }),
+  );
+}
+
+function assertEggRules(area, spot, label) {
+  assert.ok(spot, `${label}: no spot`);
+  assert.ok(eggReachable(area, spot), `${label}: unreachable`);
+  assert.ok(spot.left - SPAWN_COL >= MIN_FROM_SPAWN, `${label}: ${spot.left} is next to the spawn`);
+  assert.equal(
+    onSomething(area, spot, ["powerups", "enemies"]),
+    false,
+    `${label}: on a power-up or enemy`,
+  );
+  // a coin is shared only when no tile of the egg's kind (platform top, or ground) is free of coins
+  if (onSomething(area, spot, ["coins"])) {
+    assert.equal(
+      freeTile(area, { floatingOnly: isFloating(area, spot) }),
+      false,
+      `${label}: egg on a coin with a free tile`,
+    );
+  }
+  // a platform top with room (a coin may share it) beats the ground
+  if (freeTile(area, { floatingOnly: true, coins: false })) {
+    assert.ok(isFloating(area, spot), `${label}: on the ground`);
+  }
+}
+
+test("200 generated daily areas get a spot that follows the egg rules", () => {
   let seen = 0;
-  let placed = 0;
   for (let seed = 20260101; seed < 20260141; seed++) {
     generateSequence({ idBase: 3000, seed, levels: dailyLevels(seed) }).forEach((area) => {
       seen++;
       const spot = eggSpot(area, seed);
       assert.deepEqual(eggSpot(area, seed), spot, "same area and seed, same spot");
-      if (!spot) return;
-      placed++;
-      assert.ok(eggReachable(area, spot), `seed ${seed} area ${area.id}`);
+      assertEggRules(area, spot, `seed ${seed} area ${area.id}`);
       assert.ok(spot.left >= 3 && spot.left < COLS - 3, `seed ${seed}: spot at the edge`);
-      const row = Math.round(spot.top + 0.9);
-      const col = Math.floor(spot.left);
-      const own = (list) =>
-        list.some(({ left, top }) => Math.floor(left) === col && Math.floor(top) === row - 1);
-      assert.equal(own(area.coins), false, `seed ${seed}: egg on a coin`);
-      assert.equal(own(area.powerups), false, `seed ${seed}: egg on a power-up`);
-      assert.equal(own(area.enemies), false, `seed ${seed}: egg on an enemy`);
     });
   }
   assert.equal(seen, 200);
-  assert.ok(placed >= 190, `${placed} of 200 got a spot`);
 });
 
-test("with a floating platform to stand on, the egg sits on a platform", () => {
-  let withPlatforms = 0;
-  for (let seed = 20260101; seed < 20260121; seed++) {
-    generateSequence({ idBase: 3000, seed, levels: dailyLevels(seed) }).forEach((full) => {
-      // no coins, power-ups or enemies: every tile is clear
-      const area = { ...full, coins: [], powerups: [], enemies: [] };
-      const platform = (r, c) =>
-        typeof area.collisonMap[r][c] === "string" &&
-        area.collisonMap[r][c].includes("t") &&
-        !area.areaMap[r + 1][c] &&
-        c >= 3 &&
-        c < COLS - 3 &&
-        r >= 2;
-      const has = area.collisonMap.some((row, r) => row.some((_, c) => platform(r, c)));
+test("every committed story egg follows the egg rules, with its coins in place", () => {
+  let platforms = 0;
+  STORY.forEach((id) => {
+    const area = areas[id];
+    assertEggRules(area, area.egg, `area ${id}`);
+    if (isFloating(area, area.egg)) platforms++;
+  });
+  assert.ok(platforms >= 20, `${platforms} of 25 story eggs on a platform`);
+});
+
+test("a daily egg sits on a platform and 5+ tiles from the spawn, over 60 seeds with everything in place", () => {
+  let floating = 0;
+  let total = 0;
+  for (let seed = 20261101; seed < 20261161; seed++) {
+    generateSequence({ idBase: 3000, seed, levels: dailyLevels(seed) }).forEach((area) => {
       const spot = eggSpot(area, seed);
-      assert.ok(spot, `seed ${seed} area ${area.id}`);
-      if (!has) return;
-      withPlatforms++;
-      const row = Math.round(spot.top + 0.9);
-      assert.equal(
-        area.areaMap[row + 1][Math.floor(spot.left)],
-        0,
-        `seed ${seed}: not on a platform`,
-      );
+      assertEggRules(area, spot, `seed ${seed} area ${area.id}`);
+      total++;
+      if (isFloating(area, spot)) floating++;
     });
   }
-  assert.ok(withPlatforms > 20, `${withPlatforms} areas with platforms`);
+  assert.equal(total, 300);
+  assert.ok(floating >= 270, `${floating} of ${total} on a platform`);
+});
+
+test("a level without a usable floating platform puts the egg on the ground, 5+ tiles from the spawn", () => {
+  const base = areas[9];
+  // fill the space under every floating tile so nothing floats
+  const areaMap = base.areaMap.map((line) => [...line]);
+  base.collisonMap.forEach((line, r) =>
+    line.forEach((v, c) => {
+      if (typeof v === "string" && v.includes("t") && !areaMap[r + 1][c]) areaMap[r + 1][c] = 1;
+    }),
+  );
+  const area = { ...base, areaMap, coins: [], powerups: [], enemies: [] };
+  const spot = eggSpot(area, 7);
+  assert.ok(spot, "a ground spot");
+  assert.ok(spot.left - SPAWN_COL >= MIN_FROM_SPAWN);
+  assert.ok(eggReachable(area, spot));
 });
 
 test("eggReachable refuses a spot in a wall or far from any reachable tile", () => {
