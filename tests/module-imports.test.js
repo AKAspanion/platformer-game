@@ -20,7 +20,8 @@ const strictFolders = fs
     return fs.existsSync(pkg) && JSON.parse(fs.readFileSync(pkg, "utf8")).type === "module";
   });
 
-const FROM = /(?:^|\n)\s*(?:import|export)\b[^;]*?\bfrom\s*["'](\.[^"']*)["']|import\(\s*["'](\.[^"']*)["']\s*\)/g;
+const FROM =
+  /(?:^|\n)\s*(?:import|export)\b[^;]*?\bfrom\s*["'](\.[^"']*)["']|import\(\s*["'](\.[^"']*)["']\s*\)/g;
 
 test("the strict ES module folders are found", () => {
   assert.ok(strictFolders.some((dir) => dir.endsWith(path.join("app", "rewards"))));
