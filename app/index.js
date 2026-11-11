@@ -1,4 +1,5 @@
 import Game from "./game";
+import { drawHat, SKIN_PALETTES, FIREBALL_PALETTES, tintFrames, hatImage } from "./game/cosmetics";
 import Screen from "./screen";
 import GameEngine from "./engine";
 import Controller from "./controller";
@@ -42,6 +43,24 @@ import { newWorld, matchWorlds, searchTerms, ANONYMOUS } from "./worlds/spec";
 import { previewImage } from "./gen";
 import { getSkin } from "./util/registry";
 import { createCampaign, starsFor, targetTime, starCount, STAR } from "./campaign";
+import { createWallet } from "./progress/wallet";
+import { createStats } from "./progress/stats";
+import { createEarnings } from "./progress/earn";
+import { readLocal, writeLocal, resetLocal } from "./progress/save";
+import { createCloudSave } from "./progress/cloud";
+import { firestoreSaves } from "./firebase/saves";
+import {
+  SECRET_STARS,
+  campaignStars,
+  secretWorldOpen,
+  bossRushOpen,
+  bossesBeaten,
+} from "./progress/unlocks";
+import { CATALOG, FREE, itemOf } from "./shop/catalog";
+import { ACHIEVEMENTS } from "./achievements/catalog";
+import { newlyEarned, progressToward } from "./achievements/check";
+import { createSecretSession } from "./modes/secret";
+import { createBossRushSession, bossLevels } from "./modes/bossrush";
 
 import areas from "./areas";
 
@@ -162,7 +181,10 @@ window.addEventListener("load", function () {
 
   const controller = new Controller();
   const icons = loadIcons();
-  const campaign = createCampaign();
+  let campaign = createCampaign();
+  const wallet = createWallet();
+  const stats = createStats();
+  const earnings = createEarnings();
   const isCampaignLevel = (id) => !session && LEVELS.some((l) => l.id === id);
   let cameFrom = null; // the area the player just walked out of (portal)
   // dev mode (localhost or ?debug): every level open for testing, without
@@ -173,21 +195,93 @@ window.addEventListener("load", function () {
   // ------------------------------------------------------------- toast
   const toast = $("toast");
   let toastTimer = null;
-  const showToast = (html) => {
+  const showToast = (html, ms = 3200, kind = "") => {
     toast.innerHTML = html;
+    toast.dataset.kind = kind;
     toast.classList.add("show");
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toast.classList.remove("show"), 3200);
+    toastTimer = setTimeout(() => toast.classList.remove("show"), ms);
   };
   const clock = (seconds) => {
     const s = Math.max(0, Math.floor(seconds));
     return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
   };
 
+  // ------------------------------------------------- coins, achievements, save
+
+  const COIN = '<span class="coin-icon" aria-hidden="true"></span>';
+  const coinText = (n) => `${COIN}${n.toLocaleString("en-US")}`;
+  const renderBalance = () => {
+    $("walletBalance").innerHTML = coinText(wallet.balance());
+    $("shopBalance").innerHTML = coinText(wallet.balance());
+  };
+
+  // The account's save is merged in, then kept in step; it never shows an error.
+  const cloud = createCloudSave({
+    backend: firestoreSaves,
+    local: {
+      read: () => readLocal(),
+      write: (progress) => {
+        writeLocal(progress);
+        campaign = createCampaign(); // the merged save is on the device now: read it
+        renderBalance();
+        refreshHome();
+      },
+    },
+  });
+
+  // achievement toasts wait for each other (and for a level toast): 3 s each
+  const achievementQueue = [];
+  let achievementBusy = false;
+  const pumpAchievements = () => {
+    if (achievementBusy || !achievementQueue.length) return;
+    achievementBusy = true;
+    const next = () => {
+      if (toast.classList.contains("show")) {
+        setTimeout(next, 300);
+        return;
+      }
+      showToast(achievementQueue.shift(), 3000, "achievement");
+      setTimeout(() => {
+        achievementBusy = false;
+        pumpAchievements();
+      }, 3300);
+    };
+    next();
+  };
+
+  /** Unlocks what the saved progress has earned: pays it once, toasts it, tracks it. */
+  const checkAchievements = () => {
+    const progress = readLocal();
+    const earned = newlyEarned(progress, LEVELS);
+    if (!earned.length) return;
+    const now = Date.now();
+    earned.forEach((id) => (progress.achievements[id] = now));
+    writeLocal(progress); // before the rewards: they change the wallet
+    earned.forEach((id) => {
+      const { name, coins } = ACHIEVEMENTS.find((a) => a.id === id);
+      wallet.reward(id, coins);
+      achievementQueue.push(`<b>🏆 ${name} · +${coins} coins</b>`);
+      track("achievement", { id });
+    });
+    renderBalance();
+    pumpAchievements();
+    cloud.changed(); // the unlocks and their coins go to the account too
+  };
+
+  /** Call after any change to the wallet, stats, achievements, campaign, records or streak. */
+  const progressChanged = () => {
+    checkAchievements();
+    cloud.changed();
+  };
+
   // analytics: the mode being played and how long the player has been in this area
   const modeName = () => (session ? session.kind : "story");
   const areaSeconds = () => Math.round(game.world.areaTicks / 30);
   const countBits = (mask) => [1, 2, 4].filter((bit) => mask & bit).length;
+  // hearts lost in the level being played (a boss beaten with none lost is "untouchable")
+  let hurtInLevel = false;
+  let heartsSeen = MAX_HEARTS;
 
   /** Leaving a campaign level forward finishes it: award its stars. */
   const finishLevel = (id) => {
@@ -200,6 +294,8 @@ window.addEventListener("load", function () {
       seconds,
     });
     const { added } = campaign.finish(id, mask, seconds);
+    const level = LEVELS.find((l) => l.id === id);
+    if (level && level.boss && !hurtInLevel) stats.markFlawlessBoss();
     const star = (bit, label) =>
       `<span class="toast-star${mask & bit ? " on" : ""}${added & bit ? " new" : ""}" title="${label}">★</span>`;
     showToast(
@@ -214,6 +310,7 @@ window.addEventListener("load", function () {
       seconds: Math.round(seconds),
       stars_added: countBits(added),
     });
+    progressChanged();
   };
 
   const levelName = (id) => {
@@ -266,6 +363,7 @@ window.addEventListener("load", function () {
     const saved = getData("high_score") || 0;
     if (!session && score > saved) setData("high_score", score);
     updateHighScore();
+    cloud.changed();
     if (!session)
       return score > saved && score > 0
         ? "New best!"
@@ -314,12 +412,19 @@ window.addEventListener("load", function () {
       daily.levels[index] = daily.hurt[index] ? "hurt" : "clean";
       const result = streak.record(daily.seed);
       if (result.grew) daily.streakGrew = daily.seed;
+      progressChanged();
     },
     squares: () => Array.from({ length: DAILY_LEVELS }, (_, i) => daily.levels[i] || "unreached"),
     streakDays() {
       const now = streak.current(dailySeed());
       return now.alive ? now.days : 0;
     },
+  };
+
+  /** The boss rush run's clock: ticks played, 30 a second. */
+  const rush = {
+    ticks: 0,
+    seconds: () => Math.round(rush.ticks / 30),
   };
 
   const OFFLINE = "You're offline. Your score will be sent later.";
@@ -370,6 +475,18 @@ window.addEventListener("load", function () {
     }
   };
 
+  /** What Retry does: start the mode (or the campaign level) that was being played again. */
+  const restarter = (inSession, level) => () => {
+    if (!inSession) {
+      if (level) loadWorld(level.id, level.left, level.top);
+      else startStory();
+    } else if (inSession.kind === "daily") startDaily();
+    else if (inSession.kind === "endless") startEndless();
+    else if (inSession.kind === "secret") startSecret();
+    else if (inSession.kind === "bossrush") startBossRush();
+    else startCustom(inSession.world);
+  };
+
   // GAME
   const game = new Game((score) => {
     track("level_fail", { mode: modeName(), level_id: areaId, seconds: areaSeconds() });
@@ -379,14 +496,7 @@ window.addEventListener("load", function () {
     const current = areaId;
     const inSession = session;
     const level = LEVELS.find(({ id }) => id === current);
-    retry = () => {
-      if (!inSession) {
-        if (level) loadWorld(level.id, level.left, level.top);
-        else startStory();
-      } else if (inSession.kind === "daily") startDaily();
-      else if (inSession.kind === "endless") startEndless();
-      else startCustom(inSession.world);
-    };
+    retry = restarter(inSession, level);
     setTimeout(() => {
       showPanel({
         title: "Game Over",
@@ -409,11 +519,13 @@ window.addEventListener("load", function () {
     game.world.pauseThemeMusic();
     const score = game.world.score;
     const best = recordRun(score);
-    const titles = { daily: "Daily complete!", custom: "World complete!" };
-    const again = session ? session.kind : "story";
-    const world = session && session.world;
-    retry = () =>
-      again === "daily" ? startDaily() : again === "custom" ? startCustom(world) : startStory();
+    const titles = {
+      daily: "Daily complete!",
+      custom: "World complete!",
+      secret: "Starfall Peaks complete!",
+      bossrush: "Boss Rush complete!",
+    };
+    retry = session ? restarter(session) : startStory;
     if (!session) {
       const stars = campaign.totalStars(LEVELS.map((l) => l.id));
       showPanel({
@@ -428,15 +540,34 @@ window.addEventListener("load", function () {
     }
     vibrate("powerup");
     const inDaily = session.kind === "daily";
+    let panelScore = `Score ${score}`;
+    let panelBest = best;
+    if (session.kind === "custom") stats.finishWorld(session.world.id);
+    if (session.kind === "secret") stats.markSecretBoss();
+    if (session.kind === "bossrush") {
+      const seconds = rush.seconds();
+      const fastest = stats.bossRushTime(seconds);
+      track("boss_rush_complete", { seconds });
+      panelScore = `Time ${clock(seconds)} · Score ${score}`;
+      panelBest = `Best ${clock(fastest)}`;
+    }
     showPanel({
       title: titles[session.kind] || "Complete!",
       tone: "good",
-      score: `Score ${score}`,
-      best,
+      score: panelScore,
+      best: panelBest,
       retryLabel: "Play again",
       daily: inDaily,
     });
+    progressChanged();
     if (inDaily) submitDaily(score);
+  };
+
+  /** Wearing an item takes effect in the next level: apply what is worn as each one starts. */
+  const applyWornLook = () => {
+    const worn = wallet.worn();
+    game.world.player.setLook({ skin: worn.skin, hat: worn.hat });
+    game.world.fireballs.setColour(worn.fireball);
   };
 
   const setupWorld = () => {
@@ -447,10 +578,16 @@ window.addEventListener("load", function () {
     // a level you walked into from one you had really reached)
     if (isCampaignLevel(areaId)) {
       const walkedIn = cameFrom != null && campaign.isUnlocked(cameFrom);
-      if (campaign.isUnlocked(areaId) || walkedIn) campaign.reach(areaId);
+      if (campaign.isUnlocked(areaId) || walkedIn) {
+        campaign.reach(areaId);
+        cloud.changed();
+      }
     }
     cameFrom = null;
     daily.hearts = game.world.player.hearts;
+    hurtInLevel = false;
+    heartsSeen = game.world.player.hearts;
+    applyWornLook();
     track("level_start", { mode: modeName(), level_id: areaId });
   };
 
@@ -548,8 +685,17 @@ window.addEventListener("load", function () {
         worldChanged = true;
         engine.hold();
         cameFrom = areaId;
+        const rushHearts =
+          session && session.kind === "bossrush" && portal.direction > 0
+            ? session.heartsAfterBoss(game.world.player.hearts)
+            : null;
         areaId = portal.destinationArea;
         setupWorld();
+        if (rushHearts !== null) {
+          game.world.player.hearts = rushHearts;
+          heartsSeen = rushHearts;
+          daily.hearts = rushHearts;
+        }
         setupScreen();
         engine.resume();
       }
@@ -562,6 +708,20 @@ window.addEventListener("load", function () {
       if (session && session.kind === "daily" && loaded && !game.over) {
         daily.ticks += 1;
         daily.watchHearts();
+      }
+      if (session && session.kind === "bossrush" && loaded && !game.over) rush.ticks += 1;
+      if (loaded) {
+        const { hearts } = game.world.player;
+        if (hearts < heartsSeen) hurtInLevel = true;
+        heartsSeen = hearts;
+        // every coin and kill counts at once; dying or quitting never takes them back
+        const gained = earnings.tick(game.world);
+        if (gained.coins) wallet.earn(gained.coins);
+        if (gained.kills) stats.addKills(gained.kills);
+        if (gained.coins || gained.kills) {
+          renderBalance();
+          progressChanged();
+        }
       }
     }
 
@@ -585,6 +745,7 @@ window.addEventListener("load", function () {
     ctx.translate(feetX, feetY);
     ctx.scale(player.scaleX, player.scaleY);
     ctx.drawImage(frame, -6 + xOffset, -35, 60, 40);
+    if (!dead) drawHat(ctx, player.hatImage, player.direction, frame);
     ctx.restore();
 
     if (player.shield && !dead) {
@@ -1024,7 +1185,12 @@ window.addEventListener("load", function () {
       loadWorld: (...args) => loadWorld(...args),
       startEndless: () => startEndless(),
       startDaily: () => startDaily(),
-      campaign,
+      get campaign() {
+        return campaign;
+      },
+      wallet,
+      stats,
+      cloud,
       unlockAll: () => {
         campaign.unlockAll(LEVELS.map((l) => l.id));
         refreshHome();
@@ -1083,6 +1249,23 @@ window.addEventListener("load", function () {
     loadWorld(session.startId, session.left, session.top);
   };
 
+  const startSecret = () => {
+    session = createSecretSession();
+    show(portalScreen, false);
+    track("mode_start", { mode: "secret" });
+    track("secret_world_start", {});
+    loadWorld(session.startId, session.left, session.top);
+  };
+
+  const startBossRush = () => {
+    session = createBossRushSession();
+    rush.ticks = 0;
+    show(portalScreen, false);
+    track("mode_start", { mode: "bossrush" });
+    track("boss_rush_start", {});
+    loadWorld(session.startId, session.left, session.top);
+  };
+
   const startCustom = (world) => {
     try {
       session = createCustomSession(world);
@@ -1103,15 +1286,10 @@ window.addEventListener("load", function () {
     paused = true;
     toggleControllers(false);
     game.world.pauseThemeMusic();
-    retry = () => {
-      if (!session) {
-        const level = LEVELS.find(({ id }) => id === areaId);
-        if (level) loadWorld(level.id, level.left, level.top);
-        else startStory();
-      } else if (session.kind === "daily") startDaily();
-      else if (session.kind === "endless") startEndless();
-      else startCustom(session.world);
-    };
+    retry = restarter(
+      session,
+      LEVELS.find(({ id }) => id === areaId),
+    );
     showPanel({
       title: "Paused",
       score: `${levelName(areaId)} · Score ${game.world.score}`,
@@ -1152,6 +1330,7 @@ window.addEventListener("load", function () {
 
   const refreshHome = () => {
     updateHighScore();
+    renderBalance();
     const premium = isPremium();
     document.querySelectorAll(".mode-card.premium").forEach((card) => {
       card.classList.toggle("locked", !premium);
@@ -1214,7 +1393,70 @@ window.addEventListener("load", function () {
         },
       },
     );
+    appendExtraCards();
     show(portalScreen, true);
+  };
+
+  /** Starfall Peaks and Boss Rush at the end of the level select: locked until earned. */
+  const extraCard = ({ id, name, info, open, onOpen }) => {
+    const card = document.createElement("button");
+    card.id = id;
+    card.className = `extra-card${open ? "" : " locked"}`;
+    card.setAttribute("aria-disabled", String(!open));
+    const title = document.createElement("span");
+    title.className = "extra-card-name";
+    title.textContent = open ? name : `${name} · ${info}`;
+    card.appendChild(title);
+    if (open && info) {
+      const sub = document.createElement("span");
+      sub.className = "extra-card-info";
+      sub.textContent = info;
+      card.appendChild(sub);
+    }
+    if (open) card.onclick = onOpen;
+    return card;
+  };
+
+  const appendExtraCards = () => {
+    const saved = { campaign: { stars: {}, best: {} } };
+    LEVELS.forEach(({ id }) => {
+      saved.campaign.stars[id] = campaign.stars(id);
+      if (campaign.bestTime(id) !== null) saved.campaign.best[id] = campaign.bestTime(id);
+    });
+    const stars = campaignStars(saved.campaign, LEVELS);
+    const beaten = bossesBeaten(saved.campaign, LEVELS);
+    const bosses = bossLevels(LEVELS).length;
+    const bestRush = stats.read().bossRushBest;
+    const section = document.createElement("div");
+    section.className = "world-section";
+    section.id = "extraModes";
+    const head = document.createElement("div");
+    head.className = "world-head";
+    head.textContent = "Bonus";
+    section.append(
+      head,
+      extraCard({
+        id: "starfallCard",
+        name: "Starfall Peaks",
+        open: secretWorldOpen(saved.campaign, LEVELS),
+        info: secretWorldOpen(saved.campaign, LEVELS)
+          ? "The secret world"
+          : `★ ${SECRET_STARS} to open (you have ${stars})`,
+        onOpen: startSecret,
+      }),
+      extraCard({
+        id: "bossRushCard",
+        name: "Boss Rush",
+        open: bossRushOpen(saved.campaign, LEVELS),
+        info: bossRushOpen(saved.campaign, LEVELS)
+          ? bestRush === null
+            ? `All ${bosses} bosses, back to back`
+            : `Best ${clock(bestRush)}`
+          : `beat all ${bosses} bosses to open (${beaten}/${bosses})`,
+        onOpen: startBossRush,
+      }),
+    );
+    $("portalsWrapper").appendChild(section);
   };
 
   // Play continues from the last campaign level reached
@@ -1271,6 +1513,7 @@ window.addEventListener("load", function () {
     $("accountStatus").textContent = user ? user.displayName : "Not signed in";
     $("accountBtn").textContent = user ? "Sign out" : "Sign in";
     $("deleteAccountRow").style.display = user ? "flex" : "none";
+    refreshSaveStatus();
   };
 
   $("settingsBtn").onclick = () => {
@@ -1323,12 +1566,262 @@ window.addEventListener("load", function () {
       }, 3000);
       return;
     }
-    ["high_score", "mode_records", "my_worlds"].forEach((key) => localStorage.removeItem(key));
-    campaign.reset();
     resetArmed = false;
     btn.textContent = "Progress erased";
+    // Everything cloud save carries goes, with the reset stamped so no device or
+    // account save from before it merges back; created worlds are not part of it.
+    resetLocal();
+    try {
+      localStorage.removeItem("my_worlds");
+    } catch (error) {
+      // blocked storage: nothing to erase
+    }
+    // The game's modules read their storage once, so start fresh from the reset
+    // device once the account has it (or after 4 s: an unsent reset goes with the next sync).
+    const reload = () => window.location.reload();
+    Promise.race([cloud.reset(), new Promise((resolve) => setTimeout(resolve, 4000))]).then(
+      reload,
+      reload,
+    );
+  };
+
+  // ------------------------------------------------------------------ shop
+
+  const shopScreen = $("shopScreen");
+  const shopActionBtn = $("shopActionBtn");
+  const previewCanvas = $("shopPreview");
+  let shopSlot = "skin";
+  let shopPick = { ...FREE }; // the item of each slot the preview shows
+  const preview = { dino: [], fire: null, tinted: new Map(), index: 0, timer: null };
+  const IDLE_FRAMES = 10;
+  // the game's idle delay is 4 ticks (a frame every 5 ticks of 1/30 s)
+  const IDLE_MS = (5 * 1000) / 30;
+  const num = (n) => n.toLocaleString("en-US");
+
+  const loadSprite = (src) => {
+    const image = new Image();
+    image.onload = () => drawPreview();
+    image.src = src;
+    return image;
+  };
+
+  // a sprite in its colours, once it has loaded (tinted once per colour, then kept)
+  const spriteReady = (image) => image && image.complete && image.naturalWidth;
+  const tinted = (image, key, palette) => {
+    if (!spriteReady(image)) return null;
+    if (!palette || !palette.length) return image;
+    if (!preview.tinted.has(key)) preview.tinted.set(key, tintFrames([image], palette)[0]);
+    return preview.tinted.get(key);
+  };
+  const idleFrame = (skin) => {
+    const image = preview.dino[preview.index % IDLE_FRAMES];
+    return tinted(image, `skin:${skin}:${preview.index % IDLE_FRAMES}`, SKIN_PALETTES[skin]);
+  };
+
+  /** The dino with the picked skin, hat and fireball: drawn like the game draws it. */
+  const drawPreview = () => {
+    const ctx = previewCanvas.getContext("2d");
+    ctx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+    ctx.imageSmoothingEnabled = false;
+    const dino = idleFrame(shopPick.skin);
+    const fire = tinted(
+      preview.fire,
+      `fireball:${shopPick.fireball}`,
+      FIREBALL_PALETTES[shopPick.fireball],
+    );
+    ctx.save();
+    // the dino's visible body spans x -17..15 and y -33..1 (game units), the tallest
+    // hat reaches y -41 and the flame ends near x 31: all inside 240x140 with a margin
+    ctx.translate(100, 125);
+    ctx.scale(2.8, 2.8);
+    if (dino) ctx.drawImage(dino, -18, -35, 60, 40);
+    const hat = hatImage(shopPick.hat);
+    if (hat && hat.naturalWidth) drawHat(ctx, hat, 1, dino);
+    if (fire) {
+      const ratio = (fire.naturalWidth || fire.width) / (fire.naturalHeight || fire.height) || 1;
+      ctx.drawImage(fire, 8, -20, 14 * ratio, 14); // its visible tip just past the snout
+    }
+    ctx.restore();
+  };
+
+  const renderShop = () => {
+    renderBalance();
+    document.querySelectorAll("#shopTabs .tab").forEach((tab) => {
+      const on = tab.dataset.slot === shopSlot;
+      tab.classList.toggle("active", on);
+      tab.setAttribute("aria-selected", String(on));
+    });
+    const worn = wallet.worn();
+    const list = $("shopItems");
+    list.innerHTML = "";
+    CATALOG[shopSlot].forEach((item) => {
+      const button = document.createElement("button");
+      const isWorn = worn[shopSlot] === item.id;
+      const owned = wallet.owns(shopSlot, item.id);
+      button.className = `shop-item${shopPick[shopSlot] === item.id ? " selected" : ""}${
+        isWorn ? " worn" : ""
+      }`;
+      button.dataset.id = item.id;
+      const name = document.createElement("span");
+      name.className = "shop-item-name";
+      name.textContent = item.name;
+      const state = document.createElement("span");
+      state.className = "shop-item-state";
+      if (isWorn || owned) state.textContent = isWorn ? "Worn" : "Owned";
+      else state.innerHTML = coinText(item.price);
+      button.append(name, state);
+      button.onclick = () => {
+        shopPick[shopSlot] = item.id;
+        renderShop();
+      };
+      list.appendChild(button);
+    });
+
+    const picked = itemOf(shopSlot, shopPick[shopSlot]);
+    $("shopSelected").textContent = picked ? picked.name : "";
+    let label = "";
+    let can = false;
+    if (picked) {
+      const balance = wallet.balance();
+      if (worn[shopSlot] === picked.id) label = "Worn";
+      else if (wallet.owns(shopSlot, picked.id)) ((label = "Wear"), (can = true));
+      else if (balance >= picked.price) ((label = `Buy · ${coinText(picked.price)}`), (can = true));
+      else label = `Need ${coinText(picked.price - balance)} more`;
+    }
+    shopActionBtn.innerHTML = label;
+    shopActionBtn.classList.toggle("cant", !can);
+    shopActionBtn.setAttribute("aria-disabled", String(!can));
+    drawPreview();
+  };
+
+  shopActionBtn.onclick = () => {
+    const slot = shopSlot;
+    const picked = itemOf(slot, shopPick[slot]);
+    if (!picked) return;
+    if (wallet.owns(slot, picked.id)) {
+      if (wallet.worn()[slot] !== picked.id && wallet.wear(slot, picked.id)) progressChanged();
+    } else if (wallet.buy(slot, picked.id).ok) {
+      track("shop_buy", { item: `${slot}:${picked.id}`, price: picked.price });
+      progressChanged();
+    }
+    renderShop();
+  };
+  document.querySelectorAll("#shopTabs .tab").forEach((tab) => {
+    tab.onclick = () => {
+      shopSlot = tab.dataset.slot;
+      renderShop();
+    };
+  });
+  const openShop = () => {
+    if (!preview.dino.length) {
+      for (let i = 1; i <= IDLE_FRAMES; i++) {
+        preview.dino.push(loadSprite(`./assets/sprites/player/right/Idle (${i}).webp`));
+      }
+      preview.fire = loadSprite("./assets/sprites/fireball/right/image 1.webp");
+    }
+    shopPick = { ...FREE, ...wallet.worn() }; // opens on what is worn now
+    renderShop();
+    show(shopScreen, true);
+    // breathe at the game's idle rate while the shop is open
+    clearInterval(preview.timer);
+    preview.timer = setInterval(() => {
+      preview.index = (preview.index + 1) % IDLE_FRAMES;
+      drawPreview();
+    }, IDLE_MS);
+  };
+  $("shopBtn").onclick = openShop;
+  $("shopCloseBtn").onclick = () => {
+    clearInterval(preview.timer);
+    preview.timer = null;
+    show(shopScreen, false);
     refreshHome();
   };
+
+  // ---------------------------------------------------------- achievements
+
+  const openAchievements = () => {
+    const progress = readLocal();
+    const list = $("achievementsList");
+    list.innerHTML = "";
+    let unlocked = 0;
+    ACHIEVEMENTS.forEach(({ id, name, how, coins }) => {
+      const at = Object.hasOwn(progress.achievements, id) ? progress.achievements[id] : null;
+      if (at !== null) unlocked += 1;
+      const row = document.createElement("div");
+      row.className = `ach-row${at === null ? " locked" : ""}`;
+      row.dataset.id = id;
+      const icon = document.createElement("span");
+      icon.className = "ach-icon";
+      icon.textContent = "🏆";
+      const text = document.createElement("div");
+      text.className = "ach-text";
+      const title = document.createElement("span");
+      title.className = "ach-name";
+      title.textContent = name;
+      const hint = document.createElement("span");
+      hint.className = "ach-how";
+      hint.textContent = how;
+      text.append(title, hint);
+      const side = document.createElement("div");
+      side.className = "ach-side";
+      if (at !== null) {
+        const reward = document.createElement("span");
+        reward.className = "ach-coins";
+        reward.textContent = `+${num(coins)}`;
+        const date = document.createElement("span");
+        date.className = "ach-date";
+        date.textContent = new Date(at).toLocaleDateString(undefined, {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        });
+        side.append(reward, date);
+      } else {
+        const toward = progressToward(id, progress, LEVELS);
+        if (toward) side.textContent = `${num(toward.have)} / ${num(toward.need)}`;
+      }
+      row.append(icon, text, side);
+      list.appendChild(row);
+    });
+    $("achievementsCount").textContent = `${unlocked} / ${ACHIEVEMENTS.length}`;
+    show($("achievementsScreen"), true);
+  };
+  $("achievementsBtn").onclick = openAchievements;
+  $("achievementsCloseBtn").onclick = () => show($("achievementsScreen"), false);
+
+  // ---------------------------------------------------------- cloud save
+
+  // The account's save starts after the first input (Firebase stays unloaded until then),
+  // for any player with an account: signed in or anonymous. Signing out only stops it.
+  let cloudUid = null;
+  let playerActed = false;
+  const syncCloud = () => {
+    if (!playerActed) return;
+    const user = auth.currentUser;
+    if (user && user.uid !== cloudUid) {
+      cloudUid = user.uid;
+      // the account's save may bring stars or a streak that earn something
+      cloud.start(user.uid).then(checkAchievements);
+    } else if (!user && cloudUid) {
+      cloudUid = null;
+      cloud.stop();
+    }
+  };
+  auth.onAuthStateChanged(syncCloud);
+  const armCloud = () => {
+    ["pointerdown", "keydown"].forEach((name) => window.removeEventListener(name, armCloud));
+    playerActed = true;
+    syncCloud();
+  };
+  ["pointerdown", "keydown"].forEach((name) => window.addEventListener(name, armCloud));
+
+  const refreshSaveStatus = () => {
+    $("saveStatus").textContent =
+      cloud.status() === "saved"
+        ? "Progress saved to your account"
+        : "Progress saved on this device";
+  };
+  setInterval(() => isVisible(settingsScreen) && refreshSaveStatus(), 1000);
 
   // --------------------------------------------------------------- premium
 
@@ -2147,6 +2640,8 @@ window.addEventListener("load", function () {
       helpScreen,
       infoScreen,
       portalScreen,
+      shopScreen,
+      $("achievementsScreen"),
       settingsScreen,
       premiumScreen,
       createScreen,
@@ -2207,6 +2702,7 @@ window.addEventListener("load", function () {
   const fireMouse = touch("fireBtn", 13);
 
   document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "hidden") cloud.flush();
     if (document.visibilityState === "visible") {
       if (!paused && !game.over) game.world.playThemeMusic();
     } else if (isPlaying()) {
@@ -2217,6 +2713,8 @@ window.addEventListener("load", function () {
   });
 
   refreshHome();
+  // progress already on the device may have earned something (no Firebase needed)
+  checkAchievements();
 
   // a run that couldn't be sent goes out with the first input (Firebase stays unloaded until then)
   const flushOnInput = () => {

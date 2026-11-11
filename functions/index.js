@@ -182,6 +182,9 @@ const accounts = {
       await batch.commit();
     }
   },
+  async deleteSave(uid) {
+    await db.collection("saves").doc(uid).delete();
+  },
   async deleteData(uid) {
     await db.collection("limits").doc(uid).delete();
   },

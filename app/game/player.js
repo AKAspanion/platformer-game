@@ -1,5 +1,7 @@
 import Object from "./object";
 import Animator from "./animator";
+import { SKIN_PALETTES, tintFrames, hatImage } from "./cosmetics";
+import { FREE } from "../shop/catalog";
 
 export const MAX_HEARTS = 3;
 const INVULNERABLE_TICKS = 45; // 1.5s of blinking after a hit
@@ -27,6 +29,8 @@ export default class Player extends Object {
     ];
 
     this.frameSets = {};
+    this.look = { skin: FREE.skin, hat: FREE.hat };
+    this.skinCache = {};
 
     this.loadCount = 0;
     this.assetCount = 38 * 2;
@@ -37,6 +41,7 @@ export default class Player extends Object {
 
           if (this.assetCount === this.loadCount) {
             this.loaded = true;
+            this.applyLook();
           }
         };
 
@@ -64,16 +69,64 @@ export default class Player extends Object {
       }
     });
 
-    // Jump is a full cycle (crouch, rise, peak, fall, land): split it so rising
-    // and falling each hold the right pose instead of looping the whole jump.
-    ["Left", "Right"].forEach((side) => {
-      const jump = this.frameSets[`jump${side}`];
-      this.frameSets[`rise${side}`] = jump.slice(1, 4);
-      this.frameSets[`fall${side}`] = jump.slice(5, 7);
-      this.frameSets[`hurt${side}`] = [jump[6]];
-    });
+    this.baseFrameSets = this.frameSets;
+    this.frameSets = this.withJumpSplits(this.baseFrameSets);
+    this.skinCache.classic = this.frameSets;
 
     this.animator = new Animator(this.frameSets["idleRight"]);
+  }
+
+  // Jump is a full cycle (crouch, rise, peak, fall, land): split it so rising
+  // and falling each hold the right pose instead of looping the whole jump.
+  withJumpSplits(base) {
+    const sets = { ...base };
+    ["Left", "Right"].forEach((side) => {
+      const jump = sets[`jump${side}`];
+      sets[`rise${side}`] = jump.slice(1, 4);
+      sets[`fall${side}`] = jump.slice(5, 7);
+      sets[`hurt${side}`] = [jump[6]];
+    });
+    return sets;
+  }
+
+  /** Wear a skin and a hat: looks only, nothing here touches the physics. */
+  setLook({ skin = FREE.skin, hat = FREE.hat } = {}) {
+    this.look = { skin, hat };
+    this.applyLook();
+  }
+
+  // Skins are tinted from the loaded frames, so they wait for the load.
+  applyLook() {
+    if (!this.loaded) return;
+    const { skin } = this.look;
+    if (!this.skinCache[skin]) {
+      const palette = SKIN_PALETTES[skin];
+      const tinted = {};
+      // (`Object` is the game object class in this file, so no Object.keys)
+      for (const key in this.baseFrameSets) {
+        tinted[key] = tintFrames(this.baseFrameSets[key], palette);
+      }
+      this.skinCache[skin] = this.withJumpSplits(tinted);
+    }
+    const next = this.skinCache[skin];
+    if (next === this.frameSets) return;
+
+    // keep the current pose and frame, in the new colours
+    const { animator } = this;
+    let name = null;
+    for (const key in this.frameSets) {
+      if (this.frameSets[key] === animator.frameSet) name = key;
+    }
+    this.frameSets = next;
+    if (name) {
+      animator.frameSet = next[name];
+      animator.frameValue = next[name][animator.frameIndex] || next[name][0];
+    }
+  }
+
+  /** The hat sprite worn now, or null. */
+  get hatImage() {
+    return hatImage(this.look.hat);
   }
 
   resetState() {

@@ -112,6 +112,13 @@
             ><span class="mode-badge">★</span>
           </button>
         </div>
+        <div class="wallet-row">
+          <span id="walletBalance" class="coin-chip" aria-label="Coins"
+            ><span class="coin-icon" aria-hidden="true"></span>0</span
+          >
+          <button id="shopBtn" class="btn btn-small">Shop</button>
+          <button id="achievementsBtn" class="btn btn-small">Achievements</button>
+        </div>
       </div>
       <div class="home-footer">
         <div id="highScore"></div>
@@ -188,6 +195,9 @@
               <span id="accountStatus"></span>
               <button id="accountBtn" class="btn btn-small"></button>
             </div>
+          </div>
+          <div class="setting-row setting-note">
+            <span id="saveStatus" role="status"></span>
           </div>
           <div class="setting-row" id="deleteAccountRow">
             <span>Delete account</span>
@@ -469,6 +479,48 @@
         </div>
       </div>
     </div>
+    <div id="shopScreen" class="flex-item modal-screen">
+      <div class="flex-item modal-container">
+        <div class="flex-item modal-header">
+          <div class="modal-title">Shop</div>
+          <div class="header-right">
+            <span id="shopBalance" class="coin-chip" aria-label="Coins"
+              ><span class="coin-icon" aria-hidden="true"></span>0</span
+            >
+            <div id="shopCloseBtn" class="close-btn" role="button" aria-label="Close"></div>
+          </div>
+        </div>
+        <div class="shop-body">
+          <div class="shop-side">
+            <canvas id="shopPreview" class="shop-preview" width="240" height="140"></canvas>
+            <div id="shopSelected" class="shop-selected"></div>
+            <button id="shopActionBtn" class="btn btn-primary"></button>
+          </div>
+          <div class="shop-main">
+            <div class="tabs" id="shopTabs" role="tablist">
+              <button class="tab active" data-slot="skin" role="tab">Skins</button>
+              <button class="tab" data-slot="hat" role="tab">Hats</button>
+              <button class="tab" data-slot="fireball" role="tab">Fireballs</button>
+            </div>
+            <div id="shopItems" class="shop-items"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="achievementsScreen" class="flex-item modal-screen">
+      <div class="flex-item modal-container">
+        <div class="flex-item modal-header">
+          <div class="modal-title">Achievements</div>
+          <div class="header-right">
+            <span id="achievementsCount" class="coin-chip"></span>
+            <div id="achievementsCloseBtn" class="close-btn" role="button" aria-label="Close"></div>
+          </div>
+        </div>
+        <div id="achievementsList" class="modal-content-wrapper ach-list"></div>
+      </div>
+    </div>
+
     <div id="portalScreen" class="flex-item modal-screen">
       <div class="flex-item modal-container">
         <div class="flex-item modal-header">

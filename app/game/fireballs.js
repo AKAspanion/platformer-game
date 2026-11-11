@@ -1,5 +1,6 @@
 import Object from "./object";
 import Animator from "./animator";
+import { FIREBALL_PALETTES, tintFrames } from "./cosmetics";
 
 export default class Fireballs {
   constructor() {
@@ -7,6 +8,7 @@ export default class Fireballs {
     this.loaded = false;
 
     this.frameSets = {};
+    this.colour = "classic";
 
     const keys = [{ id: "", count: 5 }];
 
@@ -19,6 +21,7 @@ export default class Fireballs {
 
           if (this.assetCount === this.loadCount) {
             this.loaded = true;
+            this.applyColour();
           }
         };
         const imageLeft = new Image();
@@ -41,6 +44,24 @@ export default class Fireballs {
         addImage("fireballRight", imageRight);
       }
     });
+  }
+
+  /** Shoot flames of a colour: looks only, speed and size stay the same. */
+  setColour(id) {
+    this.colour = id;
+    this.applyColour();
+  }
+
+  // Tinted from the loaded frames, so it waits for the load.
+  applyColour() {
+    if (!this.loaded) return;
+    if (!this.baseFrameSets) this.baseFrameSets = this.frameSets;
+    const palette = FIREBALL_PALETTES[this.colour];
+    this.frameSets = {};
+    // (`Object` is the game object class in this file, so no Object.keys)
+    for (const key in this.baseFrameSets) {
+      this.frameSets[key] = tintFrames(this.baseFrameSets[key], palette);
+    }
   }
 
   update() {
