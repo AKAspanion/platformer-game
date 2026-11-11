@@ -51,6 +51,14 @@ import { formatCount, weekNote, isBuiltIn, worldLink, linkedWorldId } from "./wo
 import { publishThumb } from "./worlds/thumb";
 import { previewImage } from "./gen";
 import { getSkin } from "./util/registry";
+import {
+  createRecorder,
+  createGhostStore,
+  ghostAt,
+  SAMPLE_EVERY,
+  GHOST_ALPHA,
+} from "./ghosts/ghost";
+import { createOnboarding } from "./onboarding/onboarding";
 import { createCampaign, starsFor, targetTime, starCount, STAR } from "./campaign";
 import { createWallet } from "./progress/wallet";
 import { createStats } from "./progress/stats";
@@ -195,6 +203,21 @@ window.addEventListener("load", function () {
   const stats = createStats();
   const earnings = createEarnings();
   const isCampaignLevel = (id) => !session && LEVELS.some((l) => l.id === id);
+
+  // ghosts: the fastest finish of each campaign level, kept on this device
+  const recorder = createRecorder();
+  const ghostStore = createGhostStore();
+  const onboarding = createOnboarding();
+  let keptGhost = null; // the ghost replayed in the level being played
+  let ghostOn = settings.get("ghost") !== false;
+  const classicFrames = () => game.world.player.skinCache.classic; // untinted: no skin
+  /** The name of the player's current animation (its key in the frame sets). */
+  const animName = (player) => {
+    for (const key in player.frameSets) {
+      if (player.frameSets[key] === player.animator.frameSet) return key;
+    }
+    return "idleRight";
+  };
   let cameFrom = null; // the area the player just walked out of (portal)
   // dev mode (localhost or ?debug): every level open for testing, without
   // touching the saved progress; Settings has a switch to turn it off
@@ -303,6 +326,10 @@ window.addEventListener("load", function () {
       seconds,
     });
     const { added } = campaign.finish(id, mask, seconds);
+    const ghost = recorder.finish(id, seconds);
+    if (ghost && ghostStore.offer(ghost)) {
+      track("ghost_saved", { level_id: id, seconds: Math.round(seconds) });
+    }
     const level = LEVELS.find((l) => l.id === id);
     if (level && level.boss && !hurtInLevel) stats.markFlawlessBoss();
     const star = (bit, label) =>
@@ -320,6 +347,7 @@ window.addEventListener("load", function () {
       stars_added: countBits(added),
     });
     progressChanged();
+    if (onboarding.takeWorld1Offer(id)) openWorld1Card();
   };
 
   const levelName = (id) => {
@@ -687,6 +715,9 @@ window.addEventListener("load", function () {
     hurtInLevel = false;
     heartsSeen = game.world.player.hearts;
     applyWornLook();
+    recorder.reset();
+    keptGhost = isCampaignLevel(areaId) ? ghostStore.get(areaId) : null;
+    ghostOn = settings.get("ghost") !== false;
     track("level_start", { mode: modeName(), level_id: areaId });
   };
 
@@ -745,14 +776,17 @@ window.addEventListener("load", function () {
         toggleLoadingScreen(false);
         setProgressValue(0);
       }
+      if (hintPending) beginHint();
       if (!controllerActive && !paused) toggleControllers(true);
     }
 
     if (!game.over && loaded && !paused) {
       if (controller.left.active) player.moveLeft();
       if (controller.right.active) player.moveRight();
+      if (hint && (controller.left.active || controller.right.active)) hint.run.moved();
       if (controller.up.active) {
         if (player.jump()) {
+          if (hint) hint.run.jumped();
           game.world.playJumpSound();
           game.world.playerJumped();
         }
@@ -803,6 +837,17 @@ window.addEventListener("load", function () {
     // Pause freezes the world too, not just input: otherwise a player paused
     // mid-jump keeps falling (and can die) behind the pause menu.
     if (!paused) {
+      if (loaded && !game.over && isCampaignLevel(areaId)) {
+        const tick = game.world.areaTicks;
+        if (tick % SAMPLE_EVERY === 0) {
+          recorder.sample(tick, {
+            x: player.x,
+            y: player.y,
+            anim: animName(player),
+            frame: player.animator.frameIndex,
+          });
+        }
+      }
       game.update();
       if (session && session.kind === "daily" && loaded && !game.over) {
         daily.ticks += 1;
@@ -825,12 +870,32 @@ window.addEventListener("load", function () {
       }
     }
 
+    tickHint();
+
     // shell feedback for what happened this tick
     const { events } = game.world;
     while (events.length) vibrate(events.shift());
   };
 
   // ------------------------------------------------------------------ drawing
+
+  /** The kept run, see-through, in the classic look: no skin, no hat, never collides. */
+  const drawGhost = (ctx, player) => {
+    if (!ghostOn || !keptGhost || !isCampaignLevel(areaId)) return;
+    const at = ghostAt(keptGhost, game.world.areaTicks);
+    if (!at) return;
+    const frames = classicFrames()[at.anim];
+    const frame = frames && (frames[at.frame] || frames[0]);
+    if (!frame) return;
+    const left = at.anim.endsWith("Left");
+    const deadOffset = at.anim.startsWith("dead") ? (left ? 12 : -12) : 0;
+    const xOffset = (left ? -36 : -12) + deadOffset;
+    ctx.save();
+    ctx.globalAlpha = GHOST_ALPHA;
+    ctx.translate(at.x + player.width * 0.5, at.y + player.height);
+    ctx.drawImage(frame, -6 + xOffset, -35, 60, 40);
+    ctx.restore();
+  };
 
   const drawPlayer = (ctx, player, dead) => {
     const frame = player.animator.frameValue;
@@ -1262,6 +1327,7 @@ window.addEventListener("load", function () {
 
     if (game.world.boss) drawBoss(ctx, game.world.boss);
 
+    drawGhost(ctx, player);
     drawPlayer(ctx, player, game.world.isPlayerDead);
     if (game.world.bossArea) drawGates(ctx);
 
@@ -1592,6 +1658,7 @@ window.addEventListener("load", function () {
   const setSound = $("setSound");
   const setVibration = $("setVibration");
   const setAnalytics = $("setAnalytics");
+  const setGhost = $("setGhost");
   const setControls = $("setControls");
   const setPremiumDev = $("setPremiumDev");
 
@@ -1600,6 +1667,7 @@ window.addEventListener("load", function () {
     setSound.checked = !settings.soundMuted;
     setVibration.checked = !!settings.get("vibration");
     setAnalytics.checked = settings.get("analytics") !== false;
+    setGhost.checked = settings.get("ghost") !== false;
     $("vibrationRow").style.display = navigator.vibrate ? "flex" : "none";
     setControls.querySelectorAll("button").forEach((b) => {
       b.classList.toggle("active", b.dataset.value === settings.get("controlSize"));
@@ -1634,6 +1702,10 @@ window.addEventListener("load", function () {
   };
   setSound.onchange = () => (settings.soundMuted = !setSound.checked);
   setAnalytics.onchange = () => setAnalyticsEnabled(setAnalytics.checked);
+  setGhost.onchange = () => {
+    settings.set("ghost", setGhost.checked);
+    ghostOn = setGhost.checked;
+  };
 
   const setReminder = $("setReminder");
   let reminderRefresh = 0;
@@ -1711,6 +1783,8 @@ window.addEventListener("load", function () {
     // Everything cloud save carries goes, with the reset stamped so no device or
     // account save from before it merges back; created worlds are not part of it.
     resetLocal();
+    ghostStore.clearAll();
+    keptGhost = null;
     try {
       localStorage.removeItem("my_worlds");
     } catch (error) {
@@ -1724,6 +1798,72 @@ window.addEventListener("load", function () {
       reload,
     );
   };
+
+  // ----------------------------------------------- first open and the world 1 card
+
+  const hintEl = $("hint");
+  let hint = null; // { run } while the controls hint is showing
+  let hintPending = false; // first open: the hint starts when Grassland 1 has loaded
+
+  const beginHint = () => {
+    hintPending = false;
+    hintEl.textContent = onboarding.hintText(isTouchesEnabled);
+    hintEl.classList.add("show");
+    hint = { run: onboarding.startHint(Date.now()) };
+  };
+
+  /** Fades the hint out once the player has moved and jumped, or after 15 s. */
+  const tickHint = () => {
+    if (!hint) return;
+    const result = hint.run.tick(Date.now());
+    if (!result) return;
+    hint = null;
+    onboarding.hintDone();
+    hintEl.classList.remove("show");
+    track("onboarding_hint_done", result);
+  };
+
+  /** A device with no progress starts in Grassland 1, with no home screen. */
+  const firstOpen = () => {
+    const ids = LEVELS.map((l) => l.id);
+    const state = {
+      reached: ids.filter((id) => campaign.isUnlocked(id)),
+      stars: Object.fromEntries(ids.map((id) => [id, campaign.stars(id)])),
+    };
+    if (!onboarding.takeFirstOpen(state)) return;
+    track("onboarding_start", {});
+    hintPending = true;
+    startStory(LEVELS[0]);
+  };
+
+  const world1Screen = $("world1Screen");
+  const openWorld1Card = () => {
+    clearMouse();
+    controller.releaseAll();
+    paused = true;
+    toggleControllers(false);
+    game.world.pauseThemeMusic();
+    show(world1Screen, true);
+  };
+  const closeWorld1Card = (choice) => {
+    show(world1Screen, false);
+    track("world1_offer", { choice });
+    if (choice === "later") {
+      paused = false;
+      toggleControllers(true);
+      if (!settings.musicMuted) game.world.playThemeMusic();
+      return;
+    }
+    goHome();
+    if (choice === "community") openCreator("community");
+    else {
+      openCreator("create");
+      if (!isPremium()) openPremium();
+    }
+  };
+  $("world1CommunityBtn").onclick = () => closeWorld1Card("community");
+  $("world1CreateBtn").onclick = () => closeWorld1Card("create");
+  $("world1LaterBtn").onclick = () => closeWorld1Card("later");
 
   // ------------------------------------------------------------------ shop
 
@@ -3162,6 +3302,7 @@ window.addEventListener("load", function () {
       $("achievementsScreen"),
       settingsScreen,
       premiumScreen,
+      world1Screen,
       createScreen,
       loginScreen,
       verifyScreen,
@@ -3257,10 +3398,10 @@ window.addEventListener("load", function () {
 
   // a shared world link opens last, when every screen's code is ready
   const linked = linkedWorldId(location);
-  if (linked) openLinkedWorld(linked);
-
   // ?account=delete opens the delete-account flow, after signing in when needed
-  if (new URLSearchParams(location.search).get("account") === "delete") {
-    requireLogin(openDelete, "delete-account");
-  }
+  const deleteLink = new URLSearchParams(location.search).get("account") === "delete";
+  // a link (a world, or the delete flow) wins over the first-open start
+  if (linked) openLinkedWorld(linked);
+  else if (!deleteLink) firstOpen();
+  if (deleteLink) requireLogin(openDelete, "delete-account");
 });

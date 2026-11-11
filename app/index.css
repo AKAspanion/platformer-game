@@ -512,6 +512,7 @@ canvas {
   z-index: 12;
 }
 #premiumScreen,
+#world1Screen,
 #loginScreen,
 #deleteScreen,
 #leaderboardScreen {
@@ -1928,5 +1929,71 @@ canvas {
   }
   .world-actions {
     width: 100%;
+  }
+}
+
+/* ------------------------------------------------- first-open hint, world 1 card */
+
+.hint {
+  position: fixed;
+  z-index: 9;
+  top: calc(var(--sat) + 10px);
+  left: 50%;
+  max-width: calc(100vw - 32px);
+  padding: 8px 16px;
+  border-radius: 14px;
+  color: white;
+  font-family: var(--font);
+  font-size: 15px;
+  text-align: center;
+  text-transform: none;
+  background: rgba(29, 26, 36, 0.78);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateX(-50%);
+  transition: opacity 0.6s ease;
+}
+.hint.show {
+  opacity: 1;
+}
+
+.world1-container {
+  gap: 12px;
+  text-align: center;
+  align-items: center;
+  justify-content: center;
+}
+.world1-text {
+  font-size: 18px;
+}
+.world1-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  margin-top: 8px;
+}
+@media (max-height: 480px) {
+  .world1-container {
+    gap: 6px;
+    padding: 12px 16px;
+  }
+  .world1-text {
+    font-size: 15px;
+  }
+  .world1-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 4px;
+  }
+  .world1-actions .btn {
+    flex: 0 1 auto;
+    padding: 8px 12px;
+    font-size: 15px;
+  }
+  .hint {
+    font-size: 13px;
+    padding: 6px 12px;
   }
 }
