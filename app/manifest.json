@@ -6,7 +6,7 @@
   "orientation": "landscape",
   "start_url": "./index.html",
   "theme_color": "#EF534F",
-  "background_color": "#292929",
+  "background_color": "#1d1a24",
   "id": "platform-game",
   "dir": "ltr",
   "lang": "en",
