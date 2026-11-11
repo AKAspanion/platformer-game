@@ -48,6 +48,9 @@ export const SKIN_PALETTES = {
   midnight: skin([70, 80, 160]),
   ghost: skin([215, 225, 240]),
   gold: skin([240, 190, 50]),
+  ocean: skin([55, 150, 225]),
+  lava: skin([205, 55, 45]),
+  candy: skin([240, 130, 190]),
 };
 
 const FLAME = [
@@ -63,6 +66,11 @@ export const FIREBALL_PALETTES = {
   blue: flame([40, 110, 250], [80, 170, 255], [190, 235, 255]),
   green: flame([40, 190, 70], [110, 230, 100], [220, 255, 150]),
   purple: flame([150, 50, 220], [200, 100, 255], [240, 190, 255]),
+  pink: flame([225, 60, 150], [255, 120, 190], [255, 215, 235]),
+  crimson: flame([150, 15, 35], [215, 35, 55], [255, 140, 120]),
+  ice: flame([190, 235, 250], [225, 247, 255], [255, 255, 255]),
+  gold: flame([210, 150, 20], [250, 200, 50], [255, 245, 170]),
+  shadow: flame([35, 10, 70], [75, 30, 130], [215, 190, 255]),
 };
 
 /**
@@ -188,7 +196,7 @@ export function tintFrames(frames, palette) {
   });
 }
 
-const HATS = ["cap", "party", "viking", "wizard", "crown"];
+const HATS = ["cap", "party", "viking", "wizard", "crown", "cowboy", "tophat", "pirate"];
 const hatImages = {};
 
 export function hatImage(id) {

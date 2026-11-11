@@ -126,6 +126,8 @@ Added after the build at the developer's request.
 
 ## 3. Track C: rewards
 
+The shop has 9 of each: skins, hats and fireballs, counting Classic / No hat.
+
 ### 3.1 Achievements
 
 Twelve more (24 in all). The phase 2 rules hold: "Each achievement unlocks once and pays

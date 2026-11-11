@@ -120,3 +120,62 @@ test("headTop finds the first opaque row and the middle of its pixels", () => {
   assert.deepEqual(headTop(data, width, height), { x: 3, y: 1 });
   assert.equal(headTop(new Uint8ClampedArray(width * height * 4), width, height), null);
 });
+
+test("the shop has 9 skins, 9 hats and 9 fireballs, counting the free one", () => {
+  ["skin", "hat", "fireball"].forEach((slot) => {
+    assert.equal(CATALOG[slot].length, 9, slot);
+    assert.equal(new Set(CATALOG[slot].map(({ id }) => id)).size, 9, `${slot} ids are unique`);
+  });
+});
+
+test("every hat has a sprite file and every skin and fireball has a palette", () => {
+  CATALOG.hat
+    .filter(({ id }) => id !== "none")
+    .forEach(({ id }) => {
+      assert.ok(fs.existsSync(`app/assets/sprites/hats/${id}.webp`), `hat ${id}`);
+      assert.ok(hatImage(id), `hatImage ${id}`);
+    });
+  CATALOG.skin
+    .filter(({ id }) => id !== "classic")
+    .forEach(({ id }) => assert.ok(SKIN_PALETTES[id].length > 0, `skin ${id}`));
+  CATALOG.fireball
+    .filter(({ id }) => id !== "classic")
+    .forEach(({ id }) => assert.ok(FIREBALL_PALETTES[id].length > 0, `fireball ${id}`));
+});
+
+test("the nine-of-each lists keep the old order and add the new ids at the end", () => {
+  const ids = (slot) => CATALOG[slot].map(({ id }) => id);
+  assert.deepEqual(ids("skin"), [
+    "classic",
+    "mint",
+    "sunset",
+    "midnight",
+    "ghost",
+    "gold",
+    "ocean",
+    "lava",
+    "candy",
+  ]);
+  assert.deepEqual(ids("hat"), [
+    "none",
+    "cap",
+    "party",
+    "viking",
+    "wizard",
+    "crown",
+    "cowboy",
+    "tophat",
+    "pirate",
+  ]);
+  assert.deepEqual(ids("fireball"), [
+    "classic",
+    "blue",
+    "green",
+    "purple",
+    "pink",
+    "crimson",
+    "ice",
+    "gold",
+    "shadow",
+  ]);
+});
