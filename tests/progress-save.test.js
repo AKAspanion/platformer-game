@@ -8,6 +8,7 @@ import {
   mergeProgress,
   saveBytes,
   deviceId,
+  resetLocal,
   SAVE_VERSION,
   MAX_SAVE_BYTES,
 } from "../app/progress/save";
@@ -248,4 +249,69 @@ test("deviceId with blocked storage still gives a stable id for the session", ()
   const id = deviceId(blocked);
   assert.ok(id.length >= 8);
   assert.equal(deviceId(blocked), id);
+});
+
+// ---- reset ----
+
+test("resetLocal erases everything cloud save carries, keeps device_id and stamps resetAt", () => {
+  const storage = memoryStorage();
+  const id = deviceId(storage);
+  writeLocal(
+    withProgress({
+      campaign: campaign([1, 2], { 1: 7 }, { 1: 30 }, 2),
+      records: { "endless:best": { score: 9 } },
+      highScore: 500,
+      streak: streak(4, 20261111),
+      wallet: {
+        earned: { stars: 20 },
+        rewards: {},
+        owned: ["hat-crown"],
+        worn: { skin: "green", hat: "hat-crown", fireball: "orange" },
+        wornAt: 9,
+      },
+      achievements: { first: 5 },
+      stats: { kills: { slime: 3 }, flawlessBoss: true, worldsFinished: ["a"] },
+    }),
+    storage
+  );
+  const returned = resetLocal(storage, 5000);
+  const expected = { ...emptyProgress(), resetAt: 5000 };
+  assert.deepEqual(readLocal(storage), expected);
+  assert.deepEqual(returned, expected);
+  assert.equal("daily_streak" in storage.data, false);
+  assert.equal(deviceId(storage), id);
+});
+
+test("resetLocal on blocked storage does not throw", () => {
+  assert.doesNotThrow(() => resetLocal(blocked, 5000));
+});
+
+test("merge: the later resetAt wins outright, in either order", () => {
+  const a = withProgress({ resetAt: 5000 });
+  const b = withProgress({ resetAt: 0, campaign: campaign([1, 2], { 1: 7, 2: 7, 3: 7 }), highScore: 9 });
+  assert.deepEqual(mergeProgress(a, b), a);
+  assert.deepEqual(mergeProgress(b, a), a);
+});
+
+test("merge: equal resetAt merges as before", () => {
+  const a = withProgress({ resetAt: 5000, campaign: campaign([1, 2]) });
+  const b = withProgress({ resetAt: 5000, campaign: campaign([1, 3]) });
+  const m = mergeProgress(a, b);
+  assert.deepEqual(m.campaign.reached, [1, 2, 3]);
+  assert.equal(m.resetAt, 5000);
+});
+
+test("merge: a reset merged with the empty account save is stable", () => {
+  const reset = withProgress({ resetAt: 5000 });
+  const merged = mergeProgress(reset, emptyProgress());
+  assert.deepEqual(mergeProgress(merged, reset), merged);
+  assert.deepEqual(mergeProgress(merged, emptyProgress()), merged);
+});
+
+test("resetAt round-trips and a corrupt one reads as 0", () => {
+  const storage = memoryStorage();
+  writeLocal(withProgress({ resetAt: 77 }), storage);
+  assert.equal(readLocal(storage).resetAt, 77);
+  storage.data.progress_reset_at = '"x"';
+  assert.equal(readLocal(storage).resetAt, 0);
 });

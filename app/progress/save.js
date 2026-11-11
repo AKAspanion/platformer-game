@@ -21,6 +21,7 @@ const KEYS = {
   achievements: "achievements",
   stats: "stats",
   device: "device_id",
+  resetAt: "progress_reset_at",
 };
 
 const isObject = (value) => !!value && typeof value === "object" && !Array.isArray(value);
@@ -117,6 +118,7 @@ export function emptyProgress() {
   return {
     v: SAVE_VERSION,
     updatedAt: 0,
+    resetAt: 0,
     campaign: normalizeCampaign(null),
     records: {},
     highScore: 0,
@@ -132,6 +134,7 @@ function normalize(raw) {
   return {
     v: SAVE_VERSION,
     updatedAt: isCount(p.updatedAt) ? p.updatedAt : 0,
+    resetAt: isCount(p.resetAt) ? p.resetAt : 0,
     campaign: normalizeCampaign(p.campaign),
     records: normalizeRecords(p.records),
     highScore: isCount(p.highScore) ? p.highScore : 0,
@@ -197,6 +200,7 @@ export function readLocal(storage = defaultStorage()) {
     wallet: load(storage, KEYS.wallet, identity),
     achievements: load(storage, KEYS.achievements, identity),
     stats: load(storage, KEYS.stats, identity),
+    resetAt: load(storage, KEYS.resetAt, identity),
   });
 }
 
@@ -207,9 +211,26 @@ export function writeLocal(progress, storage = defaultStorage()) {
   store(storage, KEYS.records, p.records);
   store(storage, KEYS.highScore, p.highScore);
   if (p.streak) store(storage, KEYS.streak, p.streak);
+  else if (p.resetAt > 0) {
+    // A reset save has no streak: the device's old one must not outlive it.
+    try {
+      storage.removeItem(KEYS.streak);
+    } catch (error) {
+      // blocked storage: nothing to erase
+    }
+  }
   store(storage, KEYS.wallet, p.wallet);
   store(storage, KEYS.achievements, p.achievements);
   store(storage, KEYS.stats, p.stats);
+  store(storage, KEYS.resetAt, p.resetAt);
+}
+
+/** Erases every key cloud save carries, keeps device_id, and stamps resetAt = now. Returns the empty Progress. */
+export function resetLocal(storage = defaultStorage(), now = Date.now()) {
+  const empty = { ...emptyProgress(), resetAt: now };
+  if (!storage) return empty;
+  writeLocal(empty, storage);
+  return readLocal(storage);
 }
 
 /** Used only when storage can't hold the ID, so the session still has one. */
@@ -310,9 +331,15 @@ function mergeStats(a, b) {
 export function mergeProgress(a, b) {
   const x = normalize(a);
   const y = normalize(b);
+  // The later reset wins outright: what the other side holds predates it.
+  if (x.resetAt !== y.resetAt) {
+    const winner = x.resetAt > y.resetAt ? x : y;
+    return { ...winner, updatedAt: Math.max(x.updatedAt, y.updatedAt) };
+  }
   return {
     v: SAVE_VERSION,
     updatedAt: Math.max(x.updatedAt, y.updatedAt),
+    resetAt: x.resetAt,
     campaign: mergeCampaign(x.campaign, y.campaign),
     records: mergeRecords(x.records, y.records),
     highScore: Math.max(x.highScore, y.highScore),

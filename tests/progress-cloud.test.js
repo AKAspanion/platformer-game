@@ -273,3 +273,70 @@ test("the Firestore rules limit saves/{uid} to its own account and its three key
   // the catch-all still denies everything else
   assert.match(rules, /match \/\{document=\*\*\} \{\s*allow read, write: if false;/);
 });
+
+const resetOf = (at, changes = {}) => withProgress({ resetAt: at, ...changes });
+
+test("reset sends the empty progress at once, replacing the account's stars", async () => {
+  const old = withProgress({ campaign: campaign([1, 2], { 1: 7 }) });
+  const { backend, store, timers, cloud } = setup({ remote: { u1: doc(old) }, local: old });
+  await cloud.start("u1");
+  store.value = resetOf(5000);
+  backend.calls.set.length = 0;
+  await cloud.reset();
+  assert.equal(timers.pending.size, 0);
+  assert.equal(backend.calls.set.length, 1);
+  assert.deepEqual(dataOf(backend.calls.set[0][1].data), dataOf(resetOf(5000)));
+  assert.equal(backend.calls.set[0][1].data.resetAt, 5000);
+  assert.equal(cloud.status(), "saved");
+});
+
+test("a failed reset send stays pending and the next change sends it without merging the old save back", async () => {
+  const old = withProgress({ campaign: campaign([1, 2], { 1: 7 }) });
+  const { backend, store, timers, cloud } = setup({ remote: { u1: doc(old) }, local: old });
+  await cloud.start("u1");
+  store.value = resetOf(5000);
+  backend.failSet = true;
+  await assert.doesNotReject(cloud.reset());
+  assert.equal(cloud.status(), "pending");
+  assert.equal(store.value.resetAt, 5000);
+  backend.failSet = false;
+  cloud.changed();
+  await timers.fire();
+  assert.equal(cloud.status(), "saved");
+  assert.equal(backend.remote.u1.data.resetAt, 5000);
+  assert.deepEqual(backend.remote.u1.data.campaign.stars, {});
+  assert.deepEqual(store.value.campaign.stars, {});
+});
+
+test("a reset that never pulled the account's save wins when the next push pulls and merges", async () => {
+  const old = withProgress({ campaign: campaign([1, 2], { 1: 7 }) });
+  const { backend, store, timers, cloud } = setup({ remote: { u1: doc(old) }, local: old });
+  backend.failGet = true;
+  await cloud.start("u1"); // the pull failed: nothing merged yet
+  store.value = resetOf(5000);
+  backend.failGet = false;
+  backend.failSet = true;
+  await cloud.reset();
+  assert.equal(cloud.status(), "pending");
+  backend.failSet = false;
+  cloud.changed();
+  await timers.fire();
+  assert.equal(backend.remote.u1.data.resetAt, 5000);
+  assert.deepEqual(backend.remote.u1.data.campaign.stars, {});
+  assert.equal(store.value.resetAt, 5000);
+});
+
+test("a second device that synced before the reset takes the account's reset save", async () => {
+  const stale = withProgress({ campaign: campaign([1, 2, 3], { 1: 7, 2: 7 }), highScore: 80 });
+  const { backend, store, cloud } = setup({ remote: { u1: doc(resetOf(5000)) }, local: stale });
+  await cloud.start("u1");
+  assert.deepEqual(dataOf(store.value), dataOf(resetOf(5000)));
+  assert.deepEqual(dataOf(backend.remote.u1.data), dataOf(resetOf(5000)));
+});
+
+test("reset without an account sends nothing", async () => {
+  const { backend, cloud } = setup();
+  await cloud.reset();
+  assert.equal(backend.calls.set.length, 0);
+  assert.equal(cloud.status(), "device");
+});

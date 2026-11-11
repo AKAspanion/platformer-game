@@ -77,6 +77,23 @@ export function createCloudSave({ backend, local, timers, now = Date.now }) {
     if (!(await send(mine, { ...local.read(), updatedAt: now() })) && id === run) dirty = true;
   }
 
+  // Replaces the account's save with this device's (reset) progress, without
+  // merging the old one back. If the send fails the account is not known to
+  // match, so the next push pulls and merges first, where the later reset wins.
+  async function replace() {
+    const mine = uid;
+    const id = run;
+    if (mine === null) return;
+    cancelTimer();
+    dirty = true;
+    if (await send(mine, { ...local.read(), updatedAt: now() })) {
+      if (id === run) {
+        pulled = true;
+        dirty = false;
+      }
+    }
+  }
+
   // Jobs run one at a time so a slow one can't land after a newer one.
   const queue = (job) => {
     chain = chain.then(job, job);
@@ -99,6 +116,9 @@ export function createCloudSave({ backend, local, timers, now = Date.now }) {
         timer = null;
         queue(push);
       }, SAVE_DELAY);
+    },
+    reset() {
+      return queue(replace);
     },
     flush() {
       if (uid === null || !dirty) return chain;

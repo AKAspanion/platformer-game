@@ -52,7 +52,7 @@ import { createCampaign, starsFor, targetTime, starCount, STAR } from "./campaig
 import { createWallet } from "./progress/wallet";
 import { createStats } from "./progress/stats";
 import { createEarnings } from "./progress/earn";
-import { readLocal, writeLocal } from "./progress/save";
+import { readLocal, writeLocal, resetLocal } from "./progress/save";
 import { createCloudSave } from "./progress/cloud";
 import { firestoreSaves } from "./firebase/saves";
 import {
@@ -1578,11 +1578,23 @@ window.addEventListener("load", function () {
       }, 3000);
       return;
     }
-    ["high_score", "mode_records", "my_worlds"].forEach((key) => localStorage.removeItem(key));
-    campaign.reset();
     resetArmed = false;
     btn.textContent = "Progress erased";
-    refreshHome();
+    // Everything cloud save carries goes, with the reset stamped so no device or
+    // account save from before it merges back; created worlds are not part of it.
+    resetLocal();
+    try {
+      localStorage.removeItem("my_worlds");
+    } catch (error) {
+      // blocked storage: nothing to erase
+    }
+    // The game's modules read their storage once, so start fresh from the reset
+    // device once the account has it (or after 4 s: an unsent reset goes with the next sync).
+    const reload = () => window.location.reload();
+    Promise.race([cloud.reset(), new Promise((resolve) => setTimeout(resolve, 4000))]).then(
+      reload,
+      reload
+    );
   };
 
   // ------------------------------------------------------------------ shop
