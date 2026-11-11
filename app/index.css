@@ -2246,16 +2246,19 @@ canvas {
     grid-row: 1 / 4;
     grid-template-columns: minmax(0, 1fr);
     align-content: center;
-    gap: 6px;
+    gap: 5px;
     width: 100%;
     margin: 0;
-    overflow-y: auto;
   }
+  /* the four mode cards stay in one row (they sit two to a row only under 561 px) */
   .mode-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .mode-card {
+    padding: 4px 2px;
   }
   .home-card {
-    padding: 6px 10px;
+    padding: 5px 10px;
   }
   .card-title {
     margin-bottom: 3px;
