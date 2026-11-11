@@ -324,7 +324,7 @@ Behaviour the contracts carry:
 - §1.3: "Score from kills and coins is multiplied: x2 from a combo of 5, x3 from 10, x4 from 20 (the most)."
 - §1.3: "Losing a heart ends the combo. Finishing a level ends it."
 - §1.3: "The combo multiplies score only. Wallet coins stay 1 per coin collected."
-- §1.3: "The screen shakes (2 px, 0.2 seconds) when the multiplier goes up, and on each kill at x3 or more."
+- §1.3: "The screen shakes (2 px, 0.2 seconds) when the dino loses a heart, a fall into a pit included, and at no other time." (Task 3 was built to the earlier wording, shaking on combo tiers; Task 4 moves the shake.)
 - §1.3: "Settings has a switch "Screen shake", on by default. With it off, nothing shakes."
 - §5: `combo_best` `{ mode, combo }`, once per level, when the level's best combo is 5 or more
 
@@ -381,4 +381,59 @@ Expected: no errors
 ```bash
 git add app/game/combo.js app/game/world.js app/game/effects.js app/util/settings.js app/index.js app/index.html tests/combo.test.js
 git commit -m "feat(combat): combo meter with sound, screen shake and a Settings switch"
+```
+
+### Task 4: Shake only on a lost heart; ghosts off by default
+
+Added mid-run at the developer's request ("only shake the world when dino loses a heart", "turn off ghost mode by default").
+
+**Files:**
+
+- Modify: `app/game/world.js` (`comboScore`, `hurtPlayer`, `fallInPit`)
+- Modify: `app/util/settings.js` (the `ghost` and `shake` defaults' comments, the `ghost` default)
+- Modify: `tests/combo.test.js`
+- Modify: `tests/ghost-settings.test.js`
+- Test: `tests/heart-shake.test.js`
+
+**Interfaces:**
+
+- Consumes: `effects.shake(px, ticks)`, `effects.shakeOffset()` and `world.combo` (Task 3); existing `hurtPlayer()`, `fallInPit()`, `settings.get()`.
+- Produces: no new names. `comboScore()` no longer calls `effects.shake`; a lost heart calls `effects.shake(2, 6)`.
+
+**Spec:**
+
+- §1.3: "The screen shakes (2 px, 0.2 seconds) when the dino loses a heart, a fall into a pit included, and at no other time."
+- §1.3: "Settings has a switch "Screen shake", on by default. With it off, nothing shakes."
+
+**Acceptance:**
+
+- Given the dino hit by an enemy with 3 hearts and no shield power-up, when the hit lands, then it has 2 hearts and `shakeOffset()` is non-zero for 6 ticks and zero after.
+- Given the dino falls into a pit with 2 hearts, then it has 1 heart and the screen shakes for 6 ticks.
+- Given the dino loses its last heart, then the screen shakes as it dies.
+- Given the shield power-up blocks a hit, then no heart is lost and nothing shakes.
+- Given a hit during the dino's invulnerable blink (no heart lost), then nothing shakes.
+- Given a combo going from 4 to 5 (x2) and a kill at x3, then `shakeOffset()` stays zero; the chime, the blips and the `"combo-up"` event still happen.
+- Given `settings.get("shake")` false and a lost heart, then the shell draws no offset.
+- Given a fresh install, then `settings.get("ghost")` is false and `settings.get("shake")` is true.
+- Given a player who turned "Show ghost" on, then it stays on after a reload.
+
+- [ ] **Step 1: Write the failing tests** for each Acceptance case, in `tests/heart-shake.test.js`, and update the shake cases in `tests/combo.test.js` and the default in `tests/ghost-settings.test.js`
+
+- [ ] **Step 2: Run them to verify they fail**
+
+Run: `pnpm test`
+Expected: FAIL on the new shake and ghost-default assertions
+
+- [ ] **Step 3: Move the shake** from `comboScore` to the two places a heart is lost, and set the `ghost` default to false
+
+- [ ] **Step 4: Run them to verify they pass**
+
+Run: `pnpm test`
+Expected: PASS
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add app/game/world.js app/util/settings.js tests/combo.test.js tests/ghost-settings.test.js tests/heart-shake.test.js
+git commit -m "feat(combat): shake only on a lost heart; ghosts off by default"
 ```

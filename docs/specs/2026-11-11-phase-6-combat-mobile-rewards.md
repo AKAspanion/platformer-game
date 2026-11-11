@@ -59,7 +59,7 @@ Rules from earlier phases that hold here:
 - "The combo multiplies score only. Wallet coins stay 1 per coin collected."
 - HUD: beside the score, the combo count and multiplier ("12 · x3") with a bar that drains over the 2 seconds; hidden under a combo of 2.
 - Sound: each step plays a blip that rises in pitch with the combo; reaching a new multiplier plays a chime.
-- "The screen shakes (2 px, 0.2 seconds) when the multiplier goes up, and on each kill at x3 or more."
+- "The screen shakes (2 px, 0.2 seconds) when the dino loses a heart, a fall into a pit included, and at no other time." (Changed during the build at the developer's request: the combo no longer shakes the screen.)
 - "Settings has a switch "Screen shake", on by default. With it off, nothing shakes."
 - Phones buzz on a new multiplier, as they do on hits.
 - **Server:** the daily score ceiling becomes "4 × (20 per coin + the highest enemy score per enemy) + 100 per power-up for a heart picked up at full health". The endless ceiling changes the same way. Both live in the shared rules that `pnpm functions:sync` copies to `functions/`.
