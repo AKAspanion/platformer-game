@@ -120,7 +120,6 @@
         </div>
       </div>
       <div class="home-footer">
-        <div id="highScore"></div>
         <div class="icon-row">
           <div id="leaderboardsBtn" role="button" aria-label="Leaderboards"></div>
           <div id="settingsBtn" role="button" aria-label="Settings"></div>
@@ -163,8 +162,9 @@
           <div id="leaderboardCloseBtn" class="close-btn" role="button" aria-label="Close"></div>
         </div>
         <div class="tabs lb-tabs" id="leaderboardTabs" role="tablist">
-          <button class="tab active" data-board="today" role="tab" aria-selected="true">Today</button>
-          <button class="tab" data-board="yesterday" role="tab" aria-selected="false">Yesterday</button>
+          <button class="tab active" data-board="today" role="tab" aria-selected="true">
+            Daily
+          </button>
           <button class="tab" data-board="endless" role="tab" aria-selected="false">Endless</button>
         </div>
         <div class="modal-content-wrapper lb-body">
@@ -199,8 +199,7 @@
             ><input type="checkbox" id="setAnalytics" class="switch"
           /></label>
           <label class="setting-row" id="reminderRow"
-            ><span>Daily reminder at 18:00</span
-            ><input type="checkbox" id="setReminder" class="switch"
+            ><span>Daily reminder</span><input type="checkbox" id="setReminder" class="switch"
           /></label>
           <div class="setting-row setting-note" id="reminderNoteRow" hidden>
             <span id="reminderStatus" role="status"></span>

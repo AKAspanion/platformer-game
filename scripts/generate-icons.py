@@ -6,7 +6,7 @@ a red squircle with white, bold, rounded glyphs.
 
 The blank button is the existing pause button with its glyph painted out, so
 the shape and shading match exactly. Glyphs are drawn at 4x and scaled down
-for smooth edges. Writes app/images/{settings,levels,daily,endless,create}_btn.webp.
+for smooth edges. Writes app/images/{settings,levels,daily,endless,create,leaderboards}_btn.webp.
 """
 
 import math
@@ -118,7 +118,24 @@ def create(d, s):
     star(d, s, 104, 100, 9)
 
 
-ICONS = {"settings": settings, "levels": levels, "daily": daily, "endless": endless, "create": create}
+def leaderboards(d, s):
+    # trophy: a cup with two handles, a stem and a base
+    d.pieslice((s(50), s(16), s(102), s(84)), 0, 180, fill=WHITE)
+    d.rectangle((s(50), s(42), s(102), s(50)), fill=WHITE)
+    for cx in (48, 104):
+        d.ellipse((s(cx - 12), s(42), s(cx + 12), s(66)), outline=WHITE, width=s(7))
+    d.rectangle((s(70), s(80), s(82), s(94)), fill=WHITE)
+    d.rounded_rectangle((s(56), s(94), s(96), s(108)), radius=s(4), fill=WHITE)
+
+
+ICONS = {
+    "settings": settings,
+    "levels": levels,
+    "daily": daily,
+    "endless": endless,
+    "create": create,
+    "leaderboards": leaderboards,
+}
 
 
 def main():

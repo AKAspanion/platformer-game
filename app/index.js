@@ -49,6 +49,7 @@ import { newWorld, matchWorlds, searchTerms, sanitizeWorld, ANONYMOUS } from "./
 import { community as social } from "./worlds/community-client";
 import { formatCount, weekNote, isBuiltIn, worldLink, linkedWorldId } from "./worlds/community";
 import { publishThumb } from "./worlds/thumb";
+import { createPlayed } from "./worlds/played.js";
 import { previewImage } from "./gen";
 import { getSkin } from "./util/registry";
 import {
@@ -356,11 +357,6 @@ window.addEventListener("load", function () {
     return level ? level.name : `Area ${id}`;
   };
 
-  const updateHighScore = () => {
-    const best = getData("high_score");
-    $("highScore").textContent = best ? `Best ${best}` : "";
-  };
-
   // ------------------------------------------------------------------ results
 
   // the result panel's rank line, streak, a note, and the Share button
@@ -444,7 +440,6 @@ window.addEventListener("load", function () {
   const recordRun = (score) => {
     const saved = getData("high_score") || 0;
     if (!session && score > saved) setData("high_score", score);
-    updateHighScore();
     cloud.changed();
     if (!session)
       return score > saved && score > 0
@@ -461,6 +456,7 @@ window.addEventListener("load", function () {
   // ------------------------------------------------------------ daily run
 
   const streak = createStreak();
+  const played = createPlayed(); // community worlds started on this device
   const pending = createPending();
   /** One daily attempt: how each level went, and the ticks played (30 a second). */
   const daily = {
@@ -1443,6 +1439,7 @@ window.addEventListener("load", function () {
     }
     show(createScreen, false);
     track("mode_start", { mode: "custom" });
+    played.mark(world.id);
     social.recordPlay(world.id, "play");
     loadWorld(session.startId, session.left, session.top);
   };
@@ -1497,7 +1494,6 @@ window.addEventListener("load", function () {
   };
 
   const refreshHome = () => {
-    updateHighScore();
     renderBalance();
     const premium = isPremium();
     document.querySelectorAll(".mode-card.premium").forEach((card) => {
@@ -2709,7 +2705,8 @@ window.addEventListener("load", function () {
     const { spec } = world;
     const shareable = !isBuiltIn(world.id);
     const card = document.createElement("div");
-    card.className = `world-card${fresh ? " fresh" : ""}${linked ? " linked" : ""}`;
+    const wasPlayed = played.has(world.id);
+    card.className = `world-card${fresh ? " fresh" : ""}${linked ? " linked" : ""}${wasPlayed ? " played" : ""}`;
     const info = document.createElement("div");
     info.className = "world-info";
     const img = document.createElement("img");
@@ -2725,6 +2722,12 @@ window.addEventListener("load", function () {
       const badge = document.createElement("span");
       badge.className = "world-badge";
       badge.textContent = "NEW";
+      name.appendChild(badge);
+    }
+    if (wasPlayed) {
+      const badge = document.createElement("span");
+      badge.className = "world-badge played-badge";
+      badge.textContent = "PLAYED";
       name.appendChild(badge);
     }
     const meta = document.createElement("div");
@@ -3190,13 +3193,6 @@ window.addEventListener("load", function () {
     load: 0,
   };
 
-  /** The daily seed of the local day before today. */
-  const yesterdaySeed = () => {
-    const day = new Date();
-    day.setDate(day.getDate() - 1);
-    return dailySeed(day);
-  };
-
   const boardRow = (entry, { me = false, pinned = false, endless: ranked = false } = {}) => {
     const row = document.createElement("li");
     row.className = `lb-row${ranked ? " endless" : ""}${me ? " me" : ""}${pinned ? " pinned" : ""}`;
@@ -3221,7 +3217,7 @@ window.addEventListener("load", function () {
     if (tab === "endless") {
       return { top: () => endlessBoard.top(TOP_LIMIT), mine: (uid) => endlessBoard.mine(uid) };
     }
-    const seed = tab === "yesterday" ? yesterdaySeed() : dailySeed();
+    const seed = dailySeed();
     return {
       top: () => leaderboard.top(seed, TOP_LIMIT),
       mine: (uid) => leaderboard.mine(seed, uid),

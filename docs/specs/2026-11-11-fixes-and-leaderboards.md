@@ -6,7 +6,7 @@ Builds on phases 1–3 (`feat/community-worlds`, PR #9).
 ## 1. Leaderboards screen
 
 - "A trophy button next to Settings on the home screen opens Leaderboards."
-- "Leaderboards has three tabs: Today and Yesterday (the daily challenge) and Endless."
+- "Leaderboards has two global tabs: Daily (today's daily challenge) and Endless."
 - "Each tab shows the top 50 and the player's own row pinned at the bottom when they are outside the top 50, as the daily board does today."
 - "With no scores, a tab says "No scores yet. Be the first!". If it can't load, it says "Leaderboard didn't load." with Try again."
 - "The daily-complete panel keeps the rank line ("#12 of 340") but no longer has a Leaderboard button."
