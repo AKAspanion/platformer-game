@@ -110,6 +110,19 @@ dropped.
 - "Story levels already shipped keep their layouts (best times, stars and ghosts depend on them)." The new placement and the rule apply to levels generated at play time: daily, endless and community worlds. Story levels keep today's placement (`placement: "v1"`), so the committed areas still equal the generator's output.
 - Test: the Sunny Coral Reef record's 5 non-boss levels each have floating platforms; a sweep over many seeds and every theme finds no generated level under the rule.
 
+### 2.6 Control sizes and a custom layout
+
+Added after the build at the developer's request.
+
+- "On a touch device the pause button is the same size as the arrow and fire buttons. Without touch it stays 40 px."
+- "The fire button sits on the same bottom line as the other touch buttons, not raised above it."
+- "Settings → Touch buttons has a "Customize layout" button, shown only on a touch device. It opens a full-screen editor over the game's backdrop that shows the five controls (left, right, fire, jump, pause) where they are now."
+- "In the editor each control can be dragged anywhere on screen with a finger. A control always stays fully on screen, inside the safe area (notches and gesture bars)."
+- "The editor has three buttons: "Save" keeps the layout, "Reset" puts every control back where it starts, and "Cancel" leaves without changing anything."
+- "A saved layout is kept on this device only (screens differ between devices), not in cloud save, and survives a reload. Each control's place is stored as a share of the screen's width and height, so it follows rotation and resizing, and is pulled back on screen if it would fall off."
+- "With no saved layout, the controls sit where they do by default."
+- "The first-open hint and the touch buttons keep working the same in a custom layout; only their positions change."
+
 ## 3. Track C: rewards
 
 ### 3.1 Achievements

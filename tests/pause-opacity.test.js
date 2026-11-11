@@ -39,13 +39,23 @@ test("the pause button keeps its bottom-middle place everywhere", () => {
   assert.doesNotMatch(ruleFor(".no-touch #pauseBtn") || "", /left|bottom|top|right|position/);
 });
 
-test("the pause button keeps its original 40 px size, and the hint clears it", () => {
+test("pause is as big as the other touch buttons on touch, and 40 px without touch", () => {
   const root = ruleFor(":root");
-  assert.match(root, /--pause-size:\s*40px/);
+  assert.match(
+    root,
+    /--pause-size:\s*var\(--ctrl\)/,
+    "touch: the --ctrl size (Touch buttons S/M/L)",
+  );
+  const desktop = ruleFor(".no-touch");
+  assert.ok(desktop, "a rule for a device without touch");
+  assert.match(desktop, /--pause-size:\s*40px/);
   const plain = ruleFor("#pauseBtn");
   assert.match(plain, /width:\s*var\(--pause-size\)/);
   assert.match(plain, /height:\s*var\(--pause-size\)/);
   assert.match(plain, /\/\s*var\(--pause-size\)\s*no-repeat/);
+});
+
+test("the hint clears the pause button at either size", () => {
   const hintBottoms = [...css.matchAll(/(^|\})\s*\.hint\s*\{([^{}]*)\}/g)]
     .map((m) => m[2])
     .filter((body) => /bottom:/.test(body));

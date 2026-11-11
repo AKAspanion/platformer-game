@@ -13,7 +13,8 @@
   --sal: env(safe-area-inset-left, 0px);
   /* touch button size, set from the screen size in JS (see sizeControls) */
   --ctrl: 64px;
-  --pause-size: 40px;
+  /* pause is a touch button as big as the others; without touch it is 40 px (see .no-touch) */
+  --pause-size: var(--ctrl);
   --small-btn-size: 52px;
 }
 
@@ -148,6 +149,9 @@ canvas {
 }
 #pauseBtn:active {
   opacity: var(--ctrl-pressed, 0.75);
+}
+.no-touch {
+  --pause-size: 40px;
 }
 /* without touch, pause is the only on-screen control: not a faint touch button */
 .no-touch #pauseBtn,
