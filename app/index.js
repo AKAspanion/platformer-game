@@ -35,7 +35,8 @@ import { requestSpec, worlds } from "./creator";
 import { auth } from "./auth";
 import { reminders } from "./reminders/push.js";
 import { createPrompt as createReminderPrompt } from "./reminders/prompt.js";
-import { leaderboard, TOP_LIMIT } from "./daily/leaderboard";
+import { leaderboard } from "./daily/leaderboard";
+import { boardView, BOARD_FAILED } from "./daily/board-view";
 import { createStreak } from "./daily/streak";
 import { createPending, errorCode, isFinalRefusal } from "./daily/pending";
 import { shareText, shareRun } from "./daily/share";
@@ -3731,16 +3732,11 @@ window.addEventListener("load", function () {
     return row;
   };
 
-  /** The tab's board: { top(), mine(uid) } for the daily seeds and for endless. */
+  /** The tab's board: load() -> { rows, mine }, one function call (spec 4.4). */
   const boardSource = (tab) => {
-    if (tab === "endless") {
-      return { top: () => endlessBoard.top(TOP_LIMIT), mine: (uid) => endlessBoard.mine(uid) };
-    }
+    if (tab === "endless") return { load: () => endlessBoard.load() };
     const seed = dailySeed();
-    return {
-      top: () => leaderboard.top(seed, TOP_LIMIT),
-      mine: (uid) => leaderboard.mine(seed, uid),
-    };
+    return { load: () => leaderboard.load(seed) };
   };
 
   /** Dinos and last-online on the rows already showing: one read for the whole board, never blocking it. */
@@ -3767,30 +3763,15 @@ window.addEventListener("load", function () {
     board.status.textContent = "Loading leaderboard…";
     try {
       const { uid } = await auth.ensurePlayer();
-      const rows = await source.top();
-      const inTop = rows.some((row) => row.uid === uid);
-      const mine = inTop ? null : await source.mine(uid).catch(() => null);
+      const view = boardView(await source.load(), uid);
       if (load !== board.load) return;
-      if (!rows.length && !mine) {
-        board.status.textContent = "No scores yet. Be the first!";
-        return;
-      }
-      board.status.textContent = "";
+      board.status.textContent = view.status;
+      if (!view.rows.length) return;
       const endlessTab = tab === "endless";
-      const shown = rows.map((entry) => ({
+      const shown = view.rows.map(({ entry, me, pinned }) => ({
         uid: entry.uid,
-        el: boardRow(entry, { me: entry.uid === uid, endless: endlessTab }),
+        el: boardRow(entry, { me, pinned, endless: endlessTab }),
       }));
-      if (mine) {
-        // outside the top 50: the exact place isn't known here, and a stale one would be wrong
-        shown.push({
-          uid,
-          el: boardRow(
-            { ...mine, rank: `${TOP_LIMIT}+` },
-            { me: true, pinned: true, endless: endlessTab },
-          ),
-        });
-      }
       shown.forEach(({ el }) => board.list.appendChild(el));
       // never blocks the board: a drawing that throws leaves the classic dinos, and a log line
       paintLooks(load, shown).catch((error) =>
@@ -3799,7 +3780,7 @@ window.addEventListener("load", function () {
     } catch (error) {
       if (load !== board.load) return;
       console.warn("Leaderboard failed:", friendlyError(error));
-      board.status.textContent = "Leaderboard didn't load.";
+      board.status.textContent = BOARD_FAILED;
       board.retry.style.display = "inline-block";
     }
   };

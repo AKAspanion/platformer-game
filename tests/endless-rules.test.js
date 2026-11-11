@@ -122,48 +122,46 @@ test("the board passes a backend rejection on unchanged", async () => {
   });
   const backend = {
     call: async () => Promise.reject(failure),
-    list: async () => Promise.reject(failure),
-    get: async () => Promise.reject(failure),
+    board: async () => Promise.reject(failure),
   };
   const board = createEndlessBoard(backend);
-  await assert.rejects(board.top(), (error) => error === failure);
-  await assert.rejects(board.mine("u1"), (error) => error === failure);
+  await assert.rejects(board.load(), (error) => error === failure);
   await assert.rejects(
     board.submit({ seed: 1, level: 2, score: 0, seconds: 8 }),
     (error) => error === failure,
   );
 });
 
-test("the board ranks entries, clamps the limit and sends no name", async () => {
+test("the board ranks entries, hands out only the shown fields and sends no name", async () => {
   const calls = [];
   const backend = {
     call: async (name, data) => (calls.push([name, data]), { rank: 1 }),
-    list: async (count) => (
-      calls.push(["list", count]),
-      [
-        { uid: "a", name: "A", level: 9, score: 1, seconds: 2, seed: 5, updatedAt: 1 },
-        { uid: "b", name: "B", level: 8, score: 1, seconds: 2 },
-      ]
+    board: async () => (
+      calls.push(["board"]),
+      {
+        top: [
+          { uid: "a", name: "A", level: 9, score: 1, seconds: 2, seed: 5, updatedAt: 1 },
+          { uid: "b", name: "B", level: 8, score: 1, seconds: 2 },
+        ],
+        me: { uid: "a", name: "A", level: 9, score: 1, seconds: 2 },
+      }
     ),
-    get: async (uid) => (uid === "a" ? { uid, name: "A", level: 9, score: 1, seconds: 2 } : null),
   };
   const board = createEndlessBoard(backend);
-  const top = await board.top(1000);
+  const { rows, mine } = await board.load();
   assert.deepEqual(
-    top.map((r) => [r.uid, r.rank]),
+    rows.map((r) => [r.uid, r.rank]),
     [
       ["a", 1],
       ["b", 2],
     ],
   );
-  assert.equal("seed" in top[0], false);
-  assert.deepEqual(calls[0], ["list", 100]);
-  await board.top();
-  assert.deepEqual(calls[1], ["list", 50]);
-  assert.equal(await board.mine("zz"), null);
-  assert.equal((await board.mine("a")).level, 9);
+  assert.equal("seed" in rows[0], false);
+  assert.equal("updatedAt" in rows[0], false);
+  assert.equal(mine.level, 9);
+  assert.deepEqual(calls[0], ["board"]);
   await board.submit({ seed: 1, level: 2, score: 3, seconds: 9, ticket: "t1", name: "Hacker" });
-  assert.deepEqual(calls[2], [
+  assert.deepEqual(calls[1], [
     "submitEndlessScore",
     { seed: 1, level: 2, score: 3, seconds: 9, ticket: "t1" },
   ]);
