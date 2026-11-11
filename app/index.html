@@ -137,6 +137,15 @@
         <div id="pauseRank" class="panel-rank" role="status"></div>
         <div id="pauseStreak" class="panel-streak"></div>
         <div id="pauseNote" class="panel-note" role="status"></div>
+        <div id="reminderPrompt" class="reminder-prompt" hidden>
+          <div id="reminderPromptText" class="reminder-prompt-text">
+            Remind me when tomorrow's levels are ready?
+          </div>
+          <div class="panel-actions">
+            <button id="reminderYesBtn" class="btn btn-primary">Remind me</button>
+            <button id="reminderNoBtn" class="btn btn-ghost">Not now</button>
+          </div>
+        </div>
         <div class="panel-actions">
           <button id="resumeBtn" class="btn btn-primary">Resume</button>
           <button id="leaderboardBtn" class="btn btn-secondary">Leaderboard</button>
@@ -181,6 +190,13 @@
             ><span>Share anonymous usage stats</span
             ><input type="checkbox" id="setAnalytics" class="switch"
           /></label>
+          <label class="setting-row" id="reminderRow"
+            ><span>Daily reminder at 18:00</span
+            ><input type="checkbox" id="setReminder" class="switch"
+          /></label>
+          <div class="setting-row setting-note" id="reminderNoteRow" hidden>
+            <span id="reminderStatus" role="status"></span>
+          </div>
           <div class="setting-row">
             <span>Touch buttons</span>
             <div class="segmented" id="setControls">

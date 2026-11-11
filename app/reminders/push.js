@@ -1,7 +1,7 @@
-import { auth } from "../auth";
-import { firestoreDaily } from "../firebase/daily";
-import { firebaseConfig } from "../firebase/config";
-import { webToken } from "../firebase/messaging";
+import { auth } from "../auth/index.js";
+import { firestoreDaily } from "../firebase/daily.js";
+import { firebaseConfig } from "../firebase/config.js";
+import { webToken } from "../firebase/messaging.js";
 
 /**
  * Daily reminders on this device: web push through Firebase Cloud Messaging,
@@ -67,8 +67,13 @@ export function createReminders(env) {
   };
 
   async function state() {
-    if (read().on) return "on";
-    return env.ios.available() ? iosState() : webState();
+    const ios = env.ios.available();
+    if (read().on) {
+      // saved as on, but the system may have taken the permission back since
+      if (ios) return (await iosState()) === "blocked" ? "blocked" : "on";
+      return env.web.permission() === "denied" ? "blocked" : "on";
+    }
+    return ios ? iosState() : webState();
   }
 
   /** Asks the system for permission; "granted" or "blocked". */
@@ -196,7 +201,7 @@ const webPush = {
     "serviceWorker" in navigator &&
     typeof window !== "undefined" &&
     "PushManager" in window,
-  permission: () => Notification.permission,
+  permission: () => (typeof Notification === "undefined" ? "default" : Notification.permission),
   requestPermission: () => Notification.requestPermission(),
   token: webToken,
 };

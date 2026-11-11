@@ -30,6 +30,8 @@ import {
 } from "./modes";
 import { requestSpec, worlds } from "./creator";
 import { auth } from "./auth";
+import { reminders } from "./reminders/push.js";
+import { createPrompt } from "./reminders/prompt.js";
 import { leaderboard, TOP_LIMIT } from "./daily/leaderboard";
 import { createStreak } from "./daily/streak";
 import { createPending, errorCode, isFinalRefusal } from "./daily/pending";
@@ -350,6 +352,7 @@ window.addEventListener("load", function () {
     daily = false,
   }) => {
     panelToken += 1; // a result still arriving for the last panel must not write into this one
+    $("reminderPrompt").hidden = true;
     setPanelDaily({ rank: "", streak: "", note: "", share: daily, leaderboard: false });
     pauseTitle.textContent = title;
     pauseTitle.className = `panel-title ${tone}`;
@@ -360,6 +363,51 @@ window.addEventListener("load", function () {
     retryBtn.textContent = retryLabel || "Retry";
     homeBtn.textContent = homeLabel;
     show(pauseScreen, true);
+    if (daily) askForReminder(panelToken);
+  };
+
+  // ---------------------------------------------------------- daily reminders
+
+  const reminderPrompt = createPrompt();
+  const reminderButtons = [$("reminderYesBtn"), $("reminderNoBtn")];
+  const BLOCKED_TEXT = "Notifications are blocked in your browser settings.";
+  const UNSUPPORTED_TEXT = "Reminders aren't available in this browser.";
+  const REMINDER_FAILED = "Couldn't turn on reminders. Try again later.";
+
+  /** Under the first daily result: asks once, and only when the player could say yes. */
+  const askForReminder = async (token) => {
+    if (!reminderPrompt.shouldAsk()) return;
+    let current;
+    try {
+      current = await reminders.state();
+    } catch (error) {
+      return;
+    }
+    // blocked, unsupported or already on: nothing to ask, and it isn't marked answered
+    if (current !== "off" || token !== panelToken || !reminderPrompt.shouldAsk()) return;
+    $("reminderPrompt").hidden = false;
+  };
+
+  const answerReminder = (yes) => {
+    reminderPrompt.answer(yes);
+    $("reminderPrompt").hidden = true;
+    track("reminder_prompt", { answer: yes ? "yes" : "no" });
+  };
+
+  $("reminderNoBtn").onclick = () => answerReminder(false);
+  $("reminderYesBtn").onclick = async () => {
+    reminderButtons.forEach((b) => (b.disabled = true));
+    try {
+      const result = await reminders.turnOn();
+      answerReminder(true);
+      if (result === "on") track("reminder_toggle", { on: true });
+      else showToast(result === "blocked" ? BLOCKED_TEXT : UNSUPPORTED_TEXT);
+      refreshReminderRow();
+    } catch (error) {
+      showToast(REMINDER_FAILED); // the prompt stays, so the player can try again
+    } finally {
+      reminderButtons.forEach((b) => (b.disabled = false));
+    }
   };
 
   const recordRun = (score) => {
@@ -1519,6 +1567,7 @@ window.addEventListener("load", function () {
     $("accountBtn").textContent = user ? "Sign out" : "Sign in";
     $("deleteAccountRow").style.display = user ? "flex" : "none";
     refreshSaveStatus();
+    refreshReminderRow();
   };
 
   $("settingsBtn").onclick = () => {
@@ -1535,6 +1584,42 @@ window.addEventListener("load", function () {
   };
   setSound.onchange = () => (settings.soundMuted = !setSound.checked);
   setAnalytics.onchange = () => setAnalyticsEnabled(setAnalytics.checked);
+
+  const setReminder = $("setReminder");
+  let reminderRefresh = 0;
+  /** The reminder switch and its note, from what the device says now. */
+  const refreshReminderRow = async () => {
+    const run = ++reminderRefresh;
+    let current = "off";
+    try {
+      current = await reminders.state();
+    } catch (error) {
+      current = "off";
+    }
+    if (run !== reminderRefresh) return; // a newer refresh is on its way
+    const note = { blocked: BLOCKED_TEXT, unsupported: UNSUPPORTED_TEXT }[current] || "";
+    setReminder.checked = current === "on";
+    setReminder.disabled = current === "blocked" || current === "unsupported";
+    $("reminderStatus").textContent = note;
+    $("reminderNoteRow").hidden = !note;
+  };
+  setReminder.onchange = async () => {
+    const wantOn = setReminder.checked;
+    setReminder.disabled = true;
+    try {
+      if (wantOn) {
+        const result = await reminders.turnOn();
+        if (result === "on") track("reminder_toggle", { on: true });
+      } else {
+        await reminders.turnOff();
+        track("reminder_toggle", { on: false });
+      }
+    } catch (error) {
+      showToast(REMINDER_FAILED);
+    }
+    setReminder.disabled = false;
+    refreshReminderRow(); // also puts the switch back to off after a failure
+  };
   setVibration.onchange = () => {
     settings.set("vibration", setVibration.checked);
     if (setVibration.checked) vibrate("kill");
@@ -3038,12 +3123,22 @@ window.addEventListener("load", function () {
   const flushOnInput = () => {
     ["pointerdown", "keydown"].forEach((name) => window.removeEventListener(name, flushOnInput));
     flushPending();
+    reminders.refresh(); // loads Firebase Messaging only when reminders are already on
   };
   ["pointerdown", "keydown"].forEach((name) => window.addEventListener(name, flushOnInput));
 
   // analytics never delays the game: it loads after the first input, or 3 s from now
   track("app_open", appOpenParams({ get: getData, set: setData }));
   armAnalytics();
+
+  // a reminder's link: count the open once, and keep ?from out of the address
+  const arrivedBy = new URLSearchParams(location.search);
+  if (arrivedBy.has("from")) {
+    if (arrivedBy.get("from") === "reminder") track("reminder_open");
+    arrivedBy.delete("from");
+    const left = arrivedBy.toString();
+    history.replaceState(null, "", location.pathname + (left ? `?${left}` : "") + location.hash);
+  }
 
   // a shared world link opens last, when every screen's code is ready
   const linked = linkedWorldId(location);

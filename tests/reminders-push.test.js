@@ -254,3 +254,27 @@ test("the service worker handles push and clicks, opens /?from=reminder, caches 
   assert.match(sw, /\/\?from=reminder/);
   assert.match(sw, /const CACHE_NAME = "dino-v25"/);
 });
+
+test("on in storage but the browser now denies: blocked, and nothing is asked", async () => {
+  const { r, log } = setup({
+    stored: { on: true, token: "web-1" },
+    web: { permission: () => "denied", requestPermission: async () => assert.fail("asked") },
+  });
+  assert.equal(await r.state(), "blocked");
+  assert.equal(log.length, 0);
+});
+
+test("on in storage but the iPhone now denies: blocked", async () => {
+  const { r } = setup({
+    stored: { on: true, token: "ios-1" },
+    ios: { ...iosOn, permission: async () => "denied", requestPermission: async () => assert.fail("asked") },
+  });
+  assert.equal(await r.state(), "blocked");
+});
+
+test("on in storage and still allowed stays on", async () => {
+  const web = setup({ stored: { on: true, token: "web-1" }, web: { permission: () => "granted" } });
+  assert.equal(await web.r.state(), "on");
+  const ios = setup({ stored: { on: true, token: "i" }, ios: { ...iosOn, permission: async () => "authorized" } });
+  assert.equal(await ios.r.state(), "on");
+});
