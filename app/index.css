@@ -486,6 +486,8 @@ canvas {
 }
 #settingsScreen,
 #premiumScreen,
+#shopScreen,
+#achievementsScreen,
 #createScreen,
 #helpScreen,
 #infoScreen,
@@ -1545,4 +1547,247 @@ canvas {
 .btn-delete {
   background: linear-gradient(#a8403f, #8a2f36);
   box-shadow: 0 5px 0 #5e1f25;
+}
+
+/* ------------------------------------------------- coins, shop, achievements */
+
+.wallet-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.coin-chip {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 16px;
+  color: var(--gold);
+  background: rgba(29, 26, 36, 0.55);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.modal-container .coin-chip {
+  color: var(--ink);
+  background: #eee4d3;
+}
+.wallet-row .btn-small {
+  font-size: 15px;
+  background: rgba(255, 255, 255, 0.14);
+}
+.setting-note {
+  padding-top: 4px;
+  font-size: 14px;
+  opacity: 0.75;
+}
+
+.shop-body {
+  display: flex;
+  flex: 1;
+  gap: 16px;
+  width: 100%;
+  min-height: 0;
+}
+.shop-side {
+  display: flex;
+  flex: 0 0 min(260px, 36%);
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding-top: 8px;
+}
+.shop-preview {
+  width: 100%;
+  max-width: 240px;
+  height: auto;
+  border-radius: 14px;
+  image-rendering: pixelated;
+  background: linear-gradient(#bfe6ff, #e9f7ff 70%, #9bd36b 70%);
+}
+.shop-selected {
+  min-height: 22px;
+  font-size: 17px;
+  color: var(--ink);
+  text-align: center;
+}
+.shop-side .btn {
+  width: 100%;
+  font-size: 18px;
+  padding: 10px 12px;
+}
+.shop-side .btn.cant {
+  opacity: 0.55;
+  cursor: default;
+}
+.shop-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.shop-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+  padding: 10px 2px;
+  overflow-y: auto;
+  align-content: start;
+}
+.shop-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 6px;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  color: var(--ink);
+  background: #eee4d3;
+}
+.shop-item.selected {
+  border-color: var(--red);
+  background: #fff;
+}
+.shop-item-name {
+  font-size: 15px;
+}
+.shop-item-state {
+  font-size: 13px;
+  opacity: 0.75;
+}
+.shop-item.worn .shop-item-state {
+  color: #2f8f4e;
+  opacity: 1;
+}
+
+.ach-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ach-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  color: var(--ink);
+  background: #fff;
+}
+.ach-row.locked {
+  opacity: 0.55;
+  background: #eee4d3;
+}
+.ach-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+.ach-row.locked .ach-icon {
+  filter: grayscale(1);
+}
+.ach-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+.ach-name {
+  font-size: 17px;
+}
+.ach-how {
+  font-size: 13px;
+  opacity: 0.75;
+}
+.ach-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+  font-size: 14px;
+  white-space: nowrap;
+}
+.ach-coins {
+  color: #c89a1a;
+}
+.ach-date {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.extra-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  text-align: left;
+  color: var(--cream);
+  background: linear-gradient(135deg, #3b3358, #2a2633);
+}
+.extra-card.locked {
+  opacity: 0.6;
+  cursor: default;
+  background: #4a4458;
+}
+.extra-card-name {
+  font-size: 18px;
+}
+.extra-card-info {
+  font-size: 14px;
+  opacity: 0.85;
+}
+
+/* small landscape phones: the shop and the lists fit without scrolling the page */
+@media (max-height: 480px) {
+  .shop-body {
+    gap: 10px;
+  }
+  .shop-side {
+    flex-basis: 36%;
+    gap: 4px;
+    padding-top: 0;
+  }
+  .shop-preview {
+    max-width: 150px;
+  }
+  .shop-selected {
+    min-height: 0;
+    font-size: 14px;
+  }
+  .shop-side .btn {
+    font-size: 15px;
+    padding: 6px 10px;
+  }
+  .tab {
+    padding: 6px 10px;
+    font-size: 14px;
+  }
+  .shop-items {
+    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+    padding: 6px 2px;
+  }
+  .shop-item {
+    padding: 6px 4px;
+  }
+  .ach-row {
+    padding: 6px 10px;
+  }
+  .coin-chip {
+    padding: 4px 10px;
+    font-size: 14px;
+  }
+  .wallet-row {
+    gap: 8px;
+  }
+}
+@media (max-width: 560px) {
+  .shop-body {
+    flex-direction: column;
+  }
+  .shop-side {
+    flex: 0 0 auto;
+  }
 }
