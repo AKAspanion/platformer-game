@@ -42,6 +42,8 @@ const TAP_TARGETS = [
   ".link-btn", // #loginResetBtn
   ".delete-btn", // a world's delete button in My worlds
   ".close-btn",
+  ".like-btn", // the heart on a world card
+  ".text-input", // #worldSearch and the other text fields
 ];
 
 test("on a short screen every tap target has a hit area of at least 44 px", () => {

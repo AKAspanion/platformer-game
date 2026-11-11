@@ -2098,8 +2098,12 @@ canvas {
     display: inline-flex;
     align-items: center;
   }
-  .delete-btn {
+  .delete-btn,
+  .like-btn {
     min-width: 44px;
+    min-height: 44px;
+  }
+  .text-input {
     min-height: 44px;
   }
 }
