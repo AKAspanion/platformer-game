@@ -11,8 +11,11 @@
  *   toggleWorldLike({ worldId })       -> { liked, likes }
  *   pickWorldOfWeek                    scheduled, Mondays 00:00 UTC
  *   worldPage                          /w/<id> link previews and /w/<id>/thumb.png (HTTP)
+ *   setReminders({ on, token, platform, timeZone })
+ *                            -> { on, devices }  turns the daily reminder on or off for a device
+ *   sendReminders            scheduled hourly; sends the 18:00 local reminder
  *   deleteAccount()          -> { worlds }  deletes the caller; their worlds become "Anonymous",
- *                                           their daily scores are deleted
+ *                                           their daily scores, save and reminders are deleted
  *
  * All are callable functions: the Firebase SDK in the game sends the
  * player's ID token, so request.auth is the verified user (or null).
@@ -31,6 +34,7 @@ import * as logger from "firebase-functions/logger";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore, FieldPath } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
+import { getMessaging } from "firebase-admin/messaging";
 import {
   ApiError,
   handleDesign,
@@ -48,6 +52,7 @@ import {
 import { sanitizeWorld } from "./shared/spec.js";
 import { worldLink } from "./shared/worlds/community.js";
 import { handleSubmitDaily, outranks } from "./src/daily.js";
+import { handleSetReminders, handleSendReminders } from "./src/reminders.js";
 import { createDesigner, Anthropic } from "./src/designer.js";
 
 // invoker "public": anyone may reach the functions (the game calls them from the
@@ -207,6 +212,9 @@ const accounts = {
   async deleteSave(uid) {
     await db.collection("saves").doc(uid).delete();
   },
+  async deleteReminders(uid) {
+    await db.collection("pushSubs").doc(uid).delete();
+  },
   async deleteData(uid) {
     await db.collection("limits").doc(uid).delete();
   },
@@ -314,3 +322,119 @@ export const worldPage = onRequest({ timeoutSeconds: 15 }, async (req, res) => {
     res.status(500).type("text").send("Something went wrong.");
   }
 });
+
+// ---------------------------------------------------------------- reminders
+
+// pushSubs/{uid} = { devices, tokens, timeZone, lastSentDay }: closed to clients
+// (firestore.rules), written only here. `tokens` mirrors the devices so a token
+// can be found under another account with a single-field array-contains query
+// (automatic index, nothing to add to firestore.indexes.json).
+const subsOf = () => db.collection("pushSubs");
+const SUBS_PAGE = 300;
+
+const reminderSubs = {
+  // runs fn(current | null) -> the new document in one transaction
+  update: (uid, change) =>
+    db.runTransaction(async (transaction) => {
+      const ref = subsOf().doc(uid);
+      if (typeof change !== "function") {
+        transaction.set(ref, change, { merge: true });
+        return;
+      }
+      const snap = await transaction.get(ref);
+      transaction.set(ref, change(snap.exists ? snap.data() : null));
+    }),
+  // one device belongs to one account: drop the token from every other one
+  async release(token, uid) {
+    const snap = await subsOf().where("tokens", "array-contains", token).get();
+    await Promise.all(
+      snap.docs
+        .filter((d) => d.id !== uid)
+        .map((d) =>
+          db.runTransaction(async (transaction) => {
+            const fresh = await transaction.get(d.ref);
+            if (!fresh.exists) return;
+            const devices = (fresh.get("devices") || []).filter((x) => x.token !== token);
+            transaction.update(d.ref, { devices, tokens: devices.map((x) => x.token) });
+          }),
+        ),
+    );
+  },
+  // every subscription, a page at a time
+  async *all() {
+    let last = null;
+    for (;;) {
+      let query = subsOf().orderBy(FieldPath.documentId()).limit(SUBS_PAGE);
+      if (last) query = query.startAfter(last);
+      const snap = await query.get();
+      if (snap.empty) return;
+      for (const d of snap.docs) yield { uid: d.id, ...d.data() };
+      last = snap.docs[snap.docs.length - 1];
+      if (snap.size < SUBS_PAGE) return;
+    }
+  },
+  // true only for the call that sets lastSentDay to `day`: the transaction
+  // makes two overlapping passes agree on who sends
+  claimDay: (uid, day) =>
+    db.runTransaction(async (transaction) => {
+      const ref = subsOf().doc(uid);
+      const snap = await transaction.get(ref);
+      if (!snap.exists || snap.get("lastSentDay") === day) return false;
+      transaction.update(ref, { lastSentDay: day });
+      return true;
+    }),
+};
+
+export const setReminders = callable({ timeoutSeconds: 15 }, (request) =>
+  handleSetReminders(request, { subs: reminderSubs, limiter }),
+);
+
+const DEAD_TOKEN = new Set([
+  "messaging/registration-token-not-registered",
+  "messaging/invalid-registration-token",
+  "messaging/invalid-argument",
+]);
+const ICON = "https://dino.spanion.in/images/icons-192.png";
+
+const messaging = {
+  // one multicast carries both a web and an iOS payload: each device reads its own
+  async send(tokens, { title, body, link }) {
+    const response = await getMessaging().sendEachForMulticast({
+      tokens,
+      notification: { title, body },
+      webpush: { notification: { title, body, icon: ICON }, fcmOptions: { link } },
+      apns: { payload: { aps: { alert: { title, body }, sound: "default" } } },
+    });
+    const invalidTokens = [];
+    response.responses.forEach((r, i) => {
+      if (!r.success && r.error && DEAD_TOKEN.has(r.error.code)) invalidTokens.push(tokens[i]);
+    });
+    if (response.successCount === 0 && invalidTokens.length < tokens.length) {
+      throw new Error("reminder not delivered to any device");
+    }
+    return { invalidTokens };
+  },
+};
+
+const saves = {
+  async streak(uid) {
+    const snap = await db.collection("saves").doc(uid).get();
+    const streak = snap.exists ? snap.get("data.streak") : null;
+    return streak && typeof streak === "object" ? streak : null;
+  },
+};
+
+export const sendReminders = onSchedule(
+  { schedule: "every 1 hours", timeZone: "UTC", timeoutSeconds: 300 },
+  async () => {
+    const result = await handleSendReminders({
+      subs: reminderSubs,
+      saves,
+      messaging,
+      log: (message) => logger.warn(message),
+    });
+    logger.info(
+      `reminders: ${result.sent} sent, ${result.skipped} skipped, ${result.pruned} devices removed`,
+    );
+  },
+);
