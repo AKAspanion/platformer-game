@@ -69,7 +69,8 @@ export const FIREBALL_PALETTES = {
  * Where a hat's top-left sits, from the dino's box (x, y), by facing. The dino
  * is drawn much larger than its 12x12 box, so the head is above the box.
  */
-export const HAT_ANCHOR = { left: { x: -6, y: -29 }, right: { x: 6, y: -29 } };
+// a little behind the snout, so the hat sits on the crown of the head (mirrored when facing left)
+export const HAT_ANCHOR = { left: { x: -4, y: -29 }, right: { x: 4, y: -29 } };
 
 const OPAQUE = 128;
 
