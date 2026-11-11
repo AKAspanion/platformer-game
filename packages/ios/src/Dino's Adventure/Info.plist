@@ -96,7 +96,7 @@
 	<true/>
 	<key>WKAppBoundDomains</key>
 	<array>
-		<string>akaspanion.github.io/platformer-game/index.html</string>
+		<string>dino.spanion.in</string>
 	</array>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>

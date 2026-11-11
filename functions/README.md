@@ -1,7 +1,7 @@
 # World creator functions
 
-Cloud Functions for Dino's Adventure's world creator, in `asia-south1` next to the
-Firestore database (project `dinos-adventure`).
+Cloud Functions for Dino's Adventure's world creator (https://dino.spanion.in), in
+`asia-south1` next to the Firestore database (project `dinos-adventure`).
 
 | Function       | Call                      | Does                                                                                                                                                                                 |
 | -------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |

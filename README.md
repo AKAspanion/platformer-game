@@ -11,9 +11,10 @@ Game is also mobile responsive and can be installed on mobile/desktop as a PWA.<
 
 ## Live
 
-The game is live at [dinos-adventure.web.app](https://dinos-adventure.web.app) (Firebase
-Hosting). The old [GitHub Pages](https://akaspanion.github.io/platformer-game/) copy is
-what the current Play Store app opens until the app is rebuilt for the new domain.
+The game is live at [dino.spanion.in](https://dino.spanion.in) (Firebase Hosting). The Play Store
+app (`packages/android`) opens the same domain from version 1.1; older installs open the
+previous [GitHub Pages](https://akaspanion.github.io/platformer-game/) copy until they
+update.
 
 ## Locally
 

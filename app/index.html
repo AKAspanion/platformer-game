@@ -2,6 +2,14 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      // the game's home is dino.spanion.in: send the default Firebase Hosting
+      // domains there (preview channels and localhost stay where they are)
+      if (/^dinos-adventure\.(web\.app|firebaseapp\.com)$/.test(location.hostname)) {
+        location.replace("https://dino.spanion.in" + location.pathname + location.search);
+      }
+    </script>
+    <link rel="canonical" href="https://dino.spanion.in/" />
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no"
@@ -23,18 +31,12 @@
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="en_GB" />
     <meta property="og:title" content="Dino's Adventure" />
-    <meta
-      property="og:image"
-      content="https://akaspanion.github.io/platformer-game/images/ss-game.png"
-    />
-    <meta property="og:url" content="https://akaspanion.github.io/platformer-game/" />
+    <meta property="og:image" content="https://dino.spanion.in/images/ss-game.png" />
+    <meta property="og:url" content="https://dino.spanion.in/" />
     <meta property="og:description" content="A pixel styled, platformer adventure game." />
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="Dino's Adventure" />
-    <meta
-      name="twitter:image"
-      content="https://akaspanion.github.io/platformer-game/images/ss-game.png"
-    />
+    <meta name="twitter:image" content="https://dino.spanion.in/images/ss-game.png" />
     <meta name="twitter:image:alt" content="Dino's Adventure platformer game" />
     <meta name="twitter:description" content="A pixel styled, platformer adventure game." />
     <script>

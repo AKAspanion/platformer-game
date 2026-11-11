@@ -5,6 +5,9 @@
  */
 export const firebaseConfig = {
   apiKey: "AIzaSyDoikj6QuF_FRUhfUJjBqcT25Ov6ICcgjU",
+  // Google sign-in's handler page. dino.spanion.in (the game's domain) can host it
+  // too once https://dino.spanion.in/__/auth/handler is an authorized redirect URI
+  // of the project's OAuth client; until then this one is the only one Google accepts.
   authDomain: "dinos-adventure.firebaseapp.com",
   projectId: "dinos-adventure",
   storageBucket: "dinos-adventure.firebasestorage.app",

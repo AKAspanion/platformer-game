@@ -6,8 +6,8 @@
 	<string>production</string>
 	<key>com.apple.developer.associated-domains</key>
 	<array>
-		<string>applinks:akaspanion.github.io</string>
-		<string>webcredentials:akaspanion.github.io</string>
+		<string>applinks:dino.spanion.in</string>
+		<string>webcredentials:dino.spanion.in</string>
 	</array>
 	<key>com.apple.security.app-sandbox</key>
 	<true/>

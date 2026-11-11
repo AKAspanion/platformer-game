@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: production
-      url: https://dinos-adventure.web.app
+      url: https://dino.spanion.in
     steps:
       - uses: actions/checkout@v4
 
