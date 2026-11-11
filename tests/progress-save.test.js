@@ -346,7 +346,9 @@ const pick = (id, extra = {}) => ({
 
 test("a nest and quests read from junk normalize to empty without throwing", () => {
   ["x", [], 5, null, { eggs: 5 }].forEach((junk) => {
-    const p = readLocal(memoryStorage({ nest: JSON.stringify(junk), quests: JSON.stringify(junk) }));
+    const p = readLocal(
+      memoryStorage({ nest: JSON.stringify(junk), quests: JSON.stringify(junk) }),
+    );
     assert.deepEqual(p.nest, emptyProgress().nest);
     assert.deepEqual(p.quests, emptyProgress().quests);
   });
@@ -405,8 +407,12 @@ test("merge: a hatched egg leaves the nest", () => {
 });
 
 test("merge: a reward paid on two devices counts once", () => {
-  const a = withProgress({ wallet: { ...emptyProgress().wallet, earned: { A: 10 }, rewards: { q20403a: 75 } } });
-  const b = withProgress({ wallet: { ...emptyProgress().wallet, earned: { B: 5 }, rewards: { q20403a: 75 } } });
+  const a = withProgress({
+    wallet: { ...emptyProgress().wallet, earned: { A: 10 }, rewards: { q20403a: 75 } },
+  });
+  const b = withProgress({
+    wallet: { ...emptyProgress().wallet, earned: { B: 5 }, rewards: { q20403a: 75 } },
+  });
   const merged = mergeProgress(a, b);
   assert.deepEqual(merged.wallet.rewards, { q20403a: 75 });
   assert.deepEqual(merged, mergeProgress(b, a));

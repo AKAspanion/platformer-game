@@ -22,12 +22,7 @@
       "skyline": "hills",
       "celestial": "sun"
     },
-    "decor": [
-      "coral",
-      "bush",
-      "crystal",
-      "flower"
-    ],
+    "decor": ["coral", "bush", "crystal", "flower"],
     "enemies": [
       {
         "name": "Bubble Crab",
@@ -35,10 +30,7 @@
         "body": "round",
         "color": "#ff7a59",
         "accent": "#ffd1c2",
-        "features": [
-          "one-eye",
-          "antenna"
-        ],
+        "features": ["one-eye", "antenna"],
         "speed": "slow",
         "armored": false
       },
@@ -48,10 +40,7 @@
         "body": "round",
         "color": "#ffc857",
         "accent": "#3a86ff",
-        "features": [
-          "spikes",
-          "one-eye"
-        ],
+        "features": ["spikes", "one-eye"],
         "speed": "medium",
         "armored": false
       },
@@ -61,10 +50,7 @@
         "body": "box",
         "color": "#b388eb",
         "accent": "#fff3b0",
-        "features": [
-          "shell",
-          "teeth"
-        ],
+        "features": ["shell", "teeth"],
         "speed": "slow",
         "armored": false
       }
@@ -74,19 +60,10 @@
       "body": "box",
       "color": "#ff5e4d",
       "accent": "#ffe066",
-      "features": [
-        "horns",
-        "shell",
-        "three-eyes"
-      ],
+      "features": ["horns", "shell", "three-eyes"],
       "armored": false,
       "flyer": false,
-      "moves": [
-        "charge",
-        "stomp",
-        "fan",
-        "bounce"
-      ]
+      "moves": ["charge", "stomp", "fan", "bounce"]
     },
     "music": {
       "mood": "happy",
@@ -96,11 +73,7 @@
     "difficulty": 2,
     "enemyDensity": "low",
     "hazards": "low",
-    "powerups": [
-      "heart",
-      "shield",
-      "wings"
-    ]
+    "powerups": ["heart", "shield", "wings"]
   },
   "seed": 889198317,
   "version": 2
