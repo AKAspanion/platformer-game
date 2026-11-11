@@ -215,6 +215,15 @@ the wallet, they are trusted to the client.
 - "Settings has a switch "Show when I was last online", on by default. It belongs to the account and syncs through cloud save, so turning it off on one device turns it off on all of them. Turning it off deletes `seenDay` from the profile, and no device writes `seenDay` until it is on again. Worn items still update the avatar. A row with no `seenDay` shows no status."
 - `PRIVACY.md` says what the profile holds, that it is public, and how to hide last online.
 
+### 4.4 Board privacy
+
+Added after the build at the developer's request: the daily and endless board entries (phase 1) were public Firestore documents carrying an `updatedAt` time in milliseconds, and Firestore exposes every document's create and update times, so anyone could read when each improving run happened, whatever "Show when I was last online" says.
+
+- "Nobody reads the daily or endless board documents directly: the rules allow no client read or list of `daily/{seed}/scores` or `endless`."
+- "Boards come from Cloud Functions that return, for each entry, only what the board shows: the uid, the name, the score, the time in seconds, and for endless the level reached. Never `updatedAt` or a document's create or update time."
+- "A board call returns the top 50 and the caller's own entry (signed in, anonymous included); it never returns another player's entry outside the top 50."
+- "Ranking, the pinned row, the error copy and the offline behaviour stay as phase 1 and the fixes-and-leaderboards spec describe them."
+
 ## 5. Analytics
 
 New events, with only these parameters (as before, never a name, email or user ID):
