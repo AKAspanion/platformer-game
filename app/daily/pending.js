@@ -3,7 +3,9 @@ import { seedIsOpen } from "./rules.js";
 /**
  * The daily run that couldn't be sent (offline, server error): one per seed,
  * the best one, kept in localStorage under "daily_pending" as
- * { [seed]: { seed, score, seconds } } until the next home screen sends it.
+ * { [seed]: { seed, score, seconds, ticket } } until the next home screen sends it.
+ * The run's ticket (app/modes/run-ticket.js) travels with it: the server ranks
+ * nothing without one.
  */
 
 const STORAGE_KEY = "daily_pending";
@@ -28,7 +30,8 @@ const isRun = (run) =>
   typeof run === "object" &&
   Number.isInteger(run.seed) &&
   Number.isFinite(run.score) &&
-  Number.isFinite(run.seconds);
+  Number.isFinite(run.seconds) &&
+  (run.ticket === undefined || typeof run.ticket === "string");
 
 export function createPending(storage = defaultStorage()) {
   // Without any storage the runs live in memory for the session.
@@ -55,8 +58,9 @@ export function createPending(storage = defaultStorage()) {
   };
 
   return {
-    save({ seed, score, seconds }) {
-      const run = { seed, score, seconds };
+    save({ seed, score, seconds, ticket }) {
+      const run =
+        ticket === undefined ? { seed, score, seconds } : { seed, score, seconds, ticket };
       if (!isRun(run)) return;
       const runs = read();
       const old = Object.hasOwn(runs, seed) ? runs[seed] : null;

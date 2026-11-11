@@ -1,4 +1,5 @@
-import { firebaseConfig, FUNCTIONS_REGION } from "./config";
+import { firebaseConfig, firebaseConfigured, appCheckConfig, FUNCTIONS_REGION } from "./config";
+import { appCheckPlan, startAppCheck } from "./app-check";
 
 /**
  * Firebase, loaded on demand: only players who use the world creator (or
@@ -15,6 +16,9 @@ import { firebaseConfig, FUNCTIONS_REGION } from "./config";
 
 const emulatorsWanted = () => {
   try {
+    // only a local dev server proxies the emulators; elsewhere a shared
+    // ?emulators=1 link would break every online feature on that device
+    if (!/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)) return false;
     const flag = new URLSearchParams(location.search).get("emulators");
     if (flag === "1") localStorage.setItem("useEmulators", "1");
     if (flag === "0") localStorage.removeItem("useEmulators");
@@ -28,6 +32,10 @@ let loading = null;
 
 export function loadFirebase() {
   if (loading) return loading;
+  if (!firebaseConfigured) {
+    // a build without .env: say so instead of letting the SDK fail on an empty key
+    return Promise.reject(new Error("Online features are not available in this build."));
+  }
   loading = (async () => {
     const [appApi, authApi, storeApi, functionsApi] = await Promise.all([
       import(/* webpackChunkName: "firebase" */ "firebase/app"),
@@ -36,10 +44,15 @@ export function loadFirebase() {
       import(/* webpackChunkName: "firebase" */ "firebase/functions"),
     ]);
     const app = appApi.initializeApp(firebaseConfig);
+    const emulators = emulatorsWanted();
+    // before any service: the functions SDK then attaches a token to every call
+    await startAppCheck(
+      app,
+      appCheckPlan({ ...appCheckConfig, hostname: location.hostname, emulators }),
+    );
     const auth = authApi.getAuth(app);
     const db = storeApi.getFirestore(app);
     const functions = functionsApi.getFunctions(app, FUNCTIONS_REGION);
-    const emulators = emulatorsWanted();
     if (emulators) {
       const port = Number(location.port) || (location.protocol === "https:" ? 443 : 80);
       authApi.connectAuthEmulator(auth, location.origin, { disableWarnings: true });

@@ -6,7 +6,7 @@ import { createEarnings } from "../app/progress/earn";
 import Combo, { COMBO_WINDOW, multiplierFor } from "../app/game/combo";
 import Effects from "../app/game/effects";
 import { settings } from "../app/util/settings";
-import { arena, makeWorld, enemy, freeze, tick, tickUntil, placePlayer, TILE } from "./helpers";
+import { arena, makeWorld, enemy, freeze, tick } from "./helpers";
 
 const plain = () => makeWorld(arena());
 /** `n` coins, each `gap` ticks after the last. */

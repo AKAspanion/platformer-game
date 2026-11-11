@@ -38,6 +38,7 @@ None (`run.checkpoints: none`). The run goes through all four tasks and stops be
 ### Task 1: Shared reminder rules and data layout
 
 **Files:**
+
 - Create: `app/reminders/rules.js`
 - Create: `app/reminders/package.json`
 - Modify: `scripts/sync-functions-shared.js` (add `app/reminders/rules.js`)
@@ -47,6 +48,7 @@ None (`run.checkpoints: none`). The run goes through all four tasks and stops be
 - Test: `tests/reminders-rules.test.js`
 
 **Interfaces:**
+
 - Consumes: existing `daysBetween`, `seedToDate` from `app/daily/rules.js` (imported as `../daily/rules.js`, so the synced copy resolves to `functions/shared/daily/rules.js`).
 - Produces (used by Tasks 2, 3 and 4):
 
@@ -73,11 +75,12 @@ export const firebaseConfig = { /* existing fields */ vapidKey: string };
 
 Firestore:
 
-| Path | Fields | Client access |
-|---|---|---|
-| `pushSubs/{uid}` | `devices: [{ token, platform: "web" \| "ios", addedAt }]`, `timeZone`, `lastSentDay`, `updatedAt` | none |
+| Path             | Fields                                                                                            | Client access |
+| ---------------- | ------------------------------------------------------------------------------------------------- | ------------- |
+| `pushSubs/{uid}` | `devices: [{ token, platform: "web" \| "ios", addedAt }]`, `timeZone`, `lastSentDay`, `updatedAt` | none          |
 
 **Spec:**
+
 - §2: "At most one reminder a day, sent at 18:00 in the player's own time zone."
 - §2: "If the player already played today's daily challenge (finished at least one daily level, by their local date), no reminder is sent that day."
 - §2: "Otherwise, if their streak is 2 days or more and still alive, the reminder says: title "Dino's Adventure", body "Your <N>-day streak ends tonight. Play today's challenge to keep it.""
@@ -91,6 +94,7 @@ Firestore:
 **Knowledge:** none (this project has no knowledge base)
 
 **Acceptance:**
+
 - Given 2026-11-11T12:30Z and "Asia/Kolkata", when `localTime` runs, then {seed 20261111, hour 18}; given "America/Los_Angeles", then {seed 20261111, hour 4}.
 - Given 2026-11-11T23:30Z and "Pacific/Kiritimati" (UTC+14), then the seed is 20261112.
 - Given "America/New_York" at 2026-10-31T22:00Z (EDT) and 2026-11-01T23:00Z (EST), then both are hour 18.
@@ -136,6 +140,7 @@ git commit -m "feat(reminders): shared reminder rules and subscription layout"
 ### Task 2: Reminder functions
 
 **Files:**
+
 - Create: `functions/src/reminders.js`
 - Modify: `functions/src/handlers.js` (`handleDeleteAccount` also calls `accounts.deleteReminders(uid)`)
 - Modify: `functions/index.js` (export `setReminders`, `sendReminders`; implement `deleteReminders`)
@@ -144,13 +149,14 @@ git commit -m "feat(reminders): shared reminder rules and subscription layout"
 - Test: `tests/daily-submit.test.js` (its fake `accounts` gains `deleteReminders`)
 
 **Interfaces:**
+
 - Consumes: `localTime`, `validTimeZone`, `reminderFor`, `isDue`, `MAX_DEVICES`, `SETTINGS_LIMIT`, `TITLE` from `functions/shared/reminders/rules.js` (Task 1); existing `overLimit`, `ApiError`, `signedIn`, the `limiter` and `callable` wrappers in `functions/index.js`.
 - Produces (called by Task 3 by name):
 
-| Function | Kind | Request | Response | Errors |
-|---|---|---|---|---|
-| `setReminders` | callable | `{ on: true, token, platform: "web" \| "ios", timeZone }` or `{ on: false, token }` | `{ on: boolean, devices: number }` | `unauthenticated`; `invalid-argument` bad token, platform or time zone; `resource-exhausted` "Couldn't turn on reminders. Try again later." |
-| `sendReminders` | `onSchedule("every 1 hours", timeZone "UTC")` | — | sends, prunes, stamps `lastSentDay` | — |
+| Function        | Kind                                          | Request                                                                             | Response                            | Errors                                                                                                                                      |
+| --------------- | --------------------------------------------- | ----------------------------------------------------------------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `setReminders`  | callable                                      | `{ on: true, token, platform: "web" \| "ios", timeZone }` or `{ on: false, token }` | `{ on: boolean, devices: number }`  | `unauthenticated`; `invalid-argument` bad token, platform or time zone; `resource-exhausted` "Couldn't turn on reminders. Try again later." |
+| `sendReminders` | `onSchedule("every 1 hours", timeZone "UTC")` | —                                                                                   | sends, prunes, stamps `lastSentDay` | —                                                                                                                                           |
 
 ```js
 // functions/src/reminders.js — pure handlers with injected stores (as functions/src/handlers.js does)
@@ -167,6 +173,7 @@ export async function handleSendReminders(deps: {
 Messages: web devices get a `webpush` notification with `fcmOptions.link` `https://dino.spanion.in/?from=reminder`; iOS devices get an `apns` alert with the same title and body.
 
 **Spec:**
+
 - §1: "An account keeps reminders for at most 5 devices; adding a sixth drops the oldest."
 - §2: "At most one reminder a day, sent at 18:00 in the player's own time zone."
 - §2: "If the player already played today's daily challenge (finished at least one daily level, by their local date), no reminder is sent that day."
@@ -182,6 +189,7 @@ Messages: web devices get a `webpush` notification with `fcmOptions.link` `https
 **Knowledge:** none (this project has no knowledge base)
 
 **Acceptance:**
+
 - Given no `request.auth`, when `setReminders` runs, then `unauthenticated`.
 - Given a token that is empty, over 4096 characters or not a string, a platform other than "web"/"ios", or a time zone `validTimeZone` rejects, then `invalid-argument` and nothing is stored.
 - Given `{on: true, token: "t1", platform: "web", timeZone: "Asia/Kolkata"}`, when run, then `pushSubs/<uid>` has one device t1 and that time zone, and it answers `{on: true, devices: 1}`; sending t1 again doesn't add a second entry.
@@ -228,12 +236,14 @@ git commit -m "feat(reminders): save devices and send the daily reminder at 18:0
 ### Task 3: Push in the game and the service worker
 
 **Files:**
+
 - Create: `app/reminders/push.js`
 - Create: `app/firebase/messaging.js`
 - Modify: `app/sw.js` (`push` and `notificationclick`; cache name `dino-v25`)
 - Test: `tests/reminders-push.test.js`
 
 **Interfaces:**
+
 - Consumes: `firebaseConfig.vapidKey` (Task 1); existing `loadFirebase()`, `auth.ensurePlayer()`; the callable `setReminders` only by name, with the request and response shapes in the table below (no code from the functions).
 - Produces (used by Task 4):
 
@@ -256,8 +266,8 @@ export function createReminders(env: {
 export const reminders; // wired to the iPhone bridge, Firebase Messaging and the callable
 ```
 
-| Callable | Request | Response |
-|---|---|---|
+| Callable       | Request                                                                             | Response                                                                                  |
+| -------------- | ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
 | `setReminders` | `{ on: true, token, platform: "web" \| "ios", timeZone }` or `{ on: false, token }` | `{ on, devices }`, or `resource-exhausted` "Couldn't turn on reminders. Try again later." |
 
 iPhone bridge (existing, unchanged): the page posts to `window.webkit.messageHandlers["push-permission-request" | "push-permission-state" | "push-token"].postMessage("")`; the app answers with `window` CustomEvents `push-permission-request` (`detail` "granted"/"denied"), `push-permission-state` (`detail` a state string) and `push-token` (`detail` the token, or "ERROR GET TOKEN").
@@ -265,6 +275,7 @@ iPhone bridge (existing, unchanged): the page posts to `window.webkit.messageHan
 Service worker: on `push`, show the payload's notification (title, body, icon `./images/icons-192.png`), falling back to the spec's daily copy when the payload has none; on `notificationclick`, focus an open game window and navigate it to `/?from=reminder`, or open one.
 
 **Spec:**
+
 - §1: "Turning reminders on creates the silent anonymous account if the player has none."
 - §1: "The browser's or phone's own permission dialog appears only after the player presses "Remind me" or turns the switch on, never when the game loads."
 - §2: "The time zone is the device's own (an IANA name such as "Asia/Kolkata"), saved when reminders are turned on and each time the game opens with them on, so daylight saving and travel are followed."
@@ -280,6 +291,7 @@ Service worker: on `push`, show the payload's notification (title, body, icon `.
 **Knowledge:** none (this project has no knowledge base)
 
 **Acceptance:**
+
 - Given the iPhone bridge is available, when `turnOn` runs and the app answers "granted" and token "ios-1", then `setReminders` gets `{on: true, token: "ios-1", platform: "ios", timeZone}` and the state is "on"; web push is never touched.
 - Given the app answers "denied", then the state is "blocked" and nothing is called.
 - Given the app answers the token "ERROR GET TOKEN", then `turnOn` throws "Couldn't turn on reminders. Try again later." and the state stays "off".
@@ -323,6 +335,7 @@ git commit -m "feat(reminders): web push and the iPhone bridge in the game"
 ### Task 4: Reminder prompt and Settings switch
 
 **Files:**
+
 - Modify: `app/index.js`
 - Modify: `app/index.html`
 - Modify: `app/index.css`
@@ -330,6 +343,7 @@ git commit -m "feat(reminders): web push and the iPhone bridge in the game"
 - Test: `tests/reminders-prompt.test.js`
 
 **Interfaces:**
+
 - Consumes: `reminders` (`state`, `turnOn`, `turnOff`, `refresh`) (Task 3); existing `track`, `showToast`, the daily result panel (`submitDaily`, `setPanelDaily`), the Settings screen, `linkedWorldId`-style URL cleanup with `history.replaceState`.
 - Produces:
 
@@ -343,17 +357,18 @@ export function createPrompt(storage?: Storage): {
 
 Screens and states:
 
-| Screen | State | Shows |
-|---|---|---|
-| Daily result panel | first daily run, never asked | "Remind me when tomorrow's levels are ready?" with "Remind me" and "Not now" |
-| Daily result panel | asked before | no prompt |
-| Settings | on | switch "Daily reminder at 18:00" on |
-| Settings | off | switch off |
-| Settings | blocked | switch off and disabled, "Notifications are blocked in your browser settings." |
-| Settings | unsupported | switch off and disabled, "Reminders aren't available in this browser." |
-| Settings | turning on failed | switch back to off, toast "Couldn't turn on reminders. Try again later." |
+| Screen             | State                        | Shows                                                                          |
+| ------------------ | ---------------------------- | ------------------------------------------------------------------------------ |
+| Daily result panel | first daily run, never asked | "Remind me when tomorrow's levels are ready?" with "Remind me" and "Not now"   |
+| Daily result panel | asked before                 | no prompt                                                                      |
+| Settings           | on                           | switch "Daily reminder at 18:00" on                                            |
+| Settings           | off                          | switch off                                                                     |
+| Settings           | blocked                      | switch off and disabled, "Notifications are blocked in your browser settings." |
+| Settings           | unsupported                  | switch off and disabled, "Reminders aren't available in this browser."         |
+| Settings           | turning on failed            | switch back to off, toast "Couldn't turn on reminders. Try again later."       |
 
 **Spec:**
+
 - §1: "After a player's first daily run (the first time the daily result panel shows, finished or not), the game asks once: "Remind me when tomorrow's levels are ready?" with "Remind me" and "Not now"."
 - §1: ""Not now" is never asked again. The switch in Settings stays available."
 - §1: "The browser's or phone's own permission dialog appears only after the player presses "Remind me" or turns the switch on, never when the game loads."
@@ -368,6 +383,7 @@ Screens and states:
 **Knowledge:** none (this project has no knowledge base)
 
 **Acceptance:**
+
 - Given a fresh store, when `shouldAsk` runs, then true; after `answer(false)` or `answer(true)`, false, and it stays false after a reload.
 - Given a blocked or corrupt "reminder_prompt" value, when `shouldAsk` runs, then it doesn't throw.
 - Given the first daily result panel, when it shows, then the prompt shows under the result with "Remind me" and "Not now"; on the second daily run it doesn't.

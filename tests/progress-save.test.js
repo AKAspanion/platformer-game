@@ -272,7 +272,7 @@ test("resetLocal erases everything cloud save carries, keeps device_id and stamp
       achievements: { first: 5 },
       stats: { kills: { slime: 3 }, flawlessBoss: true, worldsFinished: ["a"] },
     }),
-    storage
+    storage,
   );
   const returned = resetLocal(storage, 5000);
   const expected = { ...emptyProgress(), resetAt: 5000 };
@@ -288,7 +288,11 @@ test("resetLocal on blocked storage does not throw", () => {
 
 test("merge: the later resetAt wins outright, in either order", () => {
   const a = withProgress({ resetAt: 5000 });
-  const b = withProgress({ resetAt: 0, campaign: campaign([1, 2], { 1: 7, 2: 7, 3: 7 }), highScore: 9 });
+  const b = withProgress({
+    resetAt: 0,
+    campaign: campaign([1, 2], { 1: 7, 2: 7, 3: 7 }),
+    highScore: 9,
+  });
   assert.deepEqual(mergeProgress(a, b), a);
   assert.deepEqual(mergeProgress(b, a), a);
 });

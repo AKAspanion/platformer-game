@@ -53,7 +53,10 @@ test("iPhone: granted and a token are saved, web push is never touched", async (
   });
   assert.equal(await r.turnOn(), "on");
   assert.deepEqual(calls(log), [
-    { name: "setReminders", body: { on: true, token: "ios-1", platform: "ios", timeZone: "Asia/Kolkata" } },
+    {
+      name: "setReminders",
+      body: { on: true, token: "ios-1", platform: "ios", timeZone: "Asia/Kolkata" },
+    },
   ]);
   assert.equal(saved().on, true);
   assert.equal(await r.state(), "on");
@@ -67,7 +70,11 @@ test("iPhone: denied is blocked and nothing is called", async () => {
 
 test("iPhone: a denied phone shows blocked without asking", async () => {
   const { r, log } = setup({
-    ios: { ...iosOn, permission: async () => "denied", requestPermission: async () => assert.fail("asked") },
+    ios: {
+      ...iosOn,
+      permission: async () => "denied",
+      requestPermission: async () => assert.fail("asked"),
+    },
   });
   assert.equal(await r.state(), "blocked");
   assert.equal(log.length, 0);
@@ -247,12 +254,12 @@ test("with reminders off, state() loads no token and asks nothing", async () => 
   assert.equal(log.length, 0);
 });
 
-test("the service worker handles push and clicks, opens /?from=reminder, caches as dino-v25", () => {
+test("the service worker handles push and clicks, opens /?from=reminder, caches as dino-v26", () => {
   const sw = fs.readFileSync(path.join(process.cwd(), "app", "sw.js"), "utf8");
   assert.match(sw, /addEventListener\("push"/);
   assert.match(sw, /addEventListener\("notificationclick"/);
   assert.match(sw, /\/\?from=reminder/);
-  assert.match(sw, /const CACHE_NAME = "dino-v25"/);
+  assert.match(sw, /const CACHE_NAME = "dino-v26"/);
 });
 
 test("on in storage but the browser now denies: blocked, and nothing is asked", async () => {
@@ -267,7 +274,11 @@ test("on in storage but the browser now denies: blocked, and nothing is asked", 
 test("on in storage but the iPhone now denies: blocked", async () => {
   const { r } = setup({
     stored: { on: true, token: "ios-1" },
-    ios: { ...iosOn, permission: async () => "denied", requestPermission: async () => assert.fail("asked") },
+    ios: {
+      ...iosOn,
+      permission: async () => "denied",
+      requestPermission: async () => assert.fail("asked"),
+    },
   });
   assert.equal(await r.state(), "blocked");
 });
@@ -275,6 +286,9 @@ test("on in storage but the iPhone now denies: blocked", async () => {
 test("on in storage and still allowed stays on", async () => {
   const web = setup({ stored: { on: true, token: "web-1" }, web: { permission: () => "granted" } });
   assert.equal(await web.r.state(), "on");
-  const ios = setup({ stored: { on: true, token: "i" }, ios: { ...iosOn, permission: async () => "authorized" } });
+  const ios = setup({
+    stored: { on: true, token: "i" },
+    ios: { ...iosOn, permission: async () => "authorized" },
+  });
   assert.equal(await ios.r.state(), "on");
 });

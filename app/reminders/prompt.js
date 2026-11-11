@@ -13,7 +13,9 @@ export function createPrompt(storage = localStorage) {
   const stored = () => {
     try {
       const value = JSON.parse(storage.getItem(KEY));
-      return !!value && typeof value === "object" && (value.answer === "yes" || value.answer === "no");
+      return (
+        !!value && typeof value === "object" && (value.answer === "yes" || value.answer === "no")
+      );
     } catch (error) {
       return false; // unreadable: same as never asked
     }

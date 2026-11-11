@@ -15,12 +15,16 @@ export const SETTINGS_LIMIT = 30;
 export const TITLE = "Dino's Adventure";
 
 const formatters = new Map();
+/** IANA names are short ("America/Argentina/ComodRivadavia" is 32). */
+const MAX_TIME_ZONE = 64;
+/** Far more zones than exist; keeps a server's cache bounded whatever it is sent. */
+const MAX_FORMATTERS = 600;
 
-/** A cached formatter for the zone, or null when Intl rejects it. */
+/** A cached formatter for the zone, or null when Intl rejects it (never cached). */
 function formatterFor(timeZone) {
-  if (typeof timeZone !== "string" || !timeZone) return null;
+  if (typeof timeZone !== "string" || !timeZone || timeZone.length > MAX_TIME_ZONE) return null;
   if (formatters.has(timeZone)) return formatters.get(timeZone);
-  let formatter = null;
+  let formatter;
   try {
     formatter = new Intl.DateTimeFormat("en-US", {
       timeZone,
@@ -31,8 +35,9 @@ function formatterFor(timeZone) {
       hour: "numeric",
     });
   } catch {
-    formatter = null;
+    return null;
   }
+  if (formatters.size >= MAX_FORMATTERS) formatters.clear();
   formatters.set(timeZone, formatter);
   return formatter;
 }
@@ -70,7 +75,12 @@ function streakAlive(streak, todaySeed) {
 export function reminderFor(streak, todaySeed) {
   const valid = streak && typeof streak === "object" && seedToDate(streak.last);
   if (valid && streak.last === todaySeed) return null;
-  if (valid && Number.isInteger(streak.days) && streak.days >= 2 && streakAlive(streak, todaySeed)) {
+  if (
+    valid &&
+    Number.isInteger(streak.days) &&
+    streak.days >= 2 &&
+    streakAlive(streak, todaySeed)
+  ) {
     return {
       kind: "streak",
       title: TITLE,
@@ -78,7 +88,11 @@ export function reminderFor(streak, todaySeed) {
       days: streak.days,
     };
   }
-  return { kind: "daily", title: TITLE, body: "Today's challenge is up. 5 new levels are waiting." };
+  return {
+    kind: "daily",
+    title: TITLE,
+    body: "Today's challenge is up. 5 new levels are waiting.",
+  };
 }
 
 /** True when a reminder is due at `ms`: the local hour is REMINDER_HOUR and nothing was sent on this local day. */

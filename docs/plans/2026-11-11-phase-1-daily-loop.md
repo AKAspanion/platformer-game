@@ -38,6 +38,7 @@ None (`run.checkpoints: none`). The run goes through all five tasks and stops be
 ### Task 1: Shared daily rules, Firestore and sync foundation
 
 **Files:**
+
 - Create: `app/daily/rules.js`
 - Create: `app/daily/package.json`
 - Modify: `app/modes/index.js` (`createDailySession` takes its level list from `dailyLevels`)
@@ -51,6 +52,7 @@ None (`run.checkpoints: none`). The run goes through all five tasks and stops be
 - Test: `tests/daily-rules.test.js`
 
 **Interfaces:**
+
 - Consumes: existing `generateSequence`, `themeFor` from `app/pcg/generator.js`; existing `dailySeed` from `app/modes/index.js`.
 - Produces (used by Tasks 2, 3 and 5):
 
@@ -81,13 +83,14 @@ export const firebaseConfig = { /* existing fields */ measurementId: string };
 
 Firestore:
 
-| Path | Fields | Client access |
-|---|---|---|
+| Path                        | Fields                                                                         | Client access                                              |
+| --------------------------- | ------------------------------------------------------------------------------ | ---------------------------------------------------------- |
 | `daily/{seed}/scores/{uid}` | `uid: string, name: string, score: number, seconds: number, updatedAt: number` | `get` anyone; `list` anyone with `limit <= 100`; no writes |
 
 Index: collection group `scores`, `score` descending then `seconds` ascending.
 
 **Spec:**
+
 - §2.4: "The server accepts a run only for yesterday, today or tomorrow by UTC date, so every time zone can submit its local day."
 - §2.4: "The server refuses a score above the most the day's levels can give (20 per coin, plus the highest enemy score per enemy, plus 100 per power-up for a heart picked up at full health), and a time under 30 seconds or over 7200 seconds."
 - §2.3: "An anonymous player's leaderboard name is generated from their account ID, for example "Swift Raptor 42", and is the same every time."
@@ -97,6 +100,7 @@ Index: collection group `scores`, `score` descending then `seconds` ascending.
 **Knowledge:** none (this project has no knowledge base)
 
 **Acceptance:**
+
 - Given seed 20261111, when `dailyLevels` runs, then it returns the same 5 configs `createDailySession` used before this change (theme from `(seed + i * 3) % 9`, difficulty `1 + i`, power-ups 1 then 2).
 - Given seed 20261111, when `dailyScoreCeiling` runs twice, then both results are equal and at least the score of collecting every coin and defeating every enemy in the generated levels.
 - Given now = 2026-11-11T12:00Z, when `seedIsOpen` checks 20261110, 20261111 and 20261112, then each is true; 20261109 and 20261113 are false.
@@ -139,6 +143,7 @@ git commit -m "feat(daily): shared daily rules, score storage and anonymous auth
 ### Task 2: Analytics
 
 **Files:**
+
 - Create: `app/analytics/index.js`
 - Modify: `app/util/settings.js` (default `analytics: true`)
 - Modify: `app/index.js` (call `track` at app open, mode start, level start/complete/fail; settings switch)
@@ -147,6 +152,7 @@ git commit -m "feat(daily): shared daily rules, score storage and anonymous auth
 - Test: `tests/analytics.test.js`
 
 **Interfaces:**
+
 - Consumes: `firebaseConfig.measurementId` (Task 1); existing `loadFirebase()` from `app/firebase/index.js`; existing `settings` from `app/util/settings.js`.
 - Produces (used by Task 5):
 
@@ -166,6 +172,7 @@ export function createAnalytics(options: { load: () => Promise<{ log: (name, par
 Events and parameters exactly as spec §2.1. `app_open.days_since_first` comes from a `first_open` date kept in localStorage.
 
 **Spec:**
+
 - §2.1: "Analytics must never delay the game: the analytics code loads after the player's first input, or 3 seconds after start, whichever comes first."
 - §2.1: "Events sent before analytics loads are queued, at most 50; older ones are dropped."
 - §2.1: "If analytics fails to load (offline, blocked), the game plays exactly as before and throws nothing."
@@ -178,6 +185,7 @@ Events and parameters exactly as spec §2.1. `app_open.days_since_first` comes f
 **Knowledge:** none (this project has no knowledge base)
 
 **Acceptance:**
+
 - Given analytics hasn't started, when 60 events are tracked, then 50 are queued and the first 10 were dropped; after `start`, the 50 are sent in order.
 - Given `load` rejects (blocked script), when events are tracked before and after, then no error is thrown and `track` keeps returning normally.
 - Given the setting is off, when `start` runs, then `load` is never called; when it is switched off with 5 queued, then the queue is empty.
@@ -218,6 +226,7 @@ git commit -m "feat(analytics): queue game events and send them to Firebase Anal
 ### Task 3: Leaderboard service and anonymous players
 
 **Files:**
+
 - Create: `functions/src/daily.js`
 - Modify: `functions/index.js` (export `submitDailyScore`; `deleteAccount` also removes daily scores)
 - Modify: `functions/src/handlers.js` (`handleDeleteAccount` calls `accounts.deleteDailyScores(uid)`)
@@ -229,6 +238,7 @@ git commit -m "feat(analytics): queue game events and send them to Firebase Anal
 - Test: `tests/daily-auth.test.js`
 
 **Interfaces:**
+
 - Consumes: `seedIsOpen`, `dailyScoreCeiling`, `generatedName`, `MIN_SECONDS`, `MAX_SECONDS` from `functions/shared/daily/rules.js` (Task 1); existing `overLimit`, `ApiError`, `authorName` from `functions/src/handlers.js`; existing `loadFirebase()`.
 - Produces (used by Task 5):
 
@@ -241,8 +251,8 @@ export function handleSubmitDaily(
 ): Promise<{ rank: number, total: number, best: { score: number, seconds: number }, improved: boolean }>;
 ```
 
-| Callable | Request | Response | Errors |
-|---|---|---|---|
+| Callable           | Request                    | Response                                              | Errors                                                                                                                                                                                                 |
+| ------------------ | -------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `submitDailyScore` | `{ seed, score, seconds }` | `{ rank, total, best: { score, seconds }, improved }` | `unauthenticated` no account; `invalid-argument` "That run can't be ranked."; `failed-precondition` "That daily challenge has closed."; `resource-exhausted` "Too many scores, try again in a minute." |
 
 ```js
@@ -260,6 +270,7 @@ auth.currentUser.isAnonymous: boolean;
 ```
 
 **Spec:**
+
 - §2.3: "Players who haven't signed in get an anonymous account the first time they finish a daily run, with no prompt."
 - §2.3: "Signing in with Google or creating an email account while anonymous keeps the same account, so scores stay."
 - §2.3: "Signing in to an email account that already exists switches to that account; the anonymous scores stay under the old name."
@@ -275,6 +286,7 @@ auth.currentUser.isAnonymous: boolean;
 **Knowledge:** none (this project has no knowledge base)
 
 **Acceptance:**
+
 - Given no `request.auth`, when `handleSubmitDaily` runs, then it throws `unauthenticated`.
 - Given seed 20261109 at now 2026-11-11T12:00Z, when submitted, then it throws `failed-precondition` "That daily challenge has closed."
 - Given a score of `dailyScoreCeiling(seed) + 1`, or a negative, fractional or non-number score, when submitted, then it throws `invalid-argument` "That run can't be ranked." and nothing is stored.
@@ -321,12 +333,14 @@ git commit -m "feat(daily): global daily leaderboard and anonymous players"
 ### Task 4: Streaks and the share card
 
 **Files:**
+
 - Create: `app/daily/streak.js`
 - Create: `app/daily/share.js`
 - Test: `tests/daily-streak.test.js`
 - Test: `tests/daily-share.test.js`
 
 **Interfaces:**
+
 - Consumes: `daysBetween`, `seedToDate` from `app/daily/rules.js` (Task 1).
 - Produces (used by Task 5):
 
@@ -348,6 +362,7 @@ export function shareRun(text: string, nav?: Navigator): Promise<"share" | "copy
 ```
 
 **Spec:**
+
 - §2.5: "A day counts toward the streak when the player finishes at least one daily level that day (local date)."
 - §2.5: "Playing again on a day already counted changes nothing."
 - §2.5: "Missing exactly one day uses a streak freeze if the player has one; otherwise the streak starts again at 1."
@@ -362,6 +377,7 @@ export function shareRun(text: string, nav?: Navigator): Promise<"share" | "copy
 **Knowledge:** none (this project has no knowledge base)
 
 **Acceptance:**
+
 - Given an empty store, when 20261111 is recorded, then days 1, freezes 1, grew true.
 - Given days 3 last on 20261111, when 20261111 is recorded again, then nothing changes and grew is false.
 - Given days 3 last on 20261111 with 1 freeze, when 20261113 is recorded, then days 4, freezes 0, usedFreeze true.
@@ -407,6 +423,7 @@ git commit -m "feat(daily): streaks with freezes and a shareable result card"
 ### Task 5: Free daily with leaderboard, streak and share on screen
 
 **Files:**
+
 - Modify: `app/index.js` (daily is free; results panel; leaderboard screen; pending submission; per-level heart tracking; daily events)
 - Modify: `app/index.html` (daily card without `premium`; result panel rank, Leaderboard and Share buttons; leaderboard screen)
 - Modify: `app/index.css`
@@ -414,6 +431,7 @@ git commit -m "feat(daily): streaks with freezes and a shareable result card"
 - Test: `tests/daily-pending.test.js`
 
 **Interfaces:**
+
 - Consumes: `track` (Task 2); `leaderboard.submit/top/mine`, `auth.ensurePlayer` (Task 3); `createStreak`, `shareText`, `shareRun` (Task 4); existing `dailySeed`, `records`, `showPanel`, `refreshHome` in `app/index.js`.
 - Produces:
 
@@ -428,18 +446,19 @@ export function createPending(storage?: Storage): {
 
 Screens and states:
 
-| Screen | State | Shows |
-|---|---|---|
-| Home, daily card | streak ≥ 2 | "🔥 6" beside "Today's best …" |
-| Result panel (daily complete) | ranked | "#12 of 340", Leaderboard and Share buttons, "🔥 6-day streak!" when it grew |
-| Result panel (daily complete) | offline / error | "You're offline. Your score will be sent later." and Share |
-| Result panel (game over in daily) | — | Share; no rank; "Finish all 5 levels to get on the leaderboard." |
-| Leaderboard | loading | "Loading leaderboard…" |
-| Leaderboard | loaded | top 50 rows (rank, name, score, time); own row highlighted; own row pinned last when outside the top 50 |
-| Leaderboard | empty | "No scores yet today. Be the first!" |
-| Leaderboard | error | "Leaderboard didn't load." with Try again |
+| Screen                            | State           | Shows                                                                                                   |
+| --------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------- |
+| Home, daily card                  | streak ≥ 2      | "🔥 6" beside "Today's best …"                                                                          |
+| Result panel (daily complete)     | ranked          | "#12 of 340", Leaderboard and Share buttons, "🔥 6-day streak!" when it grew                            |
+| Result panel (daily complete)     | offline / error | "You're offline. Your score will be sent later." and Share                                              |
+| Result panel (game over in daily) | —               | Share; no rank; "Finish all 5 levels to get on the leaderboard."                                        |
+| Leaderboard                       | loading         | "Loading leaderboard…"                                                                                  |
+| Leaderboard                       | loaded          | top 50 rows (rank, name, score, time); own row highlighted; own row pinned last when outside the top 50 |
+| Leaderboard                       | empty           | "No scores yet today. Be the first!"                                                                    |
+| Leaderboard                       | error           | "Leaderboard didn't load." with Try again                                                               |
 
 **Spec:**
+
 - §2.2: "The daily challenge and endless mode are free for everyone. Only features that use AI stay premium: today, that is the world creator."
 - §2.4: "Only completed daily runs (all 5 levels) are ranked."
 - §2.4: "If the score can't be sent (offline, server error), the run is kept on the device and sent the next time the home screen opens. The result panel says "You're offline. Your score will be sent later.""
@@ -450,6 +469,7 @@ Screens and states:
 **Knowledge:** none (this project has no knowledge base)
 
 **Acceptance:**
+
 - Given premium is off, when the daily or endless card is clicked, then that mode starts (no premium dialog, no ★ badge on either card); the create card still opens the premium dialog, which lists only the world creator.
 - Given a pending run for an open seed and a working `send`, when `flush` runs, then it is sent once and removed; run again, nothing is sent.
 - Given a pending run and `send` rejects, when `flush` runs, then it is kept.

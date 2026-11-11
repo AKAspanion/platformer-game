@@ -1,0 +1,231 @@
+/*
+ * The game's standalone pages (404.html, the email link page /auth/action):
+ * the home screen's look, without the game. Colours and type match index.css.
+ */
+:root {
+  --red: #ef534f;
+  --red-dark: #c63d3a;
+  --ink: #1d1a24;
+  --ink-2: #2a2633;
+  --cream: #fff7e8;
+  --gold: #ffd84d;
+  --font: "Grandstander", "Trebuchet MS", sans-serif;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+html {
+  height: 100%;
+}
+body {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: calc(env(safe-area-inset-top, 0px) + 24px) 16px
+    calc(env(safe-area-inset-bottom, 0px) + 24px);
+  font-family: var(--font);
+  color: var(--cream);
+  text-align: center;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(239, 83, 79, 0.22), transparent 60%),
+    linear-gradient(rgba(22, 19, 28, 0.78), rgba(22, 19, 28, 0.94)),
+    url(/images/area_1.png) center / cover no-repeat fixed,
+    var(--ink);
+}
+
+.logo {
+  display: block;
+  font-size: clamp(28px, 6vmin, 44px);
+  line-height: 1;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: white;
+  text-shadow:
+    0 4px 0 var(--red-dark),
+    0 8px 24px rgba(0, 0, 0, 0.5);
+}
+.logo span {
+  display: block;
+  color: var(--gold);
+  font-size: 0.7em;
+  letter-spacing: 4px;
+}
+
+.panel {
+  width: min(400px, 100%);
+  padding: 24px;
+  border-radius: 20px;
+  background: var(--ink-2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+}
+.dino {
+  display: block;
+  width: 150px;
+  height: auto;
+  margin: -8px auto 4px;
+  image-rendering: auto;
+}
+.code {
+  font-size: 64px;
+  line-height: 1;
+  color: var(--gold);
+  text-shadow: 0 4px 0 #b8901a;
+}
+.title {
+  margin-top: 6px;
+  font-size: 28px;
+  line-height: 1.15;
+  text-transform: uppercase;
+  color: white;
+}
+.title.bad {
+  color: #ff6b66;
+}
+.text {
+  margin-top: 10px;
+  font-size: 16px;
+  line-height: 1.4;
+  opacity: 0.85;
+  overflow-wrap: anywhere;
+}
+.text b {
+  color: var(--gold);
+  font-weight: normal;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  margin-top: 22px;
+}
+.btn {
+  display: inline-block;
+  font-family: var(--font);
+  font-size: 18px;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 14px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    transform 0.08s ease,
+    filter 0.15s ease;
+}
+.btn:active {
+  transform: translateY(2px) scale(0.98);
+}
+.btn:focus-visible,
+.input:focus-visible,
+.reveal:focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: 2px;
+}
+.btn-primary {
+  color: white;
+  background: linear-gradient(#ff6b66, var(--red));
+  box-shadow:
+    0 5px 0 var(--red-dark),
+    0 8px 20px rgba(239, 83, 79, 0.35);
+}
+.btn-primary:hover {
+  filter: brightness(1.06);
+}
+.btn-ghost {
+  color: var(--cream);
+  background: rgba(255, 255, 255, 0.08);
+}
+.btn[disabled] {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.form {
+  text-align: left;
+}
+.form .title,
+.form .text {
+  text-align: center;
+}
+.form .actions {
+  margin-top: 10px;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 18px;
+  font-size: 14px;
+}
+.input-wrap {
+  position: relative;
+}
+.input {
+  width: 100%;
+  padding: 12px 64px 12px 12px;
+  font-size: 16px;
+  font-family: var(--font);
+  color: var(--ink);
+  border-radius: 10px;
+  border: 2px solid #e0d6c4;
+  background: white;
+}
+.input:focus {
+  outline: none;
+  border-color: var(--red);
+}
+.reveal {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  padding: 4px 8px;
+  font-family: var(--font);
+  font-size: 13px;
+  color: var(--red-dark);
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.message {
+  min-height: 20px;
+  margin-top: 8px;
+  font-size: 14px;
+  color: #ff8a86;
+}
+
+.spinner {
+  width: 44px;
+  height: 44px;
+  margin: 8px auto 0;
+  border-radius: 50%;
+  border: 4px solid rgba(255, 255, 255, 0.15);
+  border-top-color: var(--gold);
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 2.4s;
+  }
+}
+
+[hidden] {
+  display: none !important;
+}

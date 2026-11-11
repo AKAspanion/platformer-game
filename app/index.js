@@ -43,6 +43,8 @@ import { DAILY_LEVELS } from "./daily/rules.js";
 import { friendlyError } from "./firebase";
 import { endlessBoard } from "./modes/endless-board";
 import { createEndlessPending } from "./modes/endless-pending";
+import { createRunTickets } from "./modes/run-ticket";
+import { firestoreEndless } from "./firebase/endless";
 import { MIN_LEVEL } from "./modes/endless-rules";
 import { firebaseAuthBackend } from "./firebase/auth";
 import { firestoreWorlds } from "./firebase/worlds";
@@ -207,7 +209,7 @@ window.addEventListener("load", function () {
   let session = null; // null = story; otherwise a mode from app/modes
   let retry = null; // () => void, restarts after Game Over
 
-  clearInterval(loadInterval);
+  clearInterval(loadInterval); // the loading bar's timer, from index.html's inline script
   toggleLoadingScreen(false);
   setProgressValue(0);
   sizeControls();
@@ -477,6 +479,7 @@ window.addEventListener("load", function () {
   const daily = {
     seed: 0,
     ticks: 0,
+    ticket: null, // Promise<{ ticket, seed } | null>: this attempt's ticket (startDaily)
     levels: [],
     hurt: [],
     hearts: MAX_HEARTS,
@@ -517,9 +520,15 @@ window.addEventListener("load", function () {
   /** The endless run's clock: ticks played, 30 a second. */
   const endless = {
     ticks: 0,
+    ticket: null, // this run's ticket id; null: unranked
     seconds: () => Math.round(endless.ticks / 30),
   };
   const endlessPending = createEndlessPending();
+  // a ranked run starts on the server (functions/src/runs.js); without a ticket it plays unranked
+  const runTickets = createRunTickets({
+    call: (name, data) => firestoreEndless.call(name, data),
+    ensurePlayer: () => auth.ensurePlayer(),
+  });
 
   /** The boss rush run's clock: ticks played, 30 a second. */
   const rush = {
@@ -528,6 +537,7 @@ window.addEventListener("load", function () {
   };
 
   const OFFLINE = "You're offline. Your score will be sent later.";
+  const UNRANKED = "This run started offline, so it isn't ranked.";
   const REFUSED = {
     "invalid-argument": "That run can't be ranked.",
     "failed-precondition": "That daily challenge has closed.",
@@ -544,6 +554,13 @@ window.addEventListener("load", function () {
       rank: "Sending your score…",
       streak: daily.streakGrew === run.seed && days >= 2 ? `🔥 ${days}-day streak!` : "",
     });
+    const ticket = await daily.ticket;
+    if (!ticket || ticket.seed !== run.seed) {
+      track("daily_complete", { score, seconds: run.seconds });
+      if (token === panelToken) setPanelDaily({ rank: UNRANKED });
+      return;
+    }
+    run.ticket = ticket.ticket;
     try {
       await auth.ensurePlayer();
       const sent = await leaderboard.submit(run);
@@ -562,6 +579,10 @@ window.addEventListener("load", function () {
   /** Sends a finished endless run; shows "#12 of 340 all time", or keeps the run for the home screen. */
   const submitEndless = async (run) => {
     const token = panelToken;
+    if (!run.ticket) {
+      setPanelDaily({ rank: UNRANKED });
+      return;
+    }
     setPanelDaily({ rank: "Sending your score…" });
     try {
       await auth.ensurePlayer();
@@ -627,6 +648,7 @@ window.addEventListener("load", function () {
             level: session.level(current),
             score,
             seconds: endless.seconds(),
+            ticket: endless.ticket || undefined,
           }
         : null;
     const inSession = session;
@@ -1466,8 +1488,8 @@ window.addEventListener("load", function () {
 
   var engine = new GameEngine(1000 / 30, update, render);
 
-  // ?debug exposes the game for manual testing from the console
-  if (new URLSearchParams(window.location.search).has("debug")) {
+  // ?debug exposes the game for manual testing from the console (test hosts only)
+  if (canToggleLocally() && new URLSearchParams(window.location.search).has("debug")) {
     window.debugGame = {
       game,
       engine,
@@ -1530,14 +1552,26 @@ window.addEventListener("load", function () {
   const startDaily = () => {
     session = createDailySession();
     daily.start();
+    // asked in the background: the daily seed is the day's, so play starts at once
+    daily.ticket = runTickets.start("daily", daily.seed, { wait: Infinity });
     track("mode_start", { mode: "daily" });
     loadWorld(session.startId, session.left, session.top);
   };
 
-  const startEndless = () => {
-    session = createEndlessSession();
+  let endlessStarts = 0;
+  /** The server picks a ranked run's seed: wait for it briefly, else play an unranked run. */
+  const startEndless = async () => {
+    const start = ++endlessStarts;
+    show(homeScreen, false);
+    show(pauseScreen, false);
+    toggleLoadingScreen(true);
+    const ticket = await runTickets.start("endless");
+    if (start !== endlessStarts) return; // started again meanwhile
+    toggleLoadingScreen(false);
+    session = createEndlessSession(ticket ? ticket.seed : undefined);
     endless.ticks = 0;
-    track("mode_start", { mode: "endless" });
+    endless.ticket = ticket ? ticket.ticket : null;
+    track("mode_start", { mode: "endless", ranked: !!ticket });
     loadWorld(session.startId, session.left, session.top);
   };
 
@@ -2605,10 +2639,17 @@ window.addEventListener("load", function () {
     }, 3000);
     renderAccount();
   };
+  let nameOwner = null; // the account whose name is in loginName
   auth.onAuthStateChanged((user) => {
     renderAccount();
     const real = auth.signedIn ? user : null;
-    if (real && !loginName.value) loginName.value = real.displayName;
+    const owner = real ? real.uid : null;
+    if (owner !== nameOwner) {
+      // a different account (or none): the field never keeps someone else's
+      // name, which a later email sign-in would otherwise rename the account to
+      loginName.value = (real && real.displayName) || "";
+      nameOwner = owner;
+    }
     if (real) watchCommunity();
   });
 
@@ -2642,6 +2683,15 @@ window.addEventListener("load", function () {
   const statsMap = new Map(); // world id -> { plays, finishes, likes }
   const likedSet = new Set();
   const seenForStats = new Set();
+  let likesOwner = auth.currentUser ? auth.currentUser.uid : null;
+  auth.onAuthStateChanged((user) => {
+    const owner = user ? user.uid : null;
+    if (owner === likesOwner) return;
+    likesOwner = owner;
+    // the hearts were the previous account's: ask again for this one
+    likedSet.clear();
+    seenForStats.clear();
+  });
 
   /** Worlds by id: from the loaded lists first, the rest from the repository. */
   const worldsById = async (ids) => {

@@ -5,7 +5,8 @@
  * There is no store purchase yet: the flag comes from
  *   - a build-time default (webpack sets PREMIUM_DEFAULT; false for releases),
  *   - or a local unlock: `?premium=1` in the URL, or the developer switch in
- *     Settings (shown on localhost / with ?debug).
+ *     Settings (shown on localhost, or with ?debug on a PR preview channel;
+ *     never on the live game).
  * When Play Billing lands (Digital Goods API in the TWA), `setPremium(true)`
  * is what a verified purchase should call.
  */
@@ -34,9 +35,17 @@ export const isPremium = () => {
   return BUILD_DEFAULT;
 };
 
-/** Apply `?premium=1` / `?premium=0` from the URL once at start-up. */
+const LOCAL_HOST = /^(localhost|127\.0\.0\.1|\[::1\])$/;
+// Firebase Hosting preview channels: <site>--<channel>-<hash>.web.app
+const PREVIEW_HOST = /--[a-z0-9-]+\.web\.app$/;
+
+/** Hosts where testing switches are allowed: local dev and PR preview channels, never the live game. */
+export const isTestHost = (hostname) => LOCAL_HOST.test(hostname) || PREVIEW_HOST.test(hostname);
+
+/** Apply `?premium=1` / `?premium=0` from the URL once at start-up (test hosts only). */
 export const readPremiumFromUrl = () => {
   try {
+    if (!isTestHost(window.location.hostname)) return;
     const value = new URLSearchParams(window.location.search).get("premium");
     if (value !== null) setPremium(value !== "0");
   } catch (error) {
@@ -44,11 +53,11 @@ export const readPremiumFromUrl = () => {
   }
 };
 
-/** The developer switch is only offered when testing locally. */
+/** The developer switch is only offered when testing locally (or ?debug on a preview channel). */
 export const canToggleLocally = () => {
   try {
     const { hostname, search } = window.location;
-    return /^(localhost|127\.0\.0\.1|\[::1\])$/.test(hostname) || /[?&]debug\b/.test(search);
+    return LOCAL_HOST.test(hostname) || (PREVIEW_HOST.test(hostname) && /[?&]debug\b/.test(search));
   } catch (error) {
     return false;
   }

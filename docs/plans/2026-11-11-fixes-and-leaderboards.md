@@ -37,6 +37,7 @@ None (`run.checkpoints: none`). The run stops before pushing (`git.push: ask`).
 ### Task 1: Endless rules, error copy and the endless board client
 
 **Files:**
+
 - Create: `app/modes/endless-rules.js`
 - Modify: `scripts/sync-functions-shared.js` (add `app/modes/endless-rules.js`)
 - Create: `functions/shared/modes/endless-rules.js` (generated)
@@ -49,6 +50,7 @@ None (`run.checkpoints: none`). The run stops before pushing (`git.push: ask`).
 - Test: `tests/friendly-error.test.js`
 
 **Interfaces:**
+
 - Consumes: existing `generateEndlessLevel` from `app/pcg/generator.js`; existing `COIN_SCORE`, `ENEMY_MAX_SCORE` and the power-up allowance from `app/daily/rules.js`; existing `loadFirebase()`; existing `createLeaderboard` pattern in `app/daily/leaderboard.js`.
 - Produces (used by Tasks 2 and 5):
 
@@ -81,6 +83,7 @@ export const endlessBoard; // wired to Firebase through app/firebase/endless.js
 Firestore: `endless/{uid}` = `{ uid, name, level, score, seconds, seed, updatedAt }`; read by anyone (list with `limit <= 100`), no client writes. Index: `endless` by `level` desc, `score` desc, `seconds` asc.
 
 **Spec:**
+
 - §2: "The server checks the run against its seed: the level must be from 2 to 500, the score at most the most levels 1 to <level> of that seed can give (the same 20 per coin, highest enemy score per enemy and 100 per power-up rule as the daily), and the time at least 8 seconds per level cleared and at most 36,000 seconds."
 - §2: "Each player has one entry, their best run ever: the highest level reached; on a tie, the higher score; then the shorter time."
 - §3: "Every error shown to a player goes through one function that turns errors into player-facing copy; anything it doesn't recognise becomes "Something went wrong. Try again.""
@@ -90,6 +93,7 @@ Firestore: `endless/{uid}` = `{ uid, name, level, score, seconds, seed, updatedA
 **Knowledge:** none (this project has no knowledge base)
 
 **Acceptance:**
+
 - Given seed 12345 and level 5, when `endlessScoreCeiling` runs twice, then both are equal and at least the score of every coin, enemy and power-up in the first 5 levels endless mode builds for that seed.
 - Given level 1, 501, a fractional level, a negative or over-ceiling score, 7 seconds for level 2, or 36,001 seconds, when `checkEndlessRun` runs, then it returns a reason; a fair run at level 4 with 30 seconds returns null.
 - Given runs (level 9, 4000, 300 s), (level 9, 4000, 250 s) and (level 10, 100, 900 s), when sorted with `compareRuns`, then the level-10 run first, then the 250 s run.
@@ -129,6 +133,7 @@ git commit -m "feat(endless): shared endless rules, board client and player-faci
 ### Task 2: Endless function and the public-invoker check
 
 **Files:**
+
 - Create: `functions/src/endless.js`
 - Modify: `functions/index.js` (export `submitEndlessScore`; `deleteAccount` deletes `endless/{uid}`)
 - Modify: `functions/src/handlers.js` (`handleDeleteAccount` calls `accounts.deleteEndless(uid)`)
@@ -139,11 +144,12 @@ git commit -m "feat(endless): shared endless rules, board client and player-faci
 - Test: `tests/daily-submit.test.js` (its fake `accounts` gains `deleteEndless`)
 
 **Interfaces:**
+
 - Consumes: `checkEndlessRun`, `compareRuns`, `ENDLESS_LIMIT` from `functions/shared/modes/endless-rules.js` (Task 1); existing `overLimit`, `ApiError`, `authorName`, `generatedName`, the `callable()` wrapper.
 - Produces:
 
-| Callable | Request | Response | Errors |
-|---|---|---|---|
+| Callable             | Request                           | Response                                                     | Errors                                                                                                                            |
+| -------------------- | --------------------------------- | ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
 | `submitEndlessScore` | `{ seed, level, score, seconds }` | `{ rank, total, best: { level, score, seconds }, improved }` | `unauthenticated`; `invalid-argument` "That run can't be ranked."; `resource-exhausted` "Too many scores, try again in a minute." |
 
 ```js
@@ -154,6 +160,7 @@ export async function handleSubmitEndless(request, deps: { board: { get(uid), se
 ```
 
 **Spec:**
+
 - §2: "Each player has one entry, their best run ever: the highest level reached; on a tie, the higher score; then the shorter time."
 - §2: "A player can submit at most 30 endless runs an hour."
 - §2: "Names come from the server, as on the daily board."
@@ -165,6 +172,7 @@ export async function handleSubmitEndless(request, deps: { board: { get(uid), se
 **Knowledge:** none (this project has no knowledge base)
 
 **Acceptance:**
+
 - Given no `request.auth`, then `unauthenticated`.
 - Given a run `checkEndlessRun` refuses, then `invalid-argument` "That run can't be ranked." and nothing is stored.
 - Given 30 submissions this hour, when the 31st arrives, then `resource-exhausted` "Too many scores, try again in a minute." and nothing is stored.
@@ -205,6 +213,7 @@ git commit -m "feat(endless): global endless board and a post-deploy check that 
 ### Task 3: Every platform reachable
 
 **Files:**
+
 - Modify: `app/pcg/generator.js` (`validate` checks every platform; generated levels are repaired before use)
 - Modify: `functions/shared/pcg/generator.js` (generated)
 - Modify: `app/areas/area-*.json` (regenerated by `pnpm levels`; every changed file staged by name)
@@ -212,6 +221,7 @@ git commit -m "feat(endless): global endless board and a post-deploy check that 
 - Test: `tests/levels.test.js`
 
 **Interfaces:**
+
 - Consumes: existing `surfaces`, `reachable`, `validate`, `generateSequence`, `generateEndlessLevel` in `app/pcg/generator.js`; existing `pnpm levels` script.
 - Produces:
 
@@ -223,6 +233,7 @@ export function unreachablePlatforms(level): number[];
 ```
 
 **Spec:**
+
 - §6: "Every platform in every level can be stood on by the dino from the level's start, using only its normal jump (no wings, no power-ups)."
 - §6: "This holds for campaign levels, daily and endless levels, community worlds, the starter worlds and Starfall Peaks."
 - §6: "A generated level with a platform the dino can't reach is fixed before it is used: the platform is removed, or a step is added below it."
@@ -232,6 +243,7 @@ export function unreachablePlatforms(level): number[];
 **Knowledge:** none (this project has no knowledge base)
 
 **Acceptance:**
+
 - Given a synthetic level with a platform 6 rows above the highest reachable surface, when `unreachablePlatforms` runs, then it returns that platform; `validate` fails naming it.
 - Given every campaign area in `app/areas`, when checked, then no area has an unreachable platform.
 - Given the daily levels for 30 consecutive seeds, the first 30 endless levels of 5 seeds, the 4 starter worlds and Starfall Peaks, when generated, then none has an unreachable platform.
@@ -277,6 +289,7 @@ Then stage each changed `app/areas/area-*.json` and `app/images/levels/area-*.we
 ### Task 4: Lazy assets and music after loading
 
 **Files:**
+
 - Modify: `app/util/index.js` (no up-front audio preloads)
 - Modify: `app/controller/sfx.js` (load each sound on first play)
 - Modify: `app/controller/audio.js`
@@ -287,6 +300,7 @@ Then stage each changed `app/areas/area-*.json` and `app/images/levels/area-*.we
 - Test: `tests/lazy-assets.test.js`
 
 **Interfaces:**
+
 - Consumes: existing `AudioController`, `sfx`, `ALL_SFX`, `ENEMY_SFX`, `BOSS_MOVE_SFX`, `world.isLoaded()`, `world.loadCount`, `world.assetCount`.
 - Produces:
 
@@ -299,6 +313,7 @@ world.assetsFor(area): { images: string[], audio: string[] }; // what this area 
 ```
 
 **Spec:**
+
 - §5: "Background music starts only after the level's assets have finished loading."
 - §7: "The home screen downloads only what it shows. It downloads no level music, no sound effects, and no enemy or boss sprites."
 - §7: "A level downloads its own theme music, the sprites of the enemies and boss in it, and each sound effect the first time it plays."
@@ -310,6 +325,7 @@ world.assetsFor(area): { images: string[], audio: string[] }; // what this area 
 **Knowledge:** none (this project has no knowledge base)
 
 **Acceptance:**
+
 - Given the game booted to the home screen (tests/env.js stubs record every `Image` and `Audio` src), then no `assets/audio/` file and no enemy or boss sprite has been requested.
 - Given Grassland 1 starts, then its theme music and only the enemy kinds in Grassland 1 are requested; no other world's music, no boss sprite.
 - Given a boss level starts, then that boss's sprites are requested.
@@ -349,6 +365,7 @@ git commit -m "perf(assets): load music, sounds and sprites only when a level ne
 ### Task 5: Leaderboards screen, endless ranking, errors and delete flow
 
 **Files:**
+
 - Modify: `app/index.js`
 - Modify: `app/index.html`
 - Modify: `app/index.css`
@@ -356,6 +373,7 @@ git commit -m "perf(assets): load music, sounds and sprites only when a level ne
 - Test: `tests/endless-pending.test.js`
 
 **Interfaces:**
+
 - Consumes: `endlessBoard`, `friendlyError`, `MIN_LEVEL` (Task 1); `submitEndlessScore` by name through `endlessBoard` (Task 2's table); the music and loading changes in `app/index.js` (Task 4); existing `leaderboard.top(seed)`, `leaderboard.mine`, `dailySeed`, `createPending`, `auth.ensurePlayer`, `auth.signedIn`, `requireLogin`, `auth.deleteAccount()`, the `deleteScreen`, `settingsBtn`, `track`.
 - Produces:
 
@@ -369,22 +387,23 @@ export function createEndlessPending(storage?: Storage): {
 
 Screens and states:
 
-| Screen | State | Shows |
-|---|---|---|
-| Home | always | trophy button next to Settings |
-| Leaderboards | tabs | Today · Yesterday · Endless; Today first |
-| Leaderboards | loading | "Loading leaderboard…" |
-| Leaderboards | loaded | top 50 (rank, name, score and time; Endless shows level, score and time); own row highlighted; pinned when outside |
-| Leaderboards | empty | "No scores yet. Be the first!" |
-| Leaderboards | error | "Leaderboard didn't load." with Try again |
-| Daily-complete panel | ranked | rank line, Share, Play again, Home — no Leaderboard button |
-| Endless game over | ranked | "#12 of 340 all time" |
-| Endless game over | unranked | level 1 run: no rank line |
-| Community search | search failed | "Couldn't search all worlds, showing loaded ones · <n> worlds" |
-| Delete account | opened | type DELETE to enable the Delete button |
-| Delete account | failed | friendlyError copy, account kept |
+| Screen               | State         | Shows                                                                                                              |
+| -------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Home                 | always        | trophy button next to Settings                                                                                     |
+| Leaderboards         | tabs          | Today · Yesterday · Endless; Today first                                                                           |
+| Leaderboards         | loading       | "Loading leaderboard…"                                                                                             |
+| Leaderboards         | loaded        | top 50 (rank, name, score and time; Endless shows level, score and time); own row highlighted; pinned when outside |
+| Leaderboards         | empty         | "No scores yet. Be the first!"                                                                                     |
+| Leaderboards         | error         | "Leaderboard didn't load." with Try again                                                                          |
+| Daily-complete panel | ranked        | rank line, Share, Play again, Home — no Leaderboard button                                                         |
+| Endless game over    | ranked        | "#12 of 340 all time"                                                                                              |
+| Endless game over    | unranked      | level 1 run: no rank line                                                                                          |
+| Community search     | search failed | "Couldn't search all worlds, showing loaded ones · <n> worlds"                                                     |
+| Delete account       | opened        | type DELETE to enable the Delete button                                                                            |
+| Delete account       | failed        | friendlyError copy, account kept                                                                                   |
 
 **Spec:**
+
 - §1: "A trophy button next to Settings on the home screen opens Leaderboards."
 - §1: "Leaderboards has three tabs: Today and Yesterday (the daily challenge) and Endless."
 - §1: "With no scores, a tab says "No scores yet. Be the first!". If it can't load, it says "Leaderboard didn't load." with Try again."
@@ -403,6 +422,7 @@ Screens and states:
 **Knowledge:** none (this project has no knowledge base)
 
 **Acceptance:**
+
 - Given two runs saved for later, a level-7 and then a level-5, when `createEndlessPending().save` runs, then only the level-7 run is kept; `flush` sends it once and removes it; a failed send keeps it; a run refused with `invalid-argument` is dropped.
 - Given the home screen, when the trophy is pressed, then Leaderboards opens on Today; Yesterday shows `dailySeed` of yesterday's board; Endless shows the endless board.
 - Given each tab's loading, loaded, empty and error states, when shown, then they match the table, and Try again reloads the tab.

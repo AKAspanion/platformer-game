@@ -25,6 +25,30 @@ kept in `limits/{uid}` (functions only).
 - `ANTHROPIC_API_KEY` (secret): `firebase functions:secrets:set ANTHROPIC_API_KEY`
 - `WORLD_MODEL` (optional, `functions/.env`): defaults to `claude-haiku-5-5`, the
   cheapest; `claude-opus-5-5` gives more inventive worlds for about a cent each.
+- `APP_CHECK_ENFORCE` (`functions/.env`, committed): `false` = monitor, `true` = callables
+  refuse requests without a valid App Check token. See "App Check" below.
+
+## Who can do what
+
+| Action                         | Needs                                                   |
+| ------------------------------ | ------------------------------------------------------- |
+| Design or publish a world      | a real account (not anonymous); email accounts verified |
+| Like a world                   | a real account (not anonymous); email accounts verified |
+| Play counts, daily and endless | any account, anonymous included                         |
+| Rank a daily or endless run    | a run ticket from `startRun`, issued when the run began |
+| Search worlds                  | any signed-in account                                   |
+
+Likes decide the world of the week, which is why throwaway anonymous accounts can't give
+them.
+
+**Run tickets** (`src/runs.js`): a ranked daily or endless run starts with `startRun`,
+which stores `runs/{ticket}` (account, mode, seed, start time; closed to clients, deleted
+by a TTL policy on `expireAt` after three days). The server picks endless seeds. Submitting
+a score uses the ticket up, and a run can't claim more time than really passed since the
+ticket (5% + 5 s of slack), so a script can't post a score the moment it starts. A run
+started offline plays but isn't ranked. Deleting an account also deletes its likes and its play markers
+(`worldStats/*/seen/*`, which carry a `uid` and expire by a TTL policy on `expireAt`
+three days after the play).
 
 ## Run locally
 
@@ -74,3 +98,34 @@ firebase deploy --only functions
 
    The next deploy creates the jobs in `asia-south1`. Check them in the Cloud console
    → Cloud Scheduler, and use Force run to send a test pass.
+
+## App Check
+
+App Check makes the callables accept only calls from the real game (reCAPTCHA Enterprise
+in the browser), so scripts can't farm throwaway accounts against them. Roll it out in
+three steps; each one is safe on its own:
+
+1. **Register the web app** (project owner, once):
+   - Google Cloud console → Security → reCAPTCHA → Create key: type **Website**, domains
+     `dino.spanion.in`, `dinos-adventure.web.app`, `dinos-adventure.firebaseapp.com`
+     (and `localhost` if you want App Check locally without a debug token). Leave "Use
+     checkbox challenge" off.
+   - Firebase console → App Check → Apps → the web app → **reCAPTCHA Enterprise** → paste
+     the key's ID → Save. Leave the APIs' enforcement **off** there.
+2. **Ship the client**: add `FIREBASE_APPCHECK_SITE_KEY=<key id>` to `.env` and to the
+   `APP_ENV` secret (`gh secret set APP_ENV < .env`), then deploy. The game now sends
+   tokens; the functions only log calls that arrive without one ("call without App
+   Check" in Cloud Logging).
+3. **Enforce**: once those logs are rare (old cached clients update within a day or two),
+   set `APP_CHECK_ENFORCE=true` in `functions/.env` and deploy. Requests without a valid
+   token then get `unauthenticated`.
+
+Locally: either list `localhost` on the reCAPTCHA key, or create a debug token (Firebase
+console → App Check → Apps → ⋮ → Manage debug tokens) and put it in `.env` as
+`FIREBASE_APPCHECK_DEBUG_TOKEN`. Production builds drop it (`webpack.config.js`), and the
+game only uses it on localhost. The emulators don't check App Check, so `?emulators=1`
+needs neither.
+
+Firestore reads from the game (worlds, boards, stats) are not covered by this: turning on
+App Check enforcement for Cloud Firestore in the Firebase console would cover them too,
+but only after step 2 has been live for a while.

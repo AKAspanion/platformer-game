@@ -6,6 +6,7 @@ import { execFile } from "node:child_process";
 import { handleSubmitEndless, ENDLESS_LIMIT } from "../functions/src/endless.js";
 import { compareRuns } from "../functions/shared/modes/endless-rules.js";
 import { generatedName } from "../functions/shared/daily/rules.js";
+import { fakeTickets, ticketed } from "./tickets-fake.js";
 
 const SEED = 20261111;
 const NOW = Date.UTC(2026, 10, 11, 12);
@@ -41,8 +42,15 @@ function fakeBoard(initial = {}) {
   };
 }
 const open = async () => false;
-const submit = (auth, data, deps) =>
-  handleSubmitEndless({ auth, data }, { board: fakeBoard(), limiter: open, now, ...deps });
+// every run gets a valid ticket unless the test gives one (tests/run-tickets.test.js tests them)
+const submit = (auth, data, deps = {}) => {
+  const tickets = deps.tickets || fakeTickets();
+  const sent = ticketed(tickets, auth, "endless", data, now());
+  return handleSubmitEndless(
+    { auth, data: sent },
+    { board: fakeBoard(), limiter: open, now, ...deps, tickets },
+  );
+};
 const rejected = (code, message) => (e) =>
   e.code === code && (message === undefined || e.message === message);
 
@@ -211,4 +219,17 @@ test("check-functions-public exits 1 naming each function that answers 403", asy
   assert.match(out.stderr, /submitEndlessScore/);
   assert.match(out.stderr, /deleteAccount/);
   assert.doesNotMatch(out.stderr, /submitDailyScore/);
+});
+
+test("submitEndless rate limits before checking the run", async () => {
+  const order = [];
+  const limiter = async () => {
+    order.push("limit");
+    return true;
+  };
+  await assert.rejects(
+    submit(user(), { ...runOf(5), score: 99999999 }, { limiter }),
+    rejected("resource-exhausted"),
+  );
+  assert.deepEqual(order, ["limit"]);
 });
