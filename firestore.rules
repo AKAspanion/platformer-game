@@ -11,6 +11,10 @@ rules_version = '2';
 // read the board; nobody writes it from a client: the submitDaily function
 // checks the run (open day, possible score, plausible time) and writes it.
 //
+// endless/{uid}: one best endless run per player (highest level, then score,
+// then the shorter time). Anyone can read the board; nobody writes it from a
+// client: the submitEndlessScore function checks the run and writes it.
+//
 // saves/{uid}: one cloud save per account. Only that account reads or writes
 // it, and a write carries exactly v, updatedAt and data.
 //
@@ -36,6 +40,12 @@ service cloud.firestore {
     }
 
     match /daily/{seed}/scores/{uid} {
+      allow get: if true;
+      allow list: if request.query.limit <= 100;
+      allow write: if false;
+    }
+
+    match /endless/{uid} {
       allow get: if true;
       allow list: if request.query.limit <= 100;
       allow write: if false;

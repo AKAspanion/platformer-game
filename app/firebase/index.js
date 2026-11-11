@@ -55,13 +55,25 @@ export function loadFirebase() {
   return loading;
 }
 
-/** Firebase errors as something a player can act on. */
+const UNKNOWN = "Something went wrong. Try again.";
+
+/** The SDK's own wording ("internal", "Firebase: Error (auth/x)", "a/b" codes): never for a player. */
+const isUnknown = (message) =>
+  !message ||
+  /^(internal|unknown)$/i.test(message) ||
+  /^Firebase:/.test(message) ||
+  /[a-z][a-z-]*\/[a-z][a-z-]*/i.test(message);
+
+/** Firebase errors as something a player can act on; never a code, "internal" or "[n]". */
 export function friendlyError(error) {
   const fullCode = String((error && error.code) || "");
+  // the SDK adds the HTTP status as "[503]"
+  const message = String((error && error.message) || "")
+    .replace(/\s*\[\d+\]/g, "")
+    .trim();
   // callable functions send messages written for players (functions/src/handlers.js)
-  if (/^functions\//.test(fullCode) && fullCode !== "functions/internal" && error.message) {
-    const message = error.message.replace(/\s*\[\d{3}\]$/, ""); // the SDK adds the HTTP status
-    if (!/^(internal|unavailable|deadline-exceeded)$/i.test(message)) return message;
+  if (/^functions\//.test(fullCode) && !isUnknown(message)) {
+    if (!/^(unavailable|deadline-exceeded)$/i.test(message)) return message;
   }
   const code = fullCode.replace(/^(auth|functions|firestore)\//, "");
   const messages = {
@@ -87,6 +99,6 @@ export function friendlyError(error) {
     return messages["network-request-failed"];
   }
   // anything else with a readable message
-  if (error && error.message && !/^Firebase:/.test(error.message)) return error.message;
-  return "Something went wrong. Try again.";
+  if (!isUnknown(message) && !/^(unavailable|deadline-exceeded)$/i.test(message)) return message;
+  return UNKNOWN;
 }
