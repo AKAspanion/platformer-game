@@ -65,7 +65,8 @@ service cloud.firestore {
     }
 
     match /worldLikes/{id} {
-      allow read: if request.auth != null && request.auth.uid == resource.data.uid;
+      // decided from the id (<worldId>_<uid>), so a like that does not exist reads as "not liked"
+      allow get: if request.auth != null && id.matches('.*_' + request.auth.uid);
       allow write: if false;
     }
 

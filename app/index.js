@@ -2217,11 +2217,14 @@ window.addEventListener("load", function () {
     try {
       const found = await social.stats(ids);
       Object.entries(found).forEach(([id, counts]) => statsMap.set(id, counts));
-      (await social.liked(ids)).forEach((id) => likedSet.add(id));
     } catch (error) {
       // no counts this time: the cards show without them, and the next load asks again
       ids.forEach((id) => seenForStats.delete(id));
-      return;
+    }
+    try {
+      (await social.liked(ids)).forEach((id) => likedSet.add(id));
+    } catch (error) {
+      // hearts stay empty; the counts above still show
     }
     if (isVisible(createScreen)) renderCommunity();
   };
@@ -2463,7 +2466,7 @@ window.addEventListener("load", function () {
     const play = document.createElement("button");
     play.className = "btn btn-small";
     play.textContent = "Play";
-    play.onclick = () => requireLogin(() => startCustom(world), "worlds");
+    play.onclick = () => startCustom(world);
     if (shareable) {
       const heart = document.createElement("button");
       heart.className = "like-btn";
@@ -2584,7 +2587,7 @@ window.addEventListener("load", function () {
     $("featuredText").textContent =
       `★ World of the week: ${featuredWorld.name} by ${featuredWorld.author.name}`;
     const world = featuredWorld;
-    $("featuredPlayBtn").onclick = () => requireLogin(() => startCustom(world), "worlds");
+    $("featuredPlayBtn").onclick = () => startCustom(world);
   };
   document.querySelectorAll("#communityLists .seg-btn").forEach((button) => {
     button.onclick = () => {
@@ -2736,9 +2739,6 @@ window.addEventListener("load", function () {
     loadFeatured();
   };
   $("createCloseBtn").onclick = () => show(createScreen, false);
-
-  const linked = linkedWorldId(location);
-  if (linked) openLinkedWorld(linked);
 
   // --------------------------------------------------------------- create
 
@@ -3044,4 +3044,8 @@ window.addEventListener("load", function () {
   // analytics never delays the game: it loads after the first input, or 3 s from now
   track("app_open", appOpenParams({ get: getData, set: setData }));
   armAnalytics();
+
+  // a shared world link opens last, when every screen's code is ready
+  const linked = linkedWorldId(location);
+  if (linked) openLinkedWorld(linked);
 });

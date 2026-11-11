@@ -162,10 +162,13 @@ test("rules: stats and featured are public to read", () => {
 
 test("rules: likes readable only by their owner; thumbs and dedupe markers closed", () => {
   const likes = block("/worldLikes/{id}");
+  // decided from the doc id, not the (possibly missing) doc: a like that doesn't exist reads as not liked
   assert.match(
     likes,
-    /allow read: if request\.auth != null && request\.auth\.uid == resource\.data\.uid;/,
+    /allow get: if request\.auth != null && id\.matches\('\.\*_' \+ request\.auth\.uid\);/,
   );
+  assert.doesNotMatch(likes, /resource\.data/);
+  assert.doesNotMatch(likes, /allow (read|list)/);
   const thumbs = block("/thumbs/{worldId}");
   assert.doesNotMatch(thumbs, /allow (read|get|list)/);
   assert.doesNotMatch(rules, /match \/seen\//); // no match: the catch-all denies it

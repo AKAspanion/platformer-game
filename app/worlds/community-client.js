@@ -32,7 +32,7 @@ const clean = (c) => ({
 /** Each community world once, in order. */
 const communityIds = (ids) => [...new Set((ids || []).filter((id) => id && !isBuiltIn(id)))];
 
-export function createCommunity(backend, { ensurePlayer, now = Date.now }) {
+export function createCommunity(backend, { ensurePlayer, knownPlayer, now = Date.now }) {
   return {
     async recordPlay(worldId, kind) {
       if (!worldId || isBuiltIn(worldId)) return;
@@ -71,8 +71,10 @@ export function createCommunity(backend, { ensurePlayer, now = Date.now }) {
     async liked(ids) {
       const wanted = communityIds(ids);
       if (!wanted.length) return new Set();
-      const { uid } = await ensurePlayer();
-      return backend.likedBy(uid, wanted);
+      // reading likes never makes an account: no account, nothing liked
+      const player = await knownPlayer();
+      if (!player) return new Set();
+      return backend.likedBy(player.uid, wanted);
     },
 
     async myWeek(worldIds) {
@@ -96,4 +98,8 @@ export function createCommunity(backend, { ensurePlayer, now = Date.now }) {
 
 export const community = createCommunity(firestoreCommunity, {
   ensurePlayer: () => auth.ensurePlayer(),
+  knownPlayer: async () => {
+    await auth.ready();
+    return auth.currentUser;
+  },
 });

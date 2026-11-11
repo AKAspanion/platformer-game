@@ -485,7 +485,6 @@ canvas {
     calc(var(--sal) + 8px);
 }
 #settingsScreen,
-#premiumScreen,
 #shopScreen,
 #achievementsScreen,
 #createScreen,
@@ -494,6 +493,7 @@ canvas {
 #portalScreen {
   z-index: 12;
 }
+#premiumScreen,
 #loginScreen,
 #deleteScreen,
 #leaderboardScreen {

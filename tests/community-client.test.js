@@ -7,7 +7,7 @@ import { specFromPrompt, newWorld } from "../app/worlds/spec";
 
 const NOW = Date.UTC(2026, 10, 11, 12);
 
-function setup(overrides = {}) {
+function setup(overrides = {}, known = { uid: "u1" }) {
   const log = [];
   const backend = {
     async call(name, data) {
@@ -39,7 +39,12 @@ function setup(overrides = {}) {
     log.push(["ensurePlayer"]);
     return { uid: "u1" };
   };
-  return { log, backend, community: createCommunity(backend, { ensurePlayer, now: () => NOW }) };
+  const knownPlayer = async () => known;
+  return {
+    log,
+    backend,
+    community: createCommunity(backend, { ensurePlayer, knownPlayer, now: () => NOW }),
+  };
 }
 
 test("recordPlay skips built-in worlds", async () => {
@@ -175,7 +180,7 @@ test("liked asks with the player's uid; stats fills zeros for worlds without cou
     },
   });
   assert.deepEqual([...(await community.liked(["w1", "w2"]))], ["w1"]);
-  assert.deepEqual(log[1], ["likedBy", "u1", ["w1", "w2"]]);
+  assert.deepEqual(log[0], ["likedBy", "u1", ["w1", "w2"]]);
   assert.deepEqual(await community.stats(["w1", "w2", "constructor"]), {
     w1: { plays: 3, finishes: 1, likes: 2 },
     w2: { plays: 0, finishes: 0, likes: 0 },
@@ -210,4 +215,10 @@ test("repo.byIds returns the worlds that exist, sanitized", async () => {
     ["wone1"],
   );
   assert.deepEqual(await repo.byIds([]), []);
+});
+
+test("liked with no account returns nothing and signs nobody in", async () => {
+  const { log, community } = setup({}, null);
+  assert.deepEqual([...(await community.liked(["w1"]))], []);
+  assert.deepEqual(log, []);
 });
