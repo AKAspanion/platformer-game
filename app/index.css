@@ -1937,9 +1937,9 @@ canvas {
 .hint {
   position: fixed;
   z-index: 9;
-  top: calc(var(--sat) + 10px);
+  bottom: calc(var(--sab) + 12px);
   left: 50%;
-  max-width: calc(100vw - 32px);
+  max-width: min(520px, calc(100vw - 32px));
   padding: 8px 16px;
   border-radius: 14px;
   color: white;
@@ -1993,6 +1993,7 @@ canvas {
     font-size: 15px;
   }
   .hint {
+    max-width: 44vw;
     font-size: 13px;
     padding: 6px 12px;
   }
