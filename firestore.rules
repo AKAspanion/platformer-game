@@ -14,6 +14,16 @@ rules_version = '2';
 // saves/{uid}: one cloud save per account. Only that account reads or writes
 // it, and a write carries exactly v, updatedAt and data.
 //
+// worldStats/{worldId} (+ days/{day}, seen/{uid_day_kind}): play, finish and
+// like counts, written by the functions only. Anyone reads the counts and the
+// daily buckets; the dedupe markers in seen/ are closed.
+//
+// worldLikes/{worldId}_{uid}: one doc per like; an account reads only its own.
+//
+// thumbs/{worldId}: world thumbnails, closed (worldPage serves them).
+//
+// config/featured: the world of the week, anyone reads, functions write.
+//
 // limits/{uid}: per-user rate limit counters, functions only.
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -38,6 +48,36 @@ service cloud.firestore {
         && request.resource.data.updatedAt is number
         && request.resource.data.data is map;
       allow delete: if false;
+    }
+
+    match /worldStats/{worldId} {
+      allow get: if true;
+      allow list: if request.query.limit <= 100;
+      allow write: if false;
+
+      match /days/{day} {
+        allow get: if true;
+        allow list: if request.query.limit <= 100;
+        allow write: if false;
+      }
+
+      // seen/{uid_day_kind}: dedupe markers, functions only (no match: denied).
+    }
+
+    match /worldLikes/{id} {
+      // decided from the id (<worldId>_<uid>), so a like that does not exist reads as "not liked"
+      allow get: if request.auth != null && id.matches('.*_' + request.auth.uid);
+      allow write: if false;
+    }
+
+    // thumbs/{worldId}: base64 PNGs served by worldPage, functions only.
+    match /thumbs/{worldId} {
+      allow write: if false;
+    }
+
+    match /config/{doc} {
+      allow get: if true;
+      allow write: if false;
     }
 
     match /{document=**} {

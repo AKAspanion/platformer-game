@@ -4,7 +4,7 @@
  * functions, Firestore and Claude.
  *
  *   handleDesign({ auth, data: { prompt } }, { design, limiter })  -> { spec }
- *   handlePublish({ auth, data: { world } }, { store, limiter })   -> { world }
+ *   handlePublish({ auth, data: { world, thumb? } }, { store, limiter }) -> { world }
  *   handleSearch({ auth, data: { query } }, { allWorlds })         -> { worlds }
  *   handleDeleteAccount({ auth }, { accounts })                    -> { worlds }
  *
@@ -12,6 +12,7 @@
  * Errors are ApiError with a callable error code (index.js turns them into
  * HttpsError, which the game shows to the player).
  */
+import { checkThumb } from "./community.js";
 import { sanitizeWorld, cleanText, matchWorlds, searchTerms, ANONYMOUS } from "../shared/spec.js";
 
 export class ApiError extends Error {
@@ -26,7 +27,7 @@ export const LIMITS = { design: 30, publish: 20 };
 
 export const MAX_PROMPT = 400;
 
-const signedIn = (auth) => {
+export const signedIn = (auth) => {
   if (!auth || !auth.uid) throw new ApiError("unauthenticated", "Sign in to create worlds.");
   return auth;
 };
@@ -67,7 +68,10 @@ export async function handleDesign({ auth, data }, { design, limiter }) {
   return { spec: result.spec };
 }
 
-export async function handlePublish({ auth, data }, { store, limiter, now = Date.now }) {
+export async function handlePublish(
+  { auth, data },
+  { store, limiter, now = Date.now, log = () => {} },
+) {
   const user = verified(signedIn(auth));
   const world = sanitizeWorld(data && data.world);
   if (!world) throw new ApiError("invalid-argument", "That world can't be shared.");
@@ -77,7 +81,10 @@ export async function handlePublish({ auth, data }, { store, limiter, now = Date
   // the author and time come from the server, never from the request
   world.author = { uid: user.uid, name: authorName(user) };
   world.createdAt = now();
-  await store.create(world); // ApiError("already-exists") when the id is taken
+  // a thumbnail that isn't a small PNG is dropped: the world shares without one
+  const thumb = data.thumb === undefined ? null : checkThumb(data.thumb);
+  if (data.thumb !== undefined && !thumb) log("world thumbnail dropped");
+  await store.create(world, thumb); // ApiError("already-exists") when the id is taken
   return { world };
 }
 

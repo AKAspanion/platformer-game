@@ -16,7 +16,7 @@ Each phase gets its own plan in `docs/plans/` and ships on its own branch.
 | ----- | -------------------------------------------------------------------------------------------- | ---------------------------------------- |
 | 1     | Analytics, free daily challenge, global daily leaderboard, streaks, share card              | `2026-11-11-phase-1-daily-loop.md`       |
 | 2     | Cloud save, coin shop (cosmetics), star unlocks (secret world, boss rush), achievements      | `2026-11-11-phase-2-progress-rewards.md` (spec: `docs/specs/2026-11-11-phase-2-progress-rewards.md`) |
-| 3     | Community worlds: play counts, likes, trending, featured world, world links, remix, creator notes | written when phase 2 ships          |
+| 3     | Community worlds: play counts, likes, trending, featured world, world links, remix, creator notes | `2026-11-11-phase-3-community-worlds.md` (spec: `docs/specs/2026-11-11-phase-3-community-worlds.md`) |
 | 4     | Opt-in reminders: web push and iOS push for the daily and for streaks                       | written when phase 3 ships               |
 | 5     | Ghost runs of your best time, first-session onboarding                                       | written when phase 4 ships               |
 

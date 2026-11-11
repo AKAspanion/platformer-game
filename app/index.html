@@ -106,10 +106,9 @@
             <span class="mode-icon icon-endless"></span><span class="mode-name">Endless</span
             ><span class="mode-info" id="endlessInfo">How far can you go?</span>
           </button>
-          <button class="mode-card premium" data-mode="create">
+          <button class="mode-card" data-mode="create">
             <span class="mode-icon icon-create"></span><span class="mode-name">Worlds</span
-            ><span class="mode-info">Create &amp; share worlds</span
-            ><span class="mode-badge">★</span>
+            ><span class="mode-info">Play, create &amp; share worlds</span>
           </button>
         </div>
         <div class="wallet-row">
@@ -264,6 +263,16 @@
           <div class="community-head">
             <span id="communityStatus" class="live-status"></span>
             <button id="communityRefresh" class="chip">Refresh</button>
+          </div>
+          <div id="featuredBanner" class="featured-banner" hidden>
+            <span id="featuredText" class="featured-text"></span>
+            <button id="featuredPlayBtn" class="btn btn-small">Play</button>
+          </div>
+          <div id="communityLists" class="seg" role="group" aria-label="World list">
+            <button id="listTrendingBtn" class="seg-btn active" data-list="trending">
+              Trending
+            </button>
+            <button id="listNewBtn" class="seg-btn" data-list="new">New</button>
           </div>
           <label class="search-box">
             <span class="search-icon" aria-hidden="true"></span>
