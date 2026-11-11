@@ -25,10 +25,10 @@ functions/.secret.local
 functions/.env.local
 
 # Android build cache
-packages/android/source/.gradle/
-packages/android/source/build/
-packages/android/source/app/build/
-packages/android/source/local.properties
+packages/android/.gradle/
+packages/android/build/
+packages/android/app/build/
+packages/android/local.properties
 
 # editor and tool state
 .idea/

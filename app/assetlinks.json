@@ -3,6 +3,16 @@
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
+      "package_name": "in.spanion.dino.twa",
+      "sha256_cert_fingerprints": [
+        "B9:0B:AF:2F:63:0A:1F:05:CF:48:FD:53:65:C2:63:68:A1:52:83:9C:86:3D:16:FD:A4:EC:25:EB:67:CC:D8:29"
+      ]
+    }
+  },
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
       "package_name": "io.github.akaspanion.twa",
       "sha256_cert_fingerprints": [
         "DE:AE:60:22:C4:9D:DF:99:F0:42:F1:8E:F6:AC:ED:79:C0:C8:C7:74:E9:E1:D2:20:02:40:48:55:D3:3E:B7:E0"

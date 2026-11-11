@@ -23,9 +23,11 @@ Game is also mobile responsive and can be installed on mobile/desktop as a PWA.<
 
 ## Live
 
-The game is live at [dino.spanion.in](https://dino.spanion.in) (Firebase Hosting). The Play Store
-app (`packages/android`) opens the same domain from version 1.1; older installs open the
-previous [GitHub Pages](https://akaspanion.github.io/platformer-game/) copy until they
+The game is live at [dino.spanion.in](https://dino.spanion.in) (Firebase Hosting). The Android
+app (`packages/android`, package `in.spanion.dino.twa`) is a Trusted Web Activity that opens the
+same domain; [its README](packages/android/README.md) covers building and signing a release. The
+older Play app (`io.github.akaspanion.twa`) opens the same domain from version 1.1; older installs
+open the previous [GitHub Pages](https://akaspanion.github.io/platformer-game/) copy until they
 update.
 
 ## Locally

@@ -21,17 +21,17 @@ plugins {
 }
 
 def twaManifest = [
-    applicationId: 'io.github.akaspanion.twa',
+    applicationId: 'in.spanion.dino.twa',
     hostName: 'dino.spanion.in', // The domain being opened in the TWA.
-    launchUrl: '/index.html', // The start path for the TWA. Must be relative to the domain.
-    name: 'Dino\\\'s Adventure', // The application name.
+    launchUrl: '/', // The start path for the TWA. Must be relative to the domain.
+    name: 'Dino\\\'s Adventure: Platformer game', // The application name.
     launcherName: 'Dino\\\'s Adventure', // The name shown on the Android Launcher.
     themeColor: '#EF534F', // The color used for the status bar.
     themeColorDark: '#EF534F', // The color used for the dark status bar.
-    navigationColor: '#EF534F', // The color used for the navigation bar.
-    navigationColorDark: '#EF534F', // The color used for the dark navbar.
-    navigationDividerColor: '#EF534F', // The navbar divider color.
-    navigationDividerColorDark: '#EF534F', // The dark navbar divider color.
+    navigationColor: '#292929', // The color used for the navigation bar.
+    navigationColorDark: '#292929', // The color used for the dark navbar.
+    navigationDividerColor: '#292929', // The navbar divider color.
+    navigationDividerColorDark: '#292929', // The dark navbar divider color.
     backgroundColor: '#292929', // The color used for the splash screen background.
     enableNotifications: true, // Set to true to enable notification delegation.
     // Every shortcut must include the following fields:
@@ -42,7 +42,7 @@ def twaManifest = [
     shortcuts: [],
     // The duration of fade out animation in milliseconds to be played when removing splash screen.
     splashScreenFadeOutDuration: 300,
-    generatorApp: 'PWABuilder', // Application that generated the Android Project
+    generatorApp: 'bubblewrap-cli', // Application that generated the Android Project
     // The fallback strategy for when Trusted Web Activity is not available. Possible values are
     // 'customtabs' and 'webview'.
     fallbackType: 'customtabs',
@@ -51,13 +51,14 @@ def twaManifest = [
 ]
 
 android {
-    compileSdkVersion 33
+    compileSdkVersion 36
+    namespace "in.spanion.dino.twa"
     defaultConfig {
-        applicationId "io.github.akaspanion.twa"
-        minSdkVersion 19
-        targetSdkVersion 33
-        versionCode 4
-        versionName "1.1.0.0"
+        applicationId "in.spanion.dino.twa"
+        minSdkVersion 24
+        targetSdkVersion 36
+        versionCode 1
+        versionName "2.0.0"
 
         // The name for the application
         resValue "string", "appName", twaManifest.name
@@ -68,6 +69,8 @@ android {
         // The URL that will be used when launching the TWA from the Android Launcher
         def launchUrl = "https://" + twaManifest.hostName + twaManifest.launchUrl
         resValue "string", "launchUrl", launchUrl
+
+        
 
         
             // The URL the Web Manifest for the Progressive Web App that the TWA points to. This
@@ -144,6 +147,8 @@ android {
 
         resValue "bool", "enableSiteSettingsShortcut", twaManifest.enableSiteSettingsShortcut
         resValue "string", "orientation", twaManifest.orientation
+
+        
     }
     buildTypes {
         release {
@@ -203,6 +208,6 @@ repositories {
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     
-        implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.5.0'
+        implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.7.4'
     
 }
