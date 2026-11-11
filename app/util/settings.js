@@ -6,8 +6,8 @@ import { getData, setData } from "./index";
  */
 const DEFAULTS = {
   vibration: true,
-  shake: true, // the screen shakes on combo tiers and heavy kills
-  ghost: true, // show the kept ghost of the fastest run on campaign levels
+  shake: true, // the screen shakes when the dino loses a heart
+  ghost: false, // show the kept ghost of the fastest run on campaign levels
   analytics: true, // anonymous usage stats (Google Analytics); see PRIVACY.md
   controlSize: "auto", // auto | s | m | l
   worldApiUrl: "", // prompt-to-world server (see server/README.md)

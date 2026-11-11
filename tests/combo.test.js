@@ -135,29 +135,22 @@ test("a boss hit that does not kill leaves the combo alone; the kill steps it", 
   assert.equal(world.combo.count, 3);
 });
 
-test("a multiplier going up shakes for 6 ticks, then stops", () => {
-  const world = plain();
-  coins(world, 4, 1);
-  assert.deepEqual(world.effects.shakeOffset(), { x: 0, y: 0 });
-  world.scoreCoin(); // the 5th: x2
-  for (let i = 0; i < 6; i++) {
-    const { x, y } = world.effects.shakeOffset();
-    assert.ok(x !== 0 || y !== 0, `tick ${i}`);
-    tick(world, 1);
-  }
-  assert.deepEqual(world.effects.shakeOffset(), { x: 0, y: 0 });
-});
-
-test("a kill at x3 or more shakes, a kill at x1 does not", () => {
+test("Effects.shake(2, 6) offsets by at most 2 px", () => {
   const e = new Effects();
   assert.deepEqual(e.shakeOffset(), { x: 0, y: 0 });
   e.shake(2, 6);
   const { x, y } = e.shakeOffset();
   assert.ok(Math.abs(x) <= 2 && Math.abs(y) <= 2 && (x || y));
-  const world = makeWorld(arena({ enemies: [enemy("p", 8)] }));
-  freeze(world);
-  world.killEnemy(world.enemies.items[0], 1);
+});
+
+test("a multiplier going up does not shake the screen", () => {
+  const world = plain();
+  coins(world, 4, 1);
+  world.scoreCoin(); // the 5th: x2
   assert.deepEqual(world.effects.shakeOffset(), { x: 0, y: 0 });
+});
+
+test("a kill at x3 or more does not shake the screen", () => {
   const world3 = makeWorld(arena({ enemies: [enemy("p", 8)] }));
   freeze(world3);
   world3.combo.count = 9;
@@ -165,7 +158,7 @@ test("a kill at x3 or more shakes, a kill at x1 does not", () => {
   world3.combo.step(); // 10: x3
   world3.combo.left = 30;
   world3.killEnemy(world3.enemies.items[0], 1);
-  assert.notDeepEqual(world3.effects.shakeOffset(), { x: 0, y: 0 });
+  assert.deepEqual(world3.effects.shakeOffset(), { x: 0, y: 0 });
 });
 
 test("hit-stop freezes the combo timer", () => {

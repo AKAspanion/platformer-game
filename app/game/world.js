@@ -262,7 +262,6 @@ export default class World {
       sfx("combo-chime");
       this.emit("combo-up");
     }
-    if (tierUp || multiplier >= 3) this.effects.shake(2, 6);
     return points * multiplier;
   }
 
@@ -511,6 +510,7 @@ export default class World {
       sfx("shield-block");
       return;
     }
+    this.effects.shake(2, 6);
     if (result === "dead") {
       this.die(onGameOver);
       return;
@@ -533,6 +533,7 @@ export default class World {
     if (player.invulnerable <= 0) {
       player.hearts = Math.max(0, player.hearts - 1);
       this.endCombo();
+      this.effects.shake(2, 6);
       if (player.hearts === 0) {
         this.die(onGameOver, "fall");
         return;
