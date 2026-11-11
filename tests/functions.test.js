@@ -213,6 +213,7 @@ test("deleteAccount: worlds become Anonymous, then data and account go", async (
       calls.push(["anonymize", uid, author]);
       return 3;
     },
+    deleteDailyScores: async (uid) => calls.push(["scores", uid]),
     deleteData: async (uid) => calls.push(["data", uid]),
     deleteUser: async (uid) => calls.push(["user", uid]),
   };
@@ -225,6 +226,7 @@ test("deleteAccount: worlds become Anonymous, then data and account go", async (
   assert.deepEqual(out, { worlds: 3 });
   assert.deepEqual(calls, [
     ["anonymize", "u9", { uid: "", name: ANONYMOUS }],
+    ["scores", "u9"],
     ["data", "u9"],
     ["user", "u9"],
   ]);

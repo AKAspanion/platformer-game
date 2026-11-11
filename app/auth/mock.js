@@ -30,11 +30,25 @@ export function mockAuthBackend() {
       email: account.email || null,
       provider: account.provider,
       emailVerified: account.provider === "google" || !!account.verified,
+      isAnonymous: account.provider === "anonymous",
     };
     onUser(user);
     return user;
   };
   const byUid = (state, uid) => Object.values(state.accounts).find((a) => a.uid === uid);
+  /** The anonymous account signed in now, if any: linking keeps its uid. */
+  const anonymousNow = (state) => {
+    const account = state.current && byUid(state, state.current);
+    return account && account.provider === "anonymous" ? account : null;
+  };
+  /** Gives the anonymous account `key` and its new details, keeping the uid. */
+  const link = (state, anonymous, key, details) => {
+    Object.keys(state.accounts).forEach((k) => {
+      if (state.accounts[k] === anonymous) delete state.accounts[k];
+    });
+    state.accounts[key] = { ...anonymous, ...details };
+    return state.accounts[key];
+  };
 
   return {
     mode: "mock",
@@ -48,14 +62,23 @@ export function mockAuthBackend() {
       else onUser(null);
     },
 
+    async signInAnonymously() {
+      const state = read();
+      const uid = newUid();
+      state.accounts[`anon:${uid}`] = { uid, provider: "anonymous" };
+      return signIn(state, state.accounts[`anon:${uid}`]);
+    },
+
     async signInWithGoogle({ name } = {}) {
       const state = read();
       const key = `google:${cleanName(name) || "Player"}`;
-      state.accounts[key] = state.accounts[key] || {
-        uid: newUid(),
-        name: cleanName(name) || "Player",
-        provider: "google",
-      };
+      const anonymous = anonymousNow(state);
+      if (!state.accounts[key]) {
+        const details = { name: cleanName(name) || "Player", provider: "google" };
+        // an anonymous player keeps their account; a Google account is new otherwise
+        if (anonymous) link(state, anonymous, key, details);
+        else state.accounts[key] = { uid: newUid(), ...details };
+      }
       return signIn(state, state.accounts[key]);
     },
 
@@ -65,13 +88,11 @@ export function mockAuthBackend() {
       const existing = state.accounts[key];
       if (create) {
         if (existing) throw new Error("That email already has an account. Sign in instead.");
-        state.accounts[key] = {
-          uid: newUid(),
-          name: cleanName(name),
-          email,
-          password,
-          provider: "email",
-        };
+        const details = { name: cleanName(name), email, password, provider: "email" };
+        const anonymous = anonymousNow(state);
+        // an anonymous player's account is linked to the email: same uid
+        if (anonymous) link(state, anonymous, key, details);
+        else state.accounts[key] = { uid: newUid(), ...details };
       } else if (!existing || existing.password !== password) {
         throw new Error("Wrong email or password.");
       } else if (cleanName(name)) {

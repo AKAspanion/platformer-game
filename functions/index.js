@@ -5,7 +5,10 @@
  *   designWorld({ prompt })  -> { spec }    Claude turns a prompt into a world spec
  *   publishWorld({ world })  -> { world }   validates a world and shares it in Firestore
  *   searchWorlds({ query })  -> { worlds }  every shared world matching a search
- *   deleteAccount()          -> { worlds }  deletes the caller; their worlds become "Anonymous"
+ *   submitDailyScore({ seed, score, seconds })
+ *                            -> { rank, total, best, improved }  the daily challenge's leaderboard
+ *   deleteAccount()          -> { worlds }  deletes the caller; their worlds become "Anonymous",
+ *                                           their daily scores are deleted
  *
  * All are callable functions: the Firebase SDK in the game sends the
  * player's ID token, so request.auth is the verified user (or null).
@@ -31,6 +34,7 @@ import {
   handleDeleteAccount,
   overLimit,
 } from "./src/handlers.js";
+import { handleSubmitDaily, outranks } from "./src/daily.js";
 import { createDesigner, Anthropic } from "./src/designer.js";
 
 // invoker "public": anyone may reach the functions (the game calls them from the
@@ -126,6 +130,38 @@ export const searchWorlds = callable({ timeoutSeconds: 30 }, (request) =>
   handleSearch(request, { allWorlds }),
 );
 
+// daily/{seed}/scores/{uid}: one best run per player per day
+const scoresOf = (seed) => db.collection("daily").doc(String(seed)).collection("scores");
+const countOf = async (query) => (await query.count().get()).data().count;
+
+const scores = {
+  async get(seed, uid) {
+    const snap = await scoresOf(seed).doc(uid).get();
+    return snap.exists ? snap.data() : null;
+  },
+  // keeps the better run if two submissions race: a worse one never overwrites
+  async set(seed, uid, entry) {
+    const ref = scoresOf(seed).doc(uid);
+    await db.runTransaction(async (transaction) => {
+      const snap = await transaction.get(ref);
+      if (!snap.exists || outranks(entry, snap.data())) transaction.set(ref, entry);
+    });
+  },
+  async rankOf(seed, entry) {
+    const day = scoresOf(seed);
+    const [higher, faster] = await Promise.all([
+      countOf(day.where("score", ">", entry.score)),
+      countOf(day.where("score", "==", entry.score).where("seconds", "<", entry.seconds)),
+    ]);
+    return higher + faster + 1;
+  },
+  count: (seed) => countOf(scoresOf(seed)),
+};
+
+export const submitDailyScore = callable({ timeoutSeconds: 20 }, (request) =>
+  handleSubmitDaily(request, { scores, limiter }),
+);
+
 const accounts = {
   async anonymizeWorlds(uid, author) {
     const snap = await db.collection("worlds").where("author.uid", "==", uid).get();
@@ -136,6 +172,15 @@ const accounts = {
     }
     everyWorld = null;
     return snap.size;
+  },
+  async deleteDailyScores(uid) {
+    for (;;) {
+      const snap = await db.collectionGroup("scores").where("uid", "==", uid).limit(400).get();
+      if (snap.empty) return;
+      const batch = db.batch();
+      snap.docs.forEach((d) => batch.delete(d.ref));
+      await batch.commit();
+    }
   },
   async deleteData(uid) {
     await db.collection("limits").doc(uid).delete();

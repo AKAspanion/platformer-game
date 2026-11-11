@@ -1,8 +1,13 @@
 import { cleanName, validEmail } from "./names";
+import { generatedName } from "../daily/rules.js";
 
 /**
- * Sign-in, used only by the world creator (story, levels, daily and endless
- * never ask for it).
+ * Sign-in. The world creator asks for a real account; the daily challenge
+ * gives a player an anonymous one, silently, the first time they finish a run
+ * (ensurePlayer). An anonymous player is "signed out" to the world creator
+ * (signedIn), and signing in with Google or creating an email account while
+ * anonymous links to the same account (same uid, scores stay); signing in to
+ * an email account that already exists switches to it.
  *
  * One facade, pluggable backends: Firebase Auth in the game
  * (app/firebase/auth.js), a device-only mock in tests (./mock.js).
@@ -10,7 +15,9 @@ import { cleanName, validEmail } from "./names";
  *   auth.use(backend)                       pick the backend (once, at start)
  *   auth.start()                            restore the session (loads Firebase)
  *   auth.ready(ms)                          -> resolves once the session is known (or after ms)
- *   auth.currentUser                        -> { uid, displayName, email, provider, emailVerified } | null
+ *   auth.currentUser                        -> { uid, displayName, email, provider, emailVerified, isAnonymous } | null
+ *   auth.signedIn                           -> true for a real account (not anonymous)
+ *   auth.ensurePlayer()                     -> { uid, name, isAnonymous }  signs in anonymously if nobody is
  *   auth.onAuthStateChanged(cb)             -> unsubscribe()
  *   auth.onError(cb)                        -> unsubscribe()  (a Google redirect that failed)
  *   auth.signInWithGoogle()                 -> user (null while a redirect takes over)
@@ -41,6 +48,8 @@ export function createAuth(initial = null) {
 
   // the backend reports a change and the sign-in call returns it: tell listeners once
   const set = (user) => {
+    // an anonymous player is shown under the generated name the leaderboard uses
+    if (user && user.isAnonymous) user = { ...user, displayName: generatedName(user.uid) };
     const same = known && JSON.stringify(user || null) === JSON.stringify(current);
     current = user || null;
     known = true;
@@ -48,6 +57,8 @@ export function createAuth(initial = null) {
     if (!same) listeners.forEach((cb) => cb(current));
     return current;
   };
+
+  let anonymousSignIn = null;
 
   const need = () => {
     if (!backend) throw new Error("Sign-in isn't available.");
@@ -61,6 +72,11 @@ export function createAuth(initial = null) {
 
     get currentUser() {
       return current;
+    },
+
+    /** True for a real account: an anonymous player counts as signed out. */
+    get signedIn() {
+      return !!current && !current.isAnonymous;
     },
 
     /** True once the backend said who is signed in (or that nobody is). */
@@ -106,6 +122,30 @@ export function createAuth(initial = null) {
     onError(cb) {
       errorListeners.add(cb);
       return () => errorListeners.delete(cb);
+    },
+
+    /**
+     * The player behind the game: whoever is signed in, else a new anonymous
+     * account (one at a time, however many callers ask at once).
+     */
+    async ensurePlayer() {
+      if (!current) {
+        if (!anonymousSignIn) {
+          anonymousSignIn = (async () => {
+            await this.ready();
+            if (!known) throw new Error("Couldn't check your account. Try again.");
+            if (!current) set(await need().signInAnonymously());
+          })().finally(() => {
+            anonymousSignIn = null;
+          });
+        }
+        await anonymousSignIn;
+      }
+      return {
+        uid: current.uid,
+        name: current.displayName,
+        isAnonymous: !!current.isAnonymous,
+      };
     },
 
     async signInWithGoogle({ name } = {}) {

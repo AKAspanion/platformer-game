@@ -1,32 +1,49 @@
 /**
- * Copies the game's world validation (app/worlds/spec.js) into
- * functions/shared/, because a functions deploy only uploads functions/.
+ * Copies the game code the server shares (world validation, the daily rules
+ * and the level generator they use) into functions/shared/, because a
+ * functions deploy only uploads functions/.
  *
  *   node scripts/sync-functions-shared.js          copy
- *   node scripts/sync-functions-shared.js --check  fail if the copy is stale
+ *   node scripts/sync-functions-shared.js --check  fail if any copy is stale
  *
  * Runs before every functions deploy (firebase.json predeploy); CI runs the
- * check so the server never validates worlds differently from the game.
+ * check so the server never validates differently from the game. Keep each
+ * file's relative imports valid under functions/shared/ (daily/rules.js
+ * imports ../pcg/generator.js, which lands next to it).
  */
 const fs = require("fs");
 const path = require("path");
 
 const root = path.resolve(__dirname, "..");
-const source = path.join(root, "app", "worlds", "spec.js");
-const target = path.join(root, "functions", "shared", "spec.js");
-const header =
-  "// GENERATED from app/worlds/spec.js by scripts/sync-functions-shared.js. Do not edit.\n";
-const wanted = header + fs.readFileSync(source, "utf8");
+/** [source under app/, target under functions/shared/] */
+const FILES = [
+  ["worlds/spec.js", "spec.js"],
+  ["daily/rules.js", "daily/rules.js"],
+  ["pcg/generator.js", "pcg/generator.js"],
+];
+
+const jobs = FILES.map(([from, to]) => {
+  const source = path.join(root, "app", from);
+  const header = `// GENERATED from app/${from} by scripts/sync-functions-shared.js. Do not edit.\n`;
+  return {
+    target: path.join(root, "functions", "shared", to),
+    label: `functions/shared/${to}`,
+    wanted: header + fs.readFileSync(source, "utf8"),
+  };
+});
 
 if (process.argv.includes("--check")) {
-  const current = fs.existsSync(target) ? fs.readFileSync(target, "utf8") : "";
-  if (current !== wanted) {
-    console.error("functions/shared/spec.js is stale: run node scripts/sync-functions-shared.js");
-    process.exit(1);
-  }
-  console.log("functions/shared/spec.js is up to date");
+  const read = (file) => (fs.existsSync(file) ? fs.readFileSync(file, "utf8") : "");
+  const stale = jobs.filter((job) => read(job.target) !== job.wanted);
+  stale.forEach((job) =>
+    console.error(`${job.label} is stale: run node scripts/sync-functions-shared.js`),
+  );
+  if (stale.length) process.exit(1);
+  jobs.forEach((job) => console.log(`${job.label} is up to date`));
 } else {
-  fs.mkdirSync(path.dirname(target), { recursive: true });
-  fs.writeFileSync(target, wanted);
-  console.log("synced functions/shared/spec.js");
+  jobs.forEach((job) => {
+    fs.mkdirSync(path.dirname(job.target), { recursive: true });
+    fs.writeFileSync(job.target, job.wanted);
+    console.log(`synced ${job.label}`);
+  });
 }

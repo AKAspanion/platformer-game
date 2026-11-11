@@ -20,6 +20,21 @@ Signing in is optional and only needed for the Worlds feature (creating and shar
 
 You can sign out at any time in Settings, and delete your account there too: your account and its sign-in details are deleted, and the worlds you shared stay public but are credited to "Anonymous" with no account identifier. To remove a world you shared, contact us at the address below.
 
+### Anonymous Usage Statistics
+
+The Game sends anonymous usage events to Google Analytics (through Firebase Analytics, by Google). The events carry no name, email address or account identifier. The events are:
+
+- `app_open`: whether you have played before and how many days ago you first opened the Game.
+- `mode_start`: which mode you started (story, daily, endless or custom).
+- `level_start`: the mode and the level you started.
+- `level_complete`: the mode, the level, how many seconds it took and how many stars you earned.
+- `level_fail`: the mode, the level and how many seconds you lasted.
+- `daily_complete`: your score, your time and your rank on the daily challenge.
+- `leaderboard_open`: that you opened the leaderboard.
+- `share`: whether you shared your result with the share button or copied it.
+
+Google Analytics also receives the usual technical details of your browser, such as its language, screen size and approximate location. To turn this off, open Settings in the Game and switch off "Share anonymous usage stats": the analytics code is then no longer loaded and nothing is sent.
+
 ### How We Use Your Information
 
 We may use the information collected to:

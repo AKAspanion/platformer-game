@@ -1,17 +1,18 @@
 import areas from "../areas";
-import { FINISH, generateEndlessLevel, generateSequence, themeFor } from "../pcg/generator";
+import { FINISH, generateEndlessLevel, generateSequence } from "../pcg/generator";
 import { buildWorld } from "../gen";
 import { LEVELS_PER_WORLD } from "../worlds/spec";
+import { DAILY_LEVELS, dailyLevels } from "../daily/rules";
 
 /**
- * Game modes built on the level generator (premium):
+ * Game modes built on the level generator:
  *  - daily:   5 levels from today's date, the same for everyone that day
  *  - endless: generated forever, one level ahead, getting harder
  *  - custom:  a world the player created from a prompt (see app/creator)
  * Generated areas are added to the shared `areas` map under their own id
  * ranges, so the normal engine plays them like any other area.
  */
-export const DAILY_LEVELS = 5;
+export { DAILY_LEVELS };
 export { FINISH }; // portal destination for "this run is complete"
 
 const RANGES = { endless: 2000, daily: 3000, custom: 4000 };
@@ -34,12 +35,7 @@ const START = { left: 24, top: 9 * 16 - 20 };
 export function createDailySession(date = new Date()) {
   const seed = dailySeed(date);
   clearRange(RANGES.daily);
-  const levels = Array.from({ length: DAILY_LEVELS }, (_, i) => ({
-    theme: themeFor((seed + i * 3) % 9),
-    difficulty: 1 + i,
-    powerupCount: i === 0 ? 1 : 2,
-  }));
-  register(generateSequence({ idBase: RANGES.daily, seed, levels }));
+  register(generateSequence({ idBase: RANGES.daily, seed, levels: dailyLevels(seed) }));
   return {
     kind: "daily",
     key: String(seed),

@@ -1,6 +1,6 @@
 /**
- * The paid ("premium") feature flag. Premium unlocks the daily challenge,
- * endless mode and the prompt-to-world creator.
+ * The paid ("premium") feature flag. Premium covers the features that use AI:
+ * today, the prompt-to-world creator. The daily challenge and endless mode are free.
  *
  * There is no store purchase yet: the flag comes from
  *   - a build-time default (webpack sets PREMIUM_DEFAULT; false for releases),
