@@ -9,25 +9,35 @@ import Animator from "./animator";
 let frames = null;
 const loader = { assetCount: 0, loadCount: 0 };
 
-const loadFrames = () => {
+/** The seed sprites' urls (spitters, and bosses that lob things, need them). */
+export const SEED_IMAGES = [1, 2, 3, 4].map(
+  (i) => `./assets/sprites/enemies/spitter/seed/image_part_0${i}.png`,
+);
+
+/** Start downloading the seed sprites unless that already happened. */
+export const loadFrames = () => {
   if (frames) return frames;
   frames = [];
-  for (let i = 1; i <= 4; i++) {
+  SEED_IMAGES.forEach((src) => {
     const image = new Image();
     image.onload = image.onerror = () => {
       loader.loadCount += 1;
     };
-    image.src = `./assets/sprites/enemies/spitter/seed/image_part_0${i}.png`;
+    image.src = src;
     frames.push(image);
     loader.assetCount += 1;
-  }
+  });
   return frames;
 };
 
 export default class Projectiles {
   constructor() {
-    this.frames = loadFrames();
     this.items = [];
+  }
+
+  /** Make sure the seed sprites are on their way (a level with spitters or a boss). */
+  load() {
+    loadFrames();
   }
 
   get assetCount() {
@@ -44,7 +54,7 @@ export default class Projectiles {
 
   /** `options` { vx, vy, gravity } override the spitter's default lob. */
   add(x, y, direction, options = {}) {
-    this.items.push(new Seed(x, y, direction, this.frames, options));
+    this.items.push(new Seed(x, y, direction, loadFrames(), options));
   }
 
   remove(item) {

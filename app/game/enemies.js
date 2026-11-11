@@ -40,15 +40,42 @@ const SIGHT_X = 52; // how close (px, in front) before a walker attacks
 const SPIT_EVERY = 80;
 const SPIT_RANGE = 88; // the generator keeps spitters this far from portal arrivals
 
-// Sprites are shared by every area, so they are loaded once, not per area.
-let sharedFrames = null;
+// Sprites are shared by every area and loaded per kind, the first time a level
+// that has that kind is set up (never twice, never up front).
+const sharedFrames = {};
+const generated = new Set(); // kinds drawn in code (see registerEnemyType): no files
 const loader = { assetCount: 0, loadCount: 0 };
 
-const loadFrames = () => {
-  if (sharedFrames) return sharedFrames;
-  sharedFrames = {};
+/** [frame set, url] for each sprite file of one built-in kind. */
+const kindFiles = (id) => {
+  const { walk, kind, shoot = 0 } = enemyTypes[id];
+  const root = "./assets/sprites/enemies";
+  const files = [];
+  ["left", "right"].forEach((side) => {
+    const Side = side === "left" ? "Left" : "Right";
+    for (let i = 1; i <= walk; i++)
+      files.push([`${id}${Side}`, `${root}/${id}/${side}/image_part_0${i}.png`]);
+    for (let i = 1; i <= DEATH_FRAMES; i++)
+      files.push([`${id}Dead${Side}`, `${root}/${id}/dead/${side}/image_part_0${i}.png`]);
+    if (kind === "walker")
+      for (let i = 1; i <= ATTACK_FRAMES; i++)
+        files.push([`${id}Attack${Side}`, `${root}/${id}/attack/${side}/image_part_0${i}.png`]);
+    for (let i = 1; i <= shoot; i++)
+      files.push([`${id}Attack${Side}`, `${root}/${id}/attack/${side}/image_part_0${i}.png`]);
+  });
+  return files;
+};
 
-  const add = (key, src) => {
+/** Every sprite url the given enemy kinds need (kinds drawn in code have none). */
+export const enemyImages = (types) =>
+  [...new Set(types)]
+    .filter((id) => enemyTypes[id] && !generated.has(id))
+    .flatMap((id) => kindFiles(id).map(([, src]) => src));
+
+/** Start downloading a kind's sprites unless that already happened. */
+export const loadEnemyKind = (id) => {
+  if (!enemyTypes[id] || generated.has(id) || sharedFrames[`${id}Left`]) return;
+  kindFiles(id).forEach(([key, src]) => {
     const image = new Image();
     image.onload = image.onerror = () => {
       loader.loadCount += 1;
@@ -56,27 +83,7 @@ const loadFrames = () => {
     image.src = src;
     (sharedFrames[key] = sharedFrames[key] || []).push(image);
     loader.assetCount += 1;
-  };
-
-  const root = "./assets/sprites/enemies";
-  // `Object` is the game-object class here, so use the global one
-  globalThis.Object.keys(enemyTypes).forEach((id) => {
-    const { walk, kind, shoot = 0 } = enemyTypes[id];
-    ["left", "right"].forEach((side) => {
-      const Side = side === "left" ? "Left" : "Right";
-      for (let i = 1; i <= walk; i++)
-        add(`${id}${Side}`, `${root}/${id}/${side}/image_part_0${i}.png`);
-      for (let i = 1; i <= DEATH_FRAMES; i++)
-        add(`${id}Dead${Side}`, `${root}/${id}/dead/${side}/image_part_0${i}.png`);
-      if (kind === "walker")
-        for (let i = 1; i <= ATTACK_FRAMES; i++)
-          add(`${id}Attack${Side}`, `${root}/${id}/attack/${side}/image_part_0${i}.png`);
-      for (let i = 1; i <= shoot; i++)
-        add(`${id}Attack${Side}`, `${root}/${id}/attack/${side}/image_part_0${i}.png`);
-    });
   });
-
-  return sharedFrames;
 };
 
 /**
@@ -85,7 +92,8 @@ const loadFrames = () => {
  * { left, right, attackLeft, attackRight, deadLeft, deadRight }.
  */
 export const registerEnemyType = (type, config, frames) => {
-  const sets = loadFrames();
+  const sets = sharedFrames;
+  generated.add(type);
   enemyTypes[type] = config;
   sets[`${type}Left`] = frames.left;
   sets[`${type}Right`] = frames.right;
@@ -98,19 +106,26 @@ export const registerEnemyType = (type, config, frames) => {
 export default class Enemies {
   constructor(enemies = [], tileSize = 16, killedEnemies = "") {
     this.items = [];
-    this.frameSets = loadFrames();
+    this.frameSets = sharedFrames;
 
     this.tileSize = tileSize;
     // ids are stored as "id1,id2,"; match whole ids, not substrings
     const killed = new Set(killedEnemies.split(","));
+    enemies.forEach(({ type }) => this.load(type));
     for (let index = 0; index < enemies.length; index++) {
       if (!killed.has(enemies[index].id)) this.add(enemies[index]);
     }
   }
 
+  /** Make sure a kind's sprites are on their way (boss minions arrive mid-fight). */
+  load(type) {
+    loadEnemyKind(type);
+  }
+
   /** Add an enemy from an area entry { id, type, left, top, sway, dir }. */
   add({ id, type, left, top, sway, dir }) {
     if (!enemyTypes[type]) return null;
+    this.load(type);
     const f = this.frameSets;
     const enemy = new Enemy({
       id,

@@ -9,6 +9,7 @@ class FakeImage {
 
   set src(value) {
     this._src = value;
+    if (value) globalThis.__requested.push(value);
     queueMicrotask(() => this.onload && this.onload());
   }
 
@@ -19,10 +20,24 @@ class FakeImage {
 
 class FakeAudio {
   constructor(src = "") {
-    this.src = src;
     this.volume = 1;
     this.loop = false;
     this.currentTime = 0;
+    this.listeners = {};
+    this.src = src;
+  }
+
+  // like a real element, setting src starts the download
+  set src(value) {
+    this._src = value;
+    if (value) {
+      globalThis.__requested.push(value);
+      globalThis.__audios[value] = this;
+    }
+  }
+
+  get src() {
+    return this._src;
   }
 
   play() {
@@ -31,17 +46,32 @@ class FakeAudio {
     return Promise.resolve();
   }
 
+  // a copy shares the already-downloaded data: it asks for nothing
   cloneNode() {
-    return new FakeAudio(this.src);
+    const copy = new FakeAudio();
+    copy._src = this._src;
+    return copy;
   }
 
   pause() {}
 
-  addEventListener() {}
+  addEventListener(type, handler) {
+    (this.listeners[type] = this.listeners[type] || []).push(handler);
+  }
+
+  /** Tests finish (or fail) the download by hand: audio.fire("canplaythrough"). */
+  fire(type) {
+    const handlers = this.listeners[type] || [];
+    this.listeners[type] = [];
+    handlers.forEach((handler) => handler());
+  }
 }
 
 const store = new Map();
 globalThis.__played = [];
+// every Image/Audio src the game asked for, and the audio element for each url
+globalThis.__requested = [];
+globalThis.__audios = {};
 
 globalThis.Image = FakeImage;
 globalThis.Audio = FakeAudio;

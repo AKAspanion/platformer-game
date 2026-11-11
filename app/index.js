@@ -1279,7 +1279,7 @@ window.addEventListener("load", function () {
     setupScreen();
     resize();
     engine.resume();
-    game.world.playThemeMusic();
+    // the level's music starts from the world's update, once it has loaded
 
     if (!engine.started) engine.start();
   };
