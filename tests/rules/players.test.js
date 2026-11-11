@@ -185,14 +185,19 @@ test("a 10,000-character skin is denied", async () => {
 
 // --- seenDay
 
-test("seenDay of yesterday is allowed (a device clock a day behind)", async () => {
-  await assertSucceeds(setDoc(doc(as("u1"), "players/u1"), valid({ seenDay: today() - 1 })));
+test("seenDay of yesterday, today or tomorrow is allowed (a device clock a day off either way)", async () => {
+  const db = as("u1");
+  for (const day of [today() - 1, today(), today() + 1]) {
+    await assertSucceeds(setDoc(doc(db, "players/u1"), valid({ seenDay: day })), `day ${day}`);
+  }
+  await seed("players/u1", valid());
+  await assertSucceeds(updateDoc(doc(db, "players/u1"), { seenDay: today() + 1 }));
 });
 
-test("seenDay of two days ago or tomorrow is denied", async () => {
+test("seenDay two days ago or two days ahead is denied", async () => {
   const db = as("u1");
   await assertFails(setDoc(doc(db, "players/u1"), valid({ seenDay: today() - 2 })));
-  await assertFails(setDoc(doc(db, "players/u1"), valid({ seenDay: today() + 1 })));
+  await assertFails(setDoc(doc(db, "players/u1"), valid({ seenDay: today() + 2 })));
   await assertFails(setDoc(doc(db, "players/u1"), valid({ seenDay: 0 })));
 });
 

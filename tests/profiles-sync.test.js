@@ -152,6 +152,95 @@ test("switching off while offline: the next successful write has no seenDay", as
   assert.equal(backend.sets.length, 3);
 });
 
+const refused = () =>
+  Object.assign(new Error("Missing or insufficient permissions."), {
+    code: "permission-denied",
+  });
+
+/** A backend whose rules refuse any seenDay (a device clock more than a day off). */
+function refusingSeenDay(backend) {
+  const set = backend.set;
+  backend.set = async (uid, profile) => {
+    if (Object.hasOwn(profile, "seenDay")) {
+      backend.sets.push({ uid, profile });
+      throw refused();
+    }
+    return set(uid, profile);
+  };
+  return backend;
+}
+
+function quietWarnings() {
+  const warn = console.warn;
+  const warned = [];
+  console.warn = (...args) => warned.push(args);
+  return { warned, restore: () => (console.warn = warn) };
+}
+
+test("a refused seenDay never blocks the worn items: the write is retried at once without it", async () => {
+  const { backend, profiles } = setup();
+  refusingSeenDay(backend);
+  const log = quietWarnings();
+  try {
+    await profiles.sync("u1", worn({ hat: "crown" }), on);
+  } finally {
+    log.restore();
+  }
+  assert.equal(backend.sets.length, 2);
+  assert.equal(backend.sets[0].profile.seenDay, DAY);
+  assert.deepEqual(backend.sets[1].profile, { skin: "mint", hat: "crown", companion: "none" });
+  assert.deepEqual(log.warned, [
+    ["Profile: last-online day refused; writing the profile without it"],
+  ]);
+});
+
+test("after a refusal, the next write (a worn change) leaves seenDay out", async () => {
+  const { backend, profiles } = setup();
+  refusingSeenDay(backend);
+  const log = quietWarnings();
+  try {
+    await profiles.sync("u1", worn(), on);
+    const before = backend.sets.length;
+    await profiles.sync("u1", worn({ skin: "gold" }), on);
+    assert.equal(backend.sets.length, before + 1, "one write, not refused first");
+    const next = backend.sets[backend.sets.length - 1].profile;
+    assert.equal(next.skin, "gold");
+    assert.equal(Object.hasOwn(next, "seenDay"), false);
+  } finally {
+    log.restore();
+  }
+});
+
+test("a refusal holds for the session only: the next open tries seenDay again", async () => {
+  const { backend, storage, clock, profiles } = setup();
+  refusingSeenDay(backend);
+  const log = quietWarnings();
+  try {
+    await profiles.sync("u1", worn(), on);
+  } finally {
+    log.restore();
+  }
+  const fixed = fakeBackend();
+  const reopened = createProfiles({ backend: fixed, storage, now: () => clock.ms });
+  await reopened.sync("u1", worn(), on);
+  assert.equal(fixed.sets.length, 1);
+  assert.equal(fixed.sets[0].profile.seenDay, DAY);
+  assert.ok(backend.sets.length >= 1);
+});
+
+test("a failure that isn't a refusal (offline) is not retried without seenDay", async () => {
+  const { backend, profiles } = setup();
+  backend.set = async (uid, profile) => {
+    backend.sets.push({ uid, profile });
+    throw Object.assign(new Error("offline"), { code: "unavailable" });
+  };
+  await profiles.sync("u1", worn(), on);
+  assert.equal(backend.sets.length, 1);
+  backend.set = async (uid, profile) => backend.sets.push({ uid, profile });
+  await profiles.sync("u1", worn(), on);
+  assert.equal(backend.sets[1].profile.seenDay, DAY);
+});
+
 test("a different account writes its own profile and never touches the first one's", async () => {
   const { backend, profiles } = setup();
   await profiles.sync("u1", worn(), on);

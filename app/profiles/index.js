@@ -8,7 +8,10 @@ import { firestoreProfiles } from "../firebase/profiles";
  * the last one written from this device for that uid, so reopening the game on
  * the same day writes nothing. A profile without seenDay is written at least
  * once a session all the same: another device may have written a seenDay since
- * this one last wrote, and the switch being off must clear it. A failed write is swallowed: nothing is shown,
+ * this one last wrote, and the switch being off must clear it. A write the
+ * rules refuse never blocks the next one: when one carrying seenDay is
+ * refused (a device clock more than a day off), it is written again at once
+ * without it, and no later write this session carries seenDay. A failed write is swallowed: nothing is shown,
  * the "last written" record stays as it was, and the next open or change tries
  * again. fetch() reads any number of profiles in batches and caches them for
  * the session; a failed read rejects and caches nothing.
@@ -27,6 +30,7 @@ export function createProfiles({ backend, storage, now = Date.now }) {
   let chain = Promise.resolve();
   const cache = new Map(); // uid -> clean profile, or null when it has no document
   const writtenThisSession = new Set(); // uids this session has written a profile for
+  let seenDayRefused = false; // the rules refused this session's seenDay: leave it out
 
   const lastWritten = () => {
     try {
@@ -47,13 +51,21 @@ export function createProfiles({ backend, storage, now = Date.now }) {
 
   async function run(uid, worn, { showLastSeen }) {
     if (typeof uid !== "string" || !uid) return;
-    const payload = profilePayload(worn, { showLastSeen: !!showLastSeen, now: now() });
+    const payload = profilePayload(worn, {
+      showLastSeen: !!showLastSeen && !seenDayRefused,
+      now: now(),
+    });
     const last = lastWritten();
     const trusted = Object.hasOwn(payload, "seenDay") || writtenThisSession.has(uid);
     if (trusted && last && last.uid === uid && sameProfile(last.payload, payload)) return;
     try {
       await backend.set(uid, payload);
     } catch (error) {
+      if (error && error.code === "permission-denied" && Object.hasOwn(payload, "seenDay")) {
+        seenDayRefused = true;
+        console.warn("Profile: last-online day refused; writing the profile without it");
+        return run(uid, worn, { showLastSeen: false });
+      }
       return; // offline or refused: the record stays, so the next open or change retries
     }
     writtenThisSession.add(uid);
