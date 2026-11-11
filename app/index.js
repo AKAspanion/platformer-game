@@ -17,6 +17,7 @@ import {
   preLoadAndFetch,
 } from "./util";
 import { settings, vibrate } from "./util/settings";
+import { track, armAnalytics, setAnalyticsEnabled, appOpenParams } from "./analytics";
 import { isPremium, setPremium, readPremiumFromUrl, canToggleLocally } from "./util/premium";
 import {
   FINISH,
@@ -176,6 +177,11 @@ window.addEventListener("load", function () {
     return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
   };
 
+  // analytics: the mode being played and how long the player has been in this area
+  const modeName = () => (session ? session.kind : "story");
+  const areaSeconds = () => Math.round(game.world.areaTicks / 30);
+  const countBits = (mask) => [1, 2, 4].filter((bit) => mask & bit).length;
+
   /** Leaving a campaign level forward finishes it: award its stars. */
   const finishLevel = (id) => {
     const area = areas[id];
@@ -195,6 +201,12 @@ window.addEventListener("load", function () {
         `<span class="toast-time">${clock(seconds)} / ${clock(targetTime(area))}</span>`,
     );
     if (added) vibrate("powerup");
+    track("level_complete", {
+      mode: "story",
+      level_id: id,
+      seconds: Math.round(seconds),
+      stars_added: countBits(added),
+    });
   };
 
   const levelName = (id) => {
@@ -248,6 +260,7 @@ window.addEventListener("load", function () {
 
   // GAME
   const game = new Game((score) => {
+    track("level_fail", { mode: modeName(), level_id: areaId, seconds: areaSeconds() });
     const best = recordRun(score);
     const current = areaId;
     const inSession = session;
@@ -315,6 +328,7 @@ window.addEventListener("load", function () {
       if (campaign.isUnlocked(areaId) || walkedIn) campaign.reach(areaId);
     }
     cameFrom = null;
+    track("level_start", { mode: modeName(), level_id: areaId });
   };
 
   // SCREEN
@@ -392,6 +406,14 @@ window.addEventListener("load", function () {
     }
 
     if (portal) {
+      if (session && portal.direction > 0) {
+        track("level_complete", {
+          mode: session.kind,
+          level_id: areaId,
+          seconds: areaSeconds(),
+          stars_added: 0,
+        });
+      }
       if (isCampaignLevel(areaId) && portal.direction > 0 && campaign.isUnlocked(areaId)) {
         finishLevel(areaId);
       }
@@ -916,16 +938,19 @@ window.addEventListener("load", function () {
 
   const startStory = (level = LEVELS[0]) => {
     session = null;
+    track("mode_start", { mode: "story" });
     loadWorld(level.id, level.left, level.top);
   };
 
   const startDaily = () => {
     session = createDailySession();
+    track("mode_start", { mode: "daily" });
     loadWorld(session.startId, session.left, session.top);
   };
 
   const startEndless = () => {
     session = createEndlessSession();
+    track("mode_start", { mode: "endless" });
     loadWorld(session.startId, session.left, session.top);
   };
 
@@ -938,6 +963,7 @@ window.addEventListener("load", function () {
       return;
     }
     show(createScreen, false);
+    track("mode_start", { mode: "custom" });
     loadWorld(session.startId, session.left, session.top);
   };
 
@@ -1086,6 +1112,7 @@ window.addEventListener("load", function () {
   const setMusic = $("setMusic");
   const setSound = $("setSound");
   const setVibration = $("setVibration");
+  const setAnalytics = $("setAnalytics");
   const setControls = $("setControls");
   const setPremiumDev = $("setPremiumDev");
 
@@ -1093,6 +1120,7 @@ window.addEventListener("load", function () {
     setMusic.checked = !settings.musicMuted;
     setSound.checked = !settings.soundMuted;
     setVibration.checked = !!settings.get("vibration");
+    setAnalytics.checked = settings.get("analytics") !== false;
     $("vibrationRow").style.display = navigator.vibrate ? "flex" : "none";
     setControls.querySelectorAll("button").forEach((b) => {
       b.classList.toggle("active", b.dataset.value === settings.get("controlSize"));
@@ -1123,6 +1151,7 @@ window.addEventListener("load", function () {
     if (settings.musicMuted) game.world.pauseThemeMusic();
   };
   setSound.onchange = () => (settings.soundMuted = !setSound.checked);
+  setAnalytics.onchange = () => setAnalyticsEnabled(setAnalytics.checked);
   setVibration.onchange = () => {
     settings.set("vibration", setVibration.checked);
     if (setVibration.checked) vibrate("kill");
@@ -1959,4 +1988,8 @@ window.addEventListener("load", function () {
   });
 
   refreshHome();
+
+  // analytics never delays the game: it loads after the first input, or 3 s from now
+  track("app_open", appOpenParams({ get: getData, set: setData }));
+  armAnalytics();
 });

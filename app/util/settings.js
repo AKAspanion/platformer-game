@@ -6,6 +6,7 @@ import { getData, setData } from "./index";
  */
 const DEFAULTS = {
   vibration: true,
+  analytics: true, // anonymous usage stats (Google Analytics); see PRIVACY.md
   controlSize: "auto", // auto | s | m | l
   worldApiUrl: "", // prompt-to-world server (see server/README.md)
 };
