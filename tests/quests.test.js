@@ -12,7 +12,12 @@ import {
   unlockedModes,
   pickQuests,
   createQuests,
+  claimChest,
+  CHEST_COINS,
 } from "../app/rewards/quests";
+import { createNest } from "../app/rewards/eggs";
+import { createWallet } from "../app/progress/wallet";
+import { mergeProgress } from "../app/progress/save";
 import { LEVELS } from "../app/util/index";
 
 function memoryStorage(initial = {}) {
@@ -337,7 +342,7 @@ test("12 keys open the chest once; extra keys do nothing", () => {
   assert.equal(quests.keys(), CHEST_KEYS);
   const r13 = quests.record({ type: "coin", n: 1 }, "story");
   assert.equal(r13.finished.length, 1);
-  assert.equal(r13.chest, null);
+  assert.deepEqual(r13.chest, r.chest, "the chest stays due; the wallet pays it once");
   assert.equal(quests.keys(), 12);
 });
 
@@ -449,4 +454,75 @@ test("storage that refuses writes or reads still works for the session", () => {
   assert.equal(noStorage.today().length, 3);
   assert.equal(noStorage.record({ type: "burn" }, "story").chest, null);
   assert.ok(day > 0);
+});
+
+/** Two devices of one week: A has 11 keys, B finished other quests. */
+function twoDevices(extraKeys) {
+  const day = localDay(at(2026, 11, 11));
+  const monday = weekStart(day);
+  const picks = [
+    pick("defeat", 0, 1, "kill", "Defeat 1 enemies"),
+    pick("coins", 1, 1, "coin", "Collect 1 coins"),
+    pick("burn", 2, 1, "burn", "Burn 1 enemy projectiles"),
+  ];
+  const keys = (from, n) => Array.from({ length: n }, (_, i) => `q${monday - 7 + from + i}z`);
+  const a = JSON.parse(stateWith(day, picks, [0, 0, 0], { weekDone: keys(0, 11) }));
+  const b = JSON.parse(stateWith(day, picks, [0, 0, 0], { weekDone: keys(11, extraKeys) }));
+  return { day, monday, a, b };
+}
+
+for (const extra of [1, 2]) {
+  test(`keys 11 + ${extra} from another device pay the chest once, 500 coins and one egg`, () => {
+    const { monday, a, b } = twoDevices(extra);
+    const merged = mergeProgress({ quests: a }, { quests: b }).quests;
+    assert.equal(merged.weekDone.length, 11 + extra);
+    const storage = memoryStorage({ quests: JSON.stringify(merged) });
+    const quests = createQuests(
+      storage,
+      () => at(2026, 11, 11),
+      () => ctx(),
+    );
+    const wallet = createWallet(memoryStorage(), "dev");
+    const nest = createNest(memoryStorage(), () => 1000);
+    const before = wallet.balance();
+    assert.deepEqual(quests.chest(), { rewardId: `c${monday}`, eggWeek: monday });
+    assert.equal(claimChest(quests.chest(), wallet, nest), true);
+    assert.equal(wallet.balance(), before + CHEST_COINS);
+    assert.equal(nest.has(`c${monday}`), true);
+    // a second check, a record() and a second device's merge don't pay again
+    assert.equal(claimChest(quests.chest(), wallet, nest), false);
+    assert.equal(
+      claimChest(quests.record({ type: "kill", enemy: "pig" }, "story").chest, wallet, nest),
+      false,
+    );
+    const other = createWallet(memoryStorage(), "dev2");
+    assert.equal(
+      other.reward(`c${monday}`, CHEST_COINS),
+      true,
+      "the other device paid it too, before syncing",
+    );
+    assert.equal(
+      claimChest(
+        quests.chest(),
+        other,
+        createNest(memoryStorage(), () => 1000),
+      ),
+      false,
+    );
+    assert.equal(wallet.balance(), before + CHEST_COINS);
+  });
+}
+
+test("fewer than 12 keys: no chest", () => {
+  const { a } = twoDevices(0);
+  const quests = createQuests(
+    memoryStorage({ quests: JSON.stringify(a) }),
+    () => at(2026, 11, 11),
+    () => ctx(),
+  );
+  assert.equal(quests.chest(), null);
+  assert.equal(
+    claimChest(null, createWallet(memoryStorage(), "dev"), createNest(memoryStorage())),
+    false,
+  );
 });

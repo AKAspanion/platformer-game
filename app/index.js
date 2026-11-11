@@ -66,8 +66,15 @@ import { createCampaign, starsFor, targetTime, starCount, STAR } from "./campaig
 import { createWallet } from "./progress/wallet";
 import { createStats } from "./progress/stats";
 import { featsFrom } from "./rewards/feed";
-import { createNest, hatchLabel, chestEggId, DUPLICATE_COINS } from "./rewards/eggs";
-import { createQuests, metEnemies, unlockedModes, CHEST_KEYS, CHEST_COINS } from "./rewards/quests";
+import { createNest, hatchLabel, DUPLICATE_COINS } from "./rewards/eggs";
+import {
+  createQuests,
+  claimChest,
+  metEnemies,
+  unlockedModes,
+  CHEST_KEYS,
+  CHEST_COINS,
+} from "./rewards/quests";
 import { createFollower, companionFrames } from "./game/companion";
 import { createEarnings } from "./progress/earn";
 import { readLocal, writeLocal, resetLocal } from "./progress/save";
@@ -349,6 +356,14 @@ window.addEventListener("load", function () {
     pumpAchievements();
   };
 
+  /** Opens the week's chest when it is due and unpaid, whatever brought the keys to 12: true when it paid. */
+  const openChest = (chest) => {
+    if (!claimChest(chest, wallet, nest)) return false;
+    queueToast(`<b>🎁 Weekly chest · +${coinText(CHEST_COINS)} and an egg</b>`);
+    track("chest_open", {});
+    return true;
+  };
+
   /** One thing the player did: advances the day's quests, pays and toasts what it finished. */
   const recordFeat = (feat) => {
     const { finished, chest } = quests.record(feat, questMode());
@@ -357,13 +372,7 @@ window.addEventListener("load", function () {
       queueToast(`<b>✅ ${esc(pick.text)} · +${coinText(pick.coins)}</b>`);
       track("quest_complete", { quest: pick.id });
     });
-    if (chest) {
-      wallet.reward(chest.rewardId, CHEST_COINS);
-      nest.find(chestEggId(chest.eggWeek), "chest");
-      queueToast(`<b>🎁 Weekly chest · +${coinText(CHEST_COINS)} and an egg</b>`);
-      track("chest_open", {});
-    }
-    return finished.length > 0;
+    return openChest(chest) || finished.length > 0;
   };
 
   /** This frame's events, the world's feats and coins: stats, eggs and quests. */
@@ -1877,6 +1886,8 @@ window.addEventListener("load", function () {
   $("hatchLaterBtn").onclick = () => closeHatch(false);
 
   const refreshHome = () => {
+    // keys that a cloud merge brought to 12 open the chest here
+    if (openChest(quests.chest())) progressChanged();
     renderBalance();
     renderNest();
     renderQuests();

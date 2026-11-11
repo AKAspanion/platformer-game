@@ -10,6 +10,7 @@ import { ENEMY_TYPES, mulberry32 } from "../pcg/generator.js";
 import { LEVELS, WORLDS } from "../util/index.js";
 import { bossRushOpen } from "../progress/unlocks.js";
 import { normalizeQuests, createKeyStore } from "../progress/save.js";
+import { chestEggId } from "./eggs.js";
 
 export const QUEST_COINS = [50, 75, 100];
 export const CHEST_KEYS = 12;
@@ -216,6 +217,22 @@ function advance(pick, have, feat, mode) {
   }
 }
 
+/** The chest is due while the week holds 12 keys, however they got there (a cloud merge adds keys too). */
+const chestOf = (state) =>
+  state.weekDone.length >= CHEST_KEYS
+    ? { rewardId: chestRewardId(state.week), eggWeek: state.week }
+    : null;
+
+/**
+ * Opens a due chest: 500 coins and one egg. The wallet's reward id for the week pays it once, on
+ * this device and across devices, so a chest that was already paid does nothing. True when it paid.
+ */
+export function claimChest(chest, wallet, nest) {
+  if (!chest || !wallet.reward(chest.rewardId, CHEST_COINS)) return false;
+  nest.find(chestEggId(chest.eggWeek), "chest");
+  return true;
+}
+
 export function createQuests(
   storage = defaultStorage(),
   now = () => new Date(),
@@ -277,7 +294,6 @@ export function createQuests(
     record(feat, mode) {
       const state = current();
       const finished = [];
-      let chest = null;
       let changed = false;
       state.picks.forEach((pick, i) => {
         const have = state.progress[i] || 0;
@@ -289,16 +305,11 @@ export function createQuests(
         if (state.progress[i] >= pick.target) {
           const rewardId = questRewardId(state.day, i);
           finished.push({ pick, rewardId });
-          if (!state.weekDone.includes(rewardId)) {
-            state.weekDone.push(rewardId);
-            if (state.weekDone.length === CHEST_KEYS) {
-              chest = { rewardId: chestRewardId(state.week), eggWeek: state.week };
-            }
-          }
+          if (!state.weekDone.includes(rewardId)) state.weekDone.push(rewardId);
         }
       });
       if (changed) save(state);
-      return { finished, chest };
+      return { finished, chest: chestOf(state) };
     },
 
     played(mode) {
@@ -308,6 +319,9 @@ export function createQuests(
       state.played[mode] = [...list, state.day];
       save(state);
     },
+
+    /** The chest this week's keys have earned, or null: it holds until it is paid. */
+    chest: () => chestOf(current()),
 
     keys: () => Math.min(CHEST_KEYS, current().weekDone.length),
   };
