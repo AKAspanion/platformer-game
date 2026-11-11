@@ -16,9 +16,7 @@
 package in.spanion.dino.twa;
 
 import android.content.Intent;
-import android.content.pm.ActivityInfo;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 
@@ -49,15 +47,12 @@ public class LauncherActivity
     protected void onCreate(Bundle savedInstanceState) {
         grantSplashUriPermission();
         super.onCreate(savedInstanceState);
-        // Setting an orientation crashes the app due to the transparent background on Android 8.0
-        // Oreo and below. We only set the orientation on Oreo and above. This only affects the
-        // splash screen and Chrome will still respect the orientation.
-        // See https://github.com/GoogleChromeLabs/bubblewrap/issues/496 for details.
-        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.O) {
-            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
-        } else {
-            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
-        }
+        // The landscape lock is android:screenOrientation="sensorLandscape" in AndroidManifest.xml,
+        // not a setRequestedOrientation() call here: set at runtime, Android first draws the
+        // starting window in portrait and rotates it, which flashes the home screen and a sideways
+        // icon on a cold launch. The fixed orientation is safe on Android 8.0 because the launcher's
+        // theme is opaque (res/values/launcher_theme.xml; bubblewrap#496 is about translucent ones).
+        // Re-apply after Bubblewrap regenerates this file.
     }
 
     @Override
