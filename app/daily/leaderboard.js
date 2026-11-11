@@ -1,4 +1,4 @@
-import { firestoreDaily } from "../firebase/daily";
+import { firestoreDaily } from "../firebase/daily.js";
 
 /**
  * The daily challenge's global leaderboard.

@@ -96,11 +96,11 @@
             <span class="mode-icon icon-levels"></span><span class="mode-name">Levels</span
             ><span class="mode-info">30 levels, 5 bosses</span>
           </button>
-          <button class="mode-card premium" data-mode="daily">
+          <button class="mode-card" data-mode="daily">
             <span class="mode-icon icon-daily"></span><span class="mode-name">Daily</span
             ><span class="mode-info" id="dailyInfo">5 new levels a day</span
-            ><span class="mode-timer" id="dailyTimer" aria-live="off"></span
-            ><span class="mode-badge">★</span>
+            ><span class="mode-streak" id="dailyStreak"></span
+            ><span class="mode-timer" id="dailyTimer" aria-live="off"></span>
           </button>
           <button class="mode-card premium" data-mode="endless">
             <span class="mode-icon icon-endless"></span><span class="mode-name">Endless</span
@@ -129,10 +129,29 @@
         <div id="pauseTitle" class="panel-title">Paused</div>
         <div id="pauseScore" class="panel-score"></div>
         <div id="pauseBest" class="panel-best"></div>
+        <div id="pauseRank" class="panel-rank" role="status"></div>
+        <div id="pauseStreak" class="panel-streak"></div>
+        <div id="pauseNote" class="panel-note" role="status"></div>
         <div class="panel-actions">
           <button id="resumeBtn" class="btn btn-primary">Resume</button>
+          <button id="leaderboardBtn" class="btn btn-secondary">Leaderboard</button>
+          <button id="shareBtn" class="btn btn-secondary">Share</button>
           <button id="retryBtn" class="btn btn-secondary">Retry</button>
           <button id="homeBtn" class="btn btn-ghost">Home</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="leaderboardScreen" class="flex-item modal-screen">
+      <div class="flex-item modal-container modal-narrow lb-container">
+        <div class="flex-item modal-header">
+          <div class="modal-title">Today's board</div>
+          <div id="leaderboardCloseBtn" class="close-btn" role="button" aria-label="Close"></div>
+        </div>
+        <div class="modal-content-wrapper lb-body">
+          <div id="leaderboardStatus" class="lb-status" role="status"></div>
+          <button id="leaderboardRetryBtn" class="btn btn-secondary lb-retry">Try again</button>
+          <ol id="leaderboardList" class="lb-list"></ol>
         </div>
       </div>
     </div>

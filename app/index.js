@@ -29,6 +29,12 @@ import {
 } from "./modes";
 import { requestSpec, worlds } from "./creator";
 import { auth } from "./auth";
+import { leaderboard, TOP_LIMIT } from "./daily/leaderboard";
+import { createStreak } from "./daily/streak";
+import { createPending } from "./daily/pending";
+import { shareText, shareRun } from "./daily/share";
+import { DAILY_LEVELS } from "./daily/rules.js";
+import { friendlyError } from "./firebase";
 import { firebaseAuthBackend } from "./firebase/auth";
 import { firestoreWorlds } from "./firebase/worlds";
 import { FirestoreRepository, mergeWorlds, starterWorlds } from "./worlds/repository";
@@ -71,6 +77,7 @@ const premiumScreen = $("premiumScreen");
 const createScreen = $("createScreen");
 const loginScreen = $("loginScreen");
 const verifyScreen = $("verifyScreen");
+const leaderboardScreen = $("leaderboardScreen");
 const deleteScreen = $("deleteScreen");
 const controllers = document.querySelectorAll(".controller");
 const loadingScreen = $("loadingScreen");
@@ -222,6 +229,16 @@ window.addEventListener("load", function () {
 
   // ------------------------------------------------------------------ results
 
+  // the daily result panel: rank, streak, a note, and the Share / Leaderboard buttons
+  let panelToken = 0;
+  const setPanelDaily = ({ rank, streak, note, share, leaderboard: board }) => {
+    if (rank !== undefined) $("pauseRank").textContent = rank;
+    if (streak !== undefined) $("pauseStreak").textContent = streak;
+    if (note !== undefined) $("pauseNote").textContent = note;
+    if (share !== undefined) $("shareBtn").style.display = share ? "block" : "none";
+    if (board !== undefined) $("leaderboardBtn").style.display = board ? "block" : "none";
+  };
+
   const showPanel = ({
     title,
     tone = "",
@@ -230,7 +247,10 @@ window.addEventListener("load", function () {
     resume,
     retryLabel,
     homeLabel = "Home",
+    daily = false,
   }) => {
+    panelToken += 1; // a result still arriving for the last panel must not write into this one
+    setPanelDaily({ rank: "", streak: "", note: "", share: daily, leaderboard: false });
     pauseTitle.textContent = title;
     pauseTitle.className = `panel-title ${tone}`;
     pauseScore.textContent = score;
@@ -258,10 +278,97 @@ window.addEventListener("load", function () {
     return `Best ${best.score}`;
   };
 
+  // ------------------------------------------------------------ daily run
+
+  const streak = createStreak();
+  const pending = createPending();
+  /** One daily attempt: how each level went, and the ticks played (30 a second). */
+  const daily = {
+    seed: 0,
+    ticks: 0,
+    levels: [],
+    hurt: [],
+    hearts: MAX_HEARTS,
+    streakGrew: 0, // the seed whose first level grew the streak
+    result: null, // { score, seconds, rank, total } of the run on the panel
+    index: () => areaId - (session ? session.startId : 0),
+    seconds: () => Math.round(daily.ticks / 30),
+    start() {
+      Object.assign(daily, {
+        seed: Number(session.key),
+        ticks: 0,
+        levels: [],
+        hurt: [],
+        result: null,
+      });
+    },
+    /** Called each tick of a daily run: a lost heart marks the level "hurt". */
+    watchHearts() {
+      const { hearts } = game.world.player;
+      if (hearts < daily.hearts) daily.hurt[daily.index()] = true;
+      daily.hearts = hearts;
+    },
+    /** The player walked through the exit of the current level. */
+    levelDone() {
+      const index = daily.index();
+      daily.levels[index] = daily.hurt[index] ? "hurt" : "clean";
+      const result = streak.record(daily.seed);
+      if (result.grew) daily.streakGrew = daily.seed;
+    },
+    squares: () => Array.from({ length: DAILY_LEVELS }, (_, i) => daily.levels[i] || "unreached"),
+    streakDays() {
+      const now = streak.current(dailySeed());
+      return now.alive ? now.days : 0;
+    },
+  };
+
+  const OFFLINE = "You're offline. Your score will be sent later.";
+
+  /** Sends the finished daily run: shows the rank, or keeps the run for the next home screen. */
+  const submitDaily = async (score) => {
+    const token = panelToken;
+    const run = { seed: daily.seed, score, seconds: daily.seconds() };
+    daily.result = { ...run, rank: null, total: null };
+    const days = daily.streakDays();
+    setPanelDaily({
+      rank: "Sending your score…",
+      streak: daily.streakGrew === run.seed && days >= 2 ? `🔥 ${days}-day streak!` : "",
+    });
+    try {
+      await auth.ensurePlayer();
+      const sent = await leaderboard.submit(run);
+      daily.result = { ...run, rank: sent.rank, total: sent.total };
+      track("daily_complete", { score, seconds: run.seconds, rank: sent.rank });
+      if (token === panelToken)
+        setPanelDaily({ rank: `#${sent.rank} of ${sent.total}`, leaderboard: true });
+    } catch (error) {
+      pending.save(run);
+      track("daily_complete", { score, seconds: run.seconds });
+      if (token === panelToken) setPanelDaily({ rank: OFFLINE });
+    }
+  };
+
+  let flushing = false;
+  /** Sends the runs that couldn't be sent before; called when the home screen opens. */
+  const flushPending = async () => {
+    if (flushing) return;
+    flushing = true;
+    try {
+      await pending.flush(async (run) => {
+        await auth.ensurePlayer();
+        await leaderboard.submit(run);
+      });
+    } finally {
+      flushing = false;
+    }
+  };
+
   // GAME
   const game = new Game((score) => {
     track("level_fail", { mode: modeName(), level_id: areaId, seconds: areaSeconds() });
     const best = recordRun(score);
+    const inDaily = !!session && session.kind === "daily";
+    if (inDaily) daily.levels[daily.index()] = "lost";
     const current = areaId;
     const inSession = session;
     const level = LEVELS.find(({ id }) => id === current);
@@ -280,7 +387,12 @@ window.addEventListener("load", function () {
         score: `Score ${score} · ${levelName(current)}`,
         best,
         retryLabel: inSession && inSession.kind !== "custom" ? "Try again" : "Retry",
+        daily: inDaily,
       });
+      if (inDaily) {
+        setPanelDaily({ note: "Finish all 5 levels to get on the leaderboard." });
+        daily.result = { score, seconds: daily.seconds(), rank: null, total: null };
+      }
     }, 1400);
   });
 
@@ -308,13 +420,16 @@ window.addEventListener("load", function () {
       return;
     }
     vibrate("powerup");
+    const inDaily = session.kind === "daily";
     showPanel({
       title: titles[session.kind] || "Complete!",
       tone: "good",
       score: `Score ${score}`,
       best,
       retryLabel: "Play again",
+      daily: inDaily,
     });
+    if (inDaily) submitDaily(score);
   };
 
   const setupWorld = () => {
@@ -328,6 +443,7 @@ window.addEventListener("load", function () {
       if (campaign.isUnlocked(areaId) || walkedIn) campaign.reach(areaId);
     }
     cameFrom = null;
+    daily.hearts = game.world.player.hearts;
     track("level_start", { mode: modeName(), level_id: areaId });
   };
 
@@ -406,6 +522,7 @@ window.addEventListener("load", function () {
     }
 
     if (portal) {
+      if (session && session.kind === "daily" && portal.direction > 0) daily.levelDone();
       if (session && portal.direction > 0) {
         track("level_complete", {
           mode: session.kind,
@@ -435,6 +552,10 @@ window.addEventListener("load", function () {
     // mid-jump keeps falling (and can die) behind the pause menu.
     if (!paused) {
       game.update();
+      if (session && session.kind === "daily" && loaded && !game.over) {
+        daily.ticks += 1;
+        daily.watchHearts();
+      }
     }
 
     // shell feedback for what happened this tick
@@ -944,6 +1065,7 @@ window.addEventListener("load", function () {
 
   const startDaily = () => {
     session = createDailySession();
+    daily.start();
     track("mode_start", { mode: "daily" });
     loadWorld(session.startId, session.left, session.top);
   };
@@ -1009,12 +1131,13 @@ window.addEventListener("load", function () {
     show(pauseScreen, false);
     refreshHome();
     show(homeScreen, true);
+    flushPending();
   };
 
   // ------------------------------------------------------------------ home
 
   // the world creator is the one mode that needs an account
-  const premiumModes = {
+  const modes = {
     daily: startDaily,
     endless: startEndless,
     create: () => requireLogin(() => openCreator(), "worlds"),
@@ -1028,6 +1151,9 @@ window.addEventListener("load", function () {
     });
     const today = records.best("daily", String(dailySeed()));
     $("dailyInfo").textContent = today ? `Today's best ${today.score}` : "5 new levels a day";
+    // a streak that would reset today doesn't show, and a streak of 1 isn't one yet
+    const run = streak.current(dailySeed());
+    $("dailyStreak").textContent = run.alive && run.days >= 2 ? `🔥 ${run.days}` : "";
     const endless = records.read()["endless:best"];
     $("endlessInfo").textContent = endless ? `Best: level ${endless.level}` : "How far can you go?";
     const last = LEVELS.find((l) => l.id === campaign.last) || LEVELS[0];
@@ -1091,8 +1217,9 @@ window.addEventListener("load", function () {
     card.onclick = () => {
       const mode = card.dataset.mode;
       if (mode === "levels") return openLevels();
-      if (!isPremium()) return openPremium();
-      premiumModes[mode]();
+      // the daily challenge is free; endless and the world creator stay premium
+      if (mode !== "daily" && !isPremium()) return openPremium();
+      modes[mode]();
     };
   });
 
@@ -1132,7 +1259,8 @@ window.addEventListener("load", function () {
     setPremiumDev.checked = premium;
     $("unlockDevRow").style.display = canToggleLocally() ? "flex" : "none";
     $("setUnlockDev").checked = devUnlock();
-    const user = auth.currentUser;
+    // an anonymous player (daily leaderboard) is signed out here
+    const user = auth.signedIn ? auth.currentUser : null;
     $("accountStatus").textContent = user ? user.displayName : "Not signed in";
     $("accountBtn").textContent = user ? "Sign out" : "Sign in";
     $("deleteAccountRow").style.display = user ? "flex" : "none";
@@ -1164,7 +1292,7 @@ window.addEventListener("load", function () {
     };
   });
   $("accountBtn").onclick = async () => {
-    if (auth.currentUser) await auth.signOut().catch(() => {});
+    if (auth.signedIn) await auth.signOut().catch(() => {});
     else openLogin(() => refreshSettings(), "settings");
     refreshSettings();
   };
@@ -1450,7 +1578,7 @@ window.addEventListener("load", function () {
     history.replaceState(null, "", location.pathname + (rest ? `?${rest}` : "") + location.hash);
     if (verifiedLink) {
       auth.ready().then(async () => {
-        if (!auth.currentUser) {
+        if (!auth.signedIn) {
           showToast("<b>Email verified</b><span>Sign in to create worlds</span>");
           return;
         }
@@ -1470,7 +1598,7 @@ window.addEventListener("load", function () {
   const deleteConfirmBtn = $("deleteConfirmBtn");
   const deleteStatus = $("deleteStatus");
   $("deleteAccountBtn").onclick = () => {
-    if (!auth.currentUser) return;
+    if (!auth.signedIn) return;
     $("deleteAccountName").textContent = auth.currentUser.displayName;
     deleteStatus.textContent = "";
     show(deleteScreen, true);
@@ -1481,7 +1609,7 @@ window.addEventListener("load", function () {
   $("deleteCloseBtn").onclick = closeDelete;
   $("deleteCancelBtn").onclick = closeDelete;
   deleteConfirmBtn.onclick = async () => {
-    const user = auth.currentUser;
+    const user = auth.signedIn ? auth.currentUser : null;
     if (!user) return;
     deleteStatus.textContent = "";
     setBusy(deleteConfirmBtn, true);
@@ -1510,7 +1638,7 @@ window.addEventListener("load", function () {
   const accountChip = $("accountChip");
   let signOutArmed = null;
   const renderAccount = () => {
-    const user = auth.currentUser;
+    const user = auth.signedIn ? auth.currentUser : null;
     accountChip.style.display = user ? "flex" : "none";
     if (!user) return;
     $("accountAvatar").textContent = user.displayName.slice(0, 1).toUpperCase();
@@ -1532,8 +1660,9 @@ window.addEventListener("load", function () {
   };
   auth.onAuthStateChanged((user) => {
     renderAccount();
-    if (user && !loginName.value) loginName.value = user.displayName;
-    if (user && isPremium()) watchCommunity();
+    const real = auth.signedIn ? user : null;
+    if (real && !loginName.value) loginName.value = real.displayName;
+    if (real && isPremium()) watchCommunity();
   });
 
   // ------------------------------------------------------------ repository
@@ -1912,6 +2041,95 @@ window.addEventListener("load", function () {
       }
     });
 
+  // ------------------------------------------------------ share and leaderboard
+
+  $("shareBtn").onclick = async () => {
+    const result = daily.result;
+    if (!result) return;
+    const text = shareText({
+      seed: daily.seed,
+      levels: daily.squares(),
+      score: result.score,
+      seconds: result.seconds,
+      rank: result.rank,
+      total: result.total,
+      streak: daily.streakDays(),
+    });
+    const method = await shareRun(text);
+    if (method === "failed") {
+      setPanelDaily({ note: "Couldn't share. Try again." });
+      return;
+    }
+    track("share", { method });
+    if (method === "copy") setPanelDaily({ note: "Copied to clipboard" });
+  };
+
+  const board = {
+    status: $("leaderboardStatus"),
+    list: $("leaderboardList"),
+    retry: $("leaderboardRetryBtn"),
+    load: 0,
+  };
+
+  const boardRow = (entry, { me = false, pinned = false } = {}) => {
+    const row = document.createElement("li");
+    row.className = `lb-row${me ? " me" : ""}${pinned ? " pinned" : ""}`;
+    // names come from other players: text only, never HTML
+    [
+      ["lb-rank", entry.rank == null ? "–" : `#${entry.rank}`],
+      ["lb-name", entry.name],
+      ["lb-score", String(entry.score)],
+      ["lb-time", clock(entry.seconds)],
+    ].forEach(([cls, text]) => {
+      const cell = document.createElement("span");
+      cell.className = cls;
+      cell.textContent = text;
+      row.appendChild(cell);
+    });
+    return row;
+  };
+
+  const loadLeaderboard = async () => {
+    const load = ++board.load;
+    const seed = daily.seed;
+    board.list.replaceChildren();
+    board.retry.style.display = "none";
+    board.status.textContent = "Loading leaderboard…";
+    try {
+      const { uid } = await auth.ensurePlayer();
+      const rows = await leaderboard.top(seed, TOP_LIMIT);
+      const inTop = rows.some((row) => row.uid === uid);
+      const mine = inTop ? null : await leaderboard.mine(seed, uid).catch(() => null);
+      if (load !== board.load) return;
+      if (!rows.length && !mine) {
+        board.status.textContent = "No scores yet today. Be the first!";
+        return;
+      }
+      board.status.textContent = "";
+      rows.forEach((entry) => board.list.appendChild(boardRow(entry, { me: entry.uid === uid })));
+      if (mine) {
+        const known = daily.result && daily.result.seed === seed ? daily.result.rank : null;
+        board.list.appendChild(boardRow({ ...mine, rank: known }, { me: true, pinned: true }));
+      }
+    } catch (error) {
+      if (load !== board.load) return;
+      console.warn("Leaderboard failed:", friendlyError(error));
+      board.status.textContent = "Leaderboard didn't load.";
+      board.retry.style.display = "inline-block";
+    }
+  };
+
+  $("leaderboardBtn").onclick = () => {
+    track("leaderboard_open", {});
+    show(leaderboardScreen, true);
+    loadLeaderboard();
+  };
+  board.retry.onclick = loadLeaderboard;
+  $("leaderboardCloseBtn").onclick = () => {
+    board.load += 1;
+    show(leaderboardScreen, false);
+  };
+
   // --------------------------------------------------------------- input
 
   const isPlaying = () => engine.started && !game.over && !paused;
@@ -1926,6 +2144,7 @@ window.addEventListener("load", function () {
       loginScreen,
       verifyScreen,
       deleteScreen,
+      leaderboardScreen,
     ].some(isVisible);
 
   const keyDownUp = (event) => {
@@ -1989,6 +2208,13 @@ window.addEventListener("load", function () {
   });
 
   refreshHome();
+
+  // a run that couldn't be sent goes out with the first input (Firebase stays unloaded until then)
+  const flushOnInput = () => {
+    ["pointerdown", "keydown"].forEach((name) => window.removeEventListener(name, flushOnInput));
+    flushPending();
+  };
+  ["pointerdown", "keydown"].forEach((name) => window.addEventListener(name, flushOnInput));
 
   // analytics never delays the game: it loads after the first input, or 3 s from now
   track("app_open", appOpenParams({ get: getData, set: setData }));
