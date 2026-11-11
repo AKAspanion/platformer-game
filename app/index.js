@@ -1224,8 +1224,8 @@ window.addEventListener("load", function () {
     card.onclick = () => {
       const mode = card.dataset.mode;
       if (mode === "levels") return openLevels();
-      // the daily challenge is free; endless and the world creator stay premium
-      if (mode !== "daily" && !isPremium()) return openPremium();
+      // only the feature that uses AI (the world creator) is premium
+      if (mode === "create" && !isPremium()) return openPremium();
       modes[mode]();
     };
   });

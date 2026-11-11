@@ -105,13 +105,18 @@ Every level is checked for reachability with the player's jump physics (entry to
 back, every coin and power-up) before it is used. Ground stays low, like Grassland 1–2,
 and the space above is filled with tiers of floating platforms.
 
-## Premium modes
+## Free modes
 
-Behind the premium flag (`app/util/premium.js`; unlock locally with `?premium=1` or the
-developer switch in Settings on localhost):
-
-- **Daily challenge:** 5 generated levels from today's date, the same for everyone.
+- **Daily challenge:** 5 generated levels from today's date, the same for everyone, with a
+  global leaderboard, a streak and a shareable result.
 - **Endless:** generated forever, one level ahead, getting harder.
+
+## Premium features
+
+Premium covers the features that use AI. Today that is Worlds, behind the premium flag
+(`app/util/premium.js`; unlock locally with `?premium=1` or the developer switch in
+Settings on localhost):
+
 - **Worlds (create & share):** describe a world in words and the game builds all of it:
   6 levels (5 + a boss arena), its own pixel-art tiles, backdrop, decorations and liquid,
   2-4 new enemies (walkers, flyers, turrets), a crowned boss with a move set picked from

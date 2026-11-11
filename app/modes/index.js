@@ -5,7 +5,7 @@ import { LEVELS_PER_WORLD } from "../worlds/spec";
 import { DAILY_LEVELS, dailyLevels } from "../daily/rules";
 
 /**
- * Game modes built on the level generator (premium):
+ * Game modes built on the level generator:
  *  - daily:   5 levels from today's date, the same for everyone that day
  *  - endless: generated forever, one level ahead, getting harder
  *  - custom:  a world the player created from a prompt (see app/creator)
