@@ -89,7 +89,7 @@ Index: collection group `scores`, `score` descending then `seconds` ascending.
 
 **Spec:**
 - §2.4: "The server accepts a run only for yesterday, today or tomorrow by UTC date, so every time zone can submit its local day."
-- §2.4: "The server refuses a score above the most the day's levels can give (20 per coin, plus the highest enemy score per enemy), and a time under 30 seconds or over 7200 seconds."
+- §2.4: "The server refuses a score above the most the day's levels can give (20 per coin, plus the highest enemy score per enemy, plus 100 per power-up for a heart picked up at full health), and a time under 30 seconds or over 7200 seconds."
 - §2.3: "An anonymous player's leaderboard name is generated from their account ID, for example "Swift Raptor 42", and is the same every time."
 
 **Tags:** `security`

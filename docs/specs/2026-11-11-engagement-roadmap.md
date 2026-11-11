@@ -62,7 +62,7 @@ Each phase gets its own plan in `docs/plans/` and ships on its own branch.
 - Ranking: "higher score first; on a tie, the shorter time first."
 - "Each player has one entry per day, their best run."
 - "The server accepts a run only for yesterday, today or tomorrow by UTC date, so every time zone can submit its local day."
-- "The server refuses a score above the most the day's levels can give (20 per coin, plus the highest enemy score per enemy), and a time under 30 seconds or over 7200 seconds."
+- "The server refuses a score above the most the day's levels can give (20 per coin, plus the highest enemy score per enemy, plus 100 per power-up for a heart picked up at full health), and a time under 30 seconds or over 7200 seconds."
 - "A player can submit at most 30 daily runs an hour."
 - "Names on the board come from the server: the signed-in display name, or the generated name. The client never sends a name."
 - The board shows the top 50 for today, and the player's own row pinned at the bottom when they are outside the top 50.
