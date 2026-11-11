@@ -458,12 +458,15 @@ canvas {
     font-size: 12px;
   }
   .panel-actions {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
     gap: 8px;
     margin-top: 10px;
   }
   .panel-actions .btn {
+    flex: 0 1 calc(50% - 4px);
+    min-width: 0;
     padding: 8px 10px;
     font-size: 15px;
   }
