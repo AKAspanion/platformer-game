@@ -176,7 +176,7 @@ export default class World {
     const difficulty = storyDifficulty(data.id);
     const entries = data.enemies?.map((entry) =>
       entry.shoots === undefined && enemyTypes[entry.type]?.kind === "walker"
-        ? { ...entry, shoots: walkerShoots(entry.left, difficulty) }
+        ? { ...entry, shoots: walkerShoots(entry.left, difficulty, entry.sway) }
         : entry,
     );
     this.enemies = new Enemies(entries, this.tileSize, this.killedEnemies);

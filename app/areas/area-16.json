@@ -189,8 +189,7 @@
       "left": 8.35,
       "top": 9,
       "sway": 4,
-      "dir": -1,
-      "shoots": true
+      "dir": -1
     },
     {
       "id": "A16E02",
@@ -206,8 +205,7 @@
       "left": 11.85,
       "top": 1,
       "sway": 12,
-      "dir": 1,
-      "shoots": true
+      "dir": 1
     },
     {
       "id": "A16E04",

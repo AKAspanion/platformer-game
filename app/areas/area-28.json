@@ -204,8 +204,7 @@
       "left": 11.85,
       "top": 5,
       "sway": 12,
-      "dir": 1,
-      "shoots": true
+      "dir": 1
     },
     {
       "id": "A28E03",
@@ -221,8 +220,7 @@
       "left": 11.35,
       "top": 2,
       "sway": 20,
-      "dir": 1,
-      "shoots": true
+      "dir": 1
     },
     {
       "id": "A28E05",

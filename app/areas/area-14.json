@@ -216,8 +216,7 @@
       "left": 8.85,
       "top": 2,
       "sway": 28,
-      "dir": 1,
-      "shoots": true
+      "dir": 1
     },
     {
       "id": "A14E03",

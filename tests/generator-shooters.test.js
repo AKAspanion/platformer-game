@@ -24,6 +24,8 @@ const WALKER_WIDTH = { pig: 21, slime: 23, chameleon: 22, beetle: 20 };
 
 // the centre of a walker standing at `left` tiles, as the generator measures it
 const centre = (left) => left * TILE + 10;
+const NO_SWAY = 0;
+const LUNGE = 12; // the lunge's reach past the patrol range, with half-width slack
 
 test("the shooting constants", () => {
   assert.equal(SHOOT_MIN, 52);
@@ -38,22 +40,20 @@ test("walkers never shoot below difficulty 2", () => {
   assert.equal(walkerShoots(10, 0), false);
 });
 
-test("a walker shoots only more than SHOOT_MAX px from both arrival spots", () => {
-  // 10 px is the half-width the rule assumes, so the centre is left * 16 + 10
-  const far = (left) => Math.min(...ARRIVALS.map((x) => Math.abs(centre(left) - x)));
-  // left 9 -> centre 154: 138 from 16 and 176 from 330: shoots
-  assert.equal(walkerShoots(9, 2), true);
+test("a walker shoots only more than SHOOT_MAX px from both arrival spots, lunge included", () => {
+  // 10 px is the half-width the rule assumes, so the centre is left * 16 + 10; a walker
+  // with no sway still lunges 12 px (10, plus slack for its half-width) past its spot
+  const far = (left) => Math.min(...ARRIVALS.map((x) => Math.abs(centre(left) - x))) - LUNGE;
+  assert.equal(walkerShoots(9, 2, NO_SWAY), true);
   // near the left portal and the right portal: never
-  assert.equal(walkerShoots(2, 5), false);
-  assert.equal(walkerShoots(19, 5), false);
-  // exactly 120 px is still in range; the next step out is not
+  assert.equal(walkerShoots(2, 5, NO_SWAY), false);
+  assert.equal(walkerShoots(19, 5, NO_SWAY), false);
+  // exactly SHOOT_MAX px is still in range; the next step out is not
   for (let left = 0; left <= 21; left += 0.25) {
-    assert.equal(walkerShoots(left, 3), far(left) > SHOOT_MAX, `left ${left}`);
+    assert.equal(walkerShoots(left, 3, NO_SWAY), far(left) > SHOOT_MAX, `left ${left}`);
   }
-  // 121 px from both spots (a centre at 137 is 121 from 16, 193 from 330)
-  assert.equal(walkerShoots((137 - 10) / TILE, 2), true);
-  assert.equal(walkerShoots((136 - 10) / TILE, 2), false);
-  assert.equal(walkerShoots((16 + 120 - 10) / TILE, 2), false);
+  assert.equal(walkerShoots((16 + SHOOT_MAX + LUNGE + 1 - 10) / TILE, 2, NO_SWAY), true);
+  assert.equal(walkerShoots((16 + SHOOT_MAX + LUNGE - 10) / TILE, 2, NO_SWAY), false);
 });
 
 test("storyDifficulty reads LEVELS, and is 1 for a hand-made level", () => {
@@ -110,14 +110,66 @@ test("every shooting walker passes walkerShoots; no spitter or flyer shoots", ()
       if (enemy.shoots) {
         shooters++;
         assert.equal(enemy.shoots, true);
-        assert.ok(walkerShoots(enemy.left, difficulty), `${enemy.id} at ${enemy.left}`);
+        assert.ok(walkerShoots(enemy.left, difficulty, enemy.sway), `${enemy.id} at ${enemy.left}`);
       } else {
         assert.equal(enemy.shoots, undefined);
-        assert.equal(walkerShoots(enemy.left, difficulty), false, `${enemy.id} at ${enemy.left}`);
+        assert.equal(walkerShoots(enemy.left, difficulty, enemy.sway), false, `${enemy.id} at ${enemy.left}`);
       }
     });
   });
   assert.ok(walkers > 0 && shooters > 0, `${shooters} of ${walkers} walkers shoot`);
+});
+
+// every x a walker's centre can reach: its patrol range, plus the extra it moves lunging
+function reachableCentres(enemy) {
+  const half = WALKER_WIDTH[enemy.type] / 2;
+  const sway = enemy.sway ?? 24;
+  const base = enemy.left * TILE;
+  return [base - sway - 10 + half, base + sway + 10 + half];
+}
+
+function assertShooterClear(enemy, where) {
+  const [lo, hi] = reachableCentres(enemy);
+  ARRIVALS.forEach((x) => {
+    const nearest = x < lo ? lo - x : x > hi ? x - hi : 0;
+    assert.ok(nearest > SHOOT_MAX, `${where} ${enemy.id} (${enemy.type}) reaches ${nearest}px of ${x}`);
+  });
+}
+
+test("a shooting walker never gets within SHOOT_MAX of an arrival, anywhere it can walk or lunge", () => {
+  let shooters = 0;
+  everyArea((area) => {
+    area.enemies.forEach((enemy) => {
+      if (!WALKERS.includes(enemy.type) || !enemy.shoots) return;
+      shooters++;
+      assertShooterClear(enemy, `area ${area.id}`);
+    });
+  });
+  assert.ok(shooters > 0);
+});
+
+test("the committed story areas' shooters keep clear of the arrivals too", () => {
+  const dir = path.join(process.cwd(), "app/areas");
+  let shooters = 0;
+  fs.readdirSync(dir)
+    .filter((f) => f.endsWith(".json"))
+    .forEach((file) => {
+      const area = JSON.parse(fs.readFileSync(path.join(dir, file), "utf8"));
+      (area.enemies || []).forEach((enemy) => {
+        if (!enemy.shoots) return;
+        shooters++;
+        assertShooterClear(enemy, file);
+      });
+    });
+  assert.ok(shooters > 0);
+});
+
+test("walkerShoots counts the patrol sway and the lunge", () => {
+  // a walker at left 9 (centre 154) with no sway is 138 from 16: far enough...
+  assert.equal(walkerShoots(9, 2, 0), true);
+  // ...but one that sways 24 px reaches 154 - 24 - 12 = 118: too close
+  assert.equal(walkerShoots(9, 2, 24), false);
+  assert.equal(walkerShoots(9, 2), false); // the default sway is 24, as Enemy's
 });
 
 test("shooting is a flag only: the levels are the ones generated before it existed", () => {

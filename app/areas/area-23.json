@@ -260,8 +260,7 @@
       "left": 8.85,
       "top": 1,
       "sway": 12,
-      "dir": 1,
-      "shoots": true
+      "dir": 1
     },
     {
       "id": "A23E07",

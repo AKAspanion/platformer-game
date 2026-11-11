@@ -200,12 +200,18 @@ export const SHOOT_EVERY = 90; // ticks between shots (3 s)
 export const ARRIVALS = [16, 330];
 /** Half a walker's width in px: its patrol centre is `left` tiles plus this. */
 const WALKER_HALF = 10;
-/** Whether a walker standing at `left` (tiles) in a level of `difficulty` may shoot. */
-export function walkerShoots(left, difficulty) {
+/** How far past its patrol range a lunge carries a walker, plus slack for its half-width. */
+const LUNGE_REACH = 12;
+/**
+ * Whether a walker standing at `left` (tiles) in a level of `difficulty` may shoot.
+ * `sway` is its patrol half-range (Enemy's default is 24): the walker must stay out of
+ * range of both portal arrival spots from every x it can reach, not only from its spawn.
+ */
+export function walkerShoots(left, difficulty, sway = 24) {
   if (difficulty < 2) return false;
   const centre = left * TILE + WALKER_HALF;
-  // like spitters: out of range of both portal arrival spots
-  return ARRIVALS.every((x) => Math.abs(centre - x) > SHOOT_MAX);
+  const reach = sway + LUNGE_REACH;
+  return ARRIVALS.every((x) => Math.abs(centre - x) - reach > SHOOT_MAX);
 }
 /** A story level's difficulty from LEVELS, or 1 for a hand-made level LEVELS doesn't list. */
 export function storyDifficulty(areaId) {
@@ -815,7 +821,7 @@ function buildLevelOnce(input, seed, dropped) {
 
   // Walkers far enough from the portals may shoot (a flag: no random numbers drawn).
   enemies.forEach((en) => {
-    if (kindOf(en.type) === "walker" && walkerShoots(en.left, level.difficulty)) en.shoots = true;
+    if (kindOf(en.type) === "walker" && walkerShoots(en.left, level.difficulty, en.sway)) en.shoots = true;
   });
 
   // Power-ups on top of floating platforms with no enemy on them.

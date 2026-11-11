@@ -180,8 +180,7 @@
       "left": 8.35,
       "top": 8,
       "sway": 4,
-      "dir": 1,
-      "shoots": true
+      "dir": 1
     },
     {
       "id": "A12E02",
@@ -189,8 +188,7 @@
       "left": 12.35,
       "top": 7,
       "sway": 4,
-      "dir": -1,
-      "shoots": true
+      "dir": -1
     },
     {
       "id": "A12E03",
