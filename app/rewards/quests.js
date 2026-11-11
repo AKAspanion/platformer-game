@@ -74,8 +74,6 @@ const DEFAULT_CONTEXT = () => ({
   metEnemies: ["pig", "chameleon", "beetle", "bat"],
 });
 
-const plural = (n, one, many) => (n === 1 ? one : many);
-
 // General quests: [targets per tier, text, stat]. Defined by id, in a fixed order.
 const GENERAL = {
   "defeat-type": {

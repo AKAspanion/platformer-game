@@ -23,7 +23,7 @@ test("a fresh store asks; either answer stops it, and it stays stopped after a r
 });
 
 test("a corrupt value doesn't throw and counts as not answered", () => {
-  for (const bad of ["{", "null", "[]", "\"x\"", ""]) {
+  for (const bad of ["{", "null", "[]", '"x"', ""]) {
     assert.doesNotThrow(() => createPrompt(memory(bad)).shouldAsk());
     assert.equal(createPrompt(memory(bad)).shouldAsk(), true, bad);
   }

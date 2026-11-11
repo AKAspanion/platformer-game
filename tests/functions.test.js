@@ -235,6 +235,9 @@ test("deleteAccount: worlds become Anonymous, then data and account go", async (
     deleteSave: async (uid) => calls.push(["save", uid]),
     deleteProfile: async (uid) => calls.push(["profile", uid]),
     deleteReminders: async (uid) => calls.push(["reminders", uid]),
+    deleteLikes: async (uid) => calls.push(["likes", uid]),
+    deleteSeen: async (uid) => calls.push(["seen", uid]),
+    deleteRuns: async (uid) => calls.push(["runs", uid]),
     deleteData: async (uid) => calls.push(["data", uid]),
     deleteUser: async (uid) => calls.push(["user", uid]),
   };
@@ -252,6 +255,9 @@ test("deleteAccount: worlds become Anonymous, then data and account go", async (
     ["save", "u9"],
     ["profile", "u9"],
     ["reminders", "u9"],
+    ["likes", "u9"],
+    ["seen", "u9"],
+    ["runs", "u9"],
     ["data", "u9"],
     ["user", "u9"],
   ]);
@@ -296,4 +302,62 @@ test("deleteAccount: the adapter deletes only the caller's players doc", () => {
     src,
     /async deleteProfile\(uid\) \{\s*await db\.collection\("players"\)\.doc\(uid\)\.delete\(\);\s*\}/,
   );
+});
+
+test("anonymous players can't design or share worlds", async () => {
+  const anon = { uid: "a1", token: { firebase: { sign_in_provider: "anonymous" } } };
+  let designed = 0;
+  const design = async () => {
+    designed++;
+    return { spec: {} };
+  };
+  await assert.rejects(
+    handleDesign({ auth: anon, data: { prompt: "lava caves" } }, { design, limiter: open }),
+    (e) => e.code === "unauthenticated",
+  );
+  assert.equal(designed, 0, "never reaches the AI designer");
+  const world = newWorld(specFromPrompt("lava caves"), { uid: "a1", displayName: "Eve" });
+  const store = { create: async () => assert.fail("anonymous worlds are never stored") };
+  await assert.rejects(
+    handlePublish({ auth: anon, data: { world } }, { store, limiter: open }),
+    (e) => e.code === "unauthenticated",
+  );
+});
+
+test("publishWorld refuses the id of a built-in world", async () => {
+  const store = { create: async () => assert.fail("a built-in id is never stored") };
+  for (const id of ["starter-meadow", "starfall-peaks"]) {
+    const world = { ...newWorld(specFromPrompt("lava caves"), { uid: "u1" }), id };
+    await assert.rejects(
+      handlePublish({ auth: user(), data: { world } }, { store, limiter: open }),
+      (e) => e.code === "invalid-argument",
+    );
+  }
+});
+
+test("searchWorlds: matches the light index, then reads only the hits in full", async () => {
+  const full = Array.from({ length: 80 }, (_, i) => shared("caves", `Cave ${i}`, "Ana", i + 1));
+  // what index.js's field mask returns: no spec but the boss name
+  const index = full.map((w) => ({
+    id: w.id,
+    name: w.name,
+    tagline: w.tagline,
+    author: w.author,
+    createdAt: w.createdAt,
+    spec: { boss: { name: w.spec.boss.name } },
+  }));
+  const asked = [];
+  const worldsByIds = async (ids) => {
+    asked.push(...ids);
+    // one world was deleted since the index was cached
+    return full.filter((w) => ids.includes(w.id) && w.name !== "Cave 79");
+  };
+  const out = await handleSearch(
+    { auth: user(), data: { query: "cave" } },
+    { allWorlds: async () => index, worldsByIds },
+  );
+  assert.equal(out.worlds.length, MAX_RESULTS);
+  assert.equal(out.worlds[0].name, "Cave 78", "a gone world is skipped");
+  assert.ok(Object.keys(out.worlds[0].spec).length > 1, "full worlds come back, not the index");
+  assert.ok(asked.length <= MAX_RESULTS * 2, "never reads every world");
 });

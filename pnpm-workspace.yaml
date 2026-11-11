@@ -4,3 +4,14 @@ allowBuilds:
   "@firebase/util": false
   protobufjs: false
   re2: false
+
+# Patched versions of vulnerable transitive dependencies (pnpm audit).
+minimumReleaseAgeExclude:
+  - minimatch@11.0.8
+
+overrides:
+  "@grpc/grpc-js@<1.13.6": "^1.14.7"
+  "@opentelemetry/core@<2.8.0": "^2.10.0"
+  "glob@>=9.0.0 <14.0.2": "^14.0.4"
+  "minimatch@>=7.0.0 <11.0.1": "^11.0.8"
+  "uuid@<11.1.1": "^11.1.1"

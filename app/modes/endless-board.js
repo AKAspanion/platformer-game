@@ -3,7 +3,7 @@ import { firestoreEndless } from "../firebase/endless";
 /**
  * Endless mode's global leaderboard: one entry per player, their best run.
  *
- *   board.submit({ seed, level, score, seconds }) -> { rank, total, best, improved }
+ *   board.submit({ seed, level, score, seconds, ticket }) -> { rank, total, best, improved }
  *   board.top(limit = 50)                         -> [{ uid, name, level, score, seconds, rank }]
  *   board.mine(uid)                               -> { uid, name, level, score, seconds } | null
  *
@@ -27,8 +27,8 @@ const row = (entry) => ({
 
 export function createEndlessBoard(backend) {
   return {
-    submit({ seed, level, score, seconds }) {
-      return backend.call("submitEndlessScore", { seed, level, score, seconds });
+    submit({ seed, level, score, seconds, ticket }) {
+      return backend.call("submitEndlessScore", { seed, level, score, seconds, ticket });
     },
 
     async top(limit = TOP_LIMIT) {

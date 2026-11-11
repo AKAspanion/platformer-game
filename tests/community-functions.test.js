@@ -9,6 +9,8 @@ import {
   checkThumb,
   parseWorldPath,
   handleWorldPage,
+  errorPage,
+  SEEN_TTL_MS,
 } from "../functions/src/community.js";
 import { handlePublish, overLimit } from "../functions/src/handlers.js";
 import { dayKey, trendAfterPlay, PLAY_LIMIT, LIKE_LIMIT } from "../app/worlds/community";
@@ -306,6 +308,23 @@ test("renderWorldPage: a missing or built-in world is a 404 that links to the ga
   }
 });
 
+test("world pages and the server error page wear the game's look", () => {
+  const origin = "https://dino.spanion.in";
+  const pages = [
+    renderWorldPage(aWorld(), { hasThumb: true, origin }).html,
+    renderWorldPage(null, { hasThumb: false, origin }).html,
+    errorPage(origin),
+  ];
+  for (const html of pages) {
+    assert.ok(html.startsWith("<!doctype html>"));
+    assert.ok(html.includes("family=Grandstander"));
+    assert.ok(html.includes("#1d1a24"));
+    assert.ok(html.includes(`<a class="logo" href="${origin}/">Dino's <span>Adventure</span></a>`));
+    assert.ok(!/firebase/i.test(html));
+  }
+  assert.ok(errorPage(origin).includes("Something went wrong"));
+});
+
 test("parseWorldPath: /w/<id> and /w/<id>/thumb.png only", () => {
   assert.deepEqual(parseWorldPath("/w/wabcd1"), { id: "wabcd1", thumb: false });
   assert.deepEqual(parseWorldPath("/w/wabcd1/"), { id: "wabcd1", thumb: false });
@@ -418,4 +437,39 @@ test("handleWorldPage: a failed read throws for the adapter to answer 500", asyn
     }),
     /down/,
   );
+});
+
+test("toggleWorldLike: anonymous and unverified accounts can't like", async () => {
+  const s = fakeStore();
+  world(s, "wabcd");
+  const likeAs = (token) =>
+    handleToggleLike(
+      { auth: { uid: "x1", token }, data: { worldId: "wabcd" } },
+      { stats: s.stats, worlds: s.worlds, limiter: open, now: () => T },
+    );
+  await assert.rejects(
+    likeAs({ firebase: { sign_in_provider: "anonymous" } }),
+    (e) => e.code === "unauthenticated" && e.message === "Sign in to like worlds.",
+  );
+  await assert.rejects(
+    likeAs({ firebase: { sign_in_provider: "password" }, email_verified: false }),
+    (e) => e.code === "permission-denied" && e.message === "Verify your email to like worlds.",
+  );
+  assert.equal(s.data.has("worldLikes/wabcd_x1"), false);
+  assert.deepEqual(await likeAs({ firebase: { sign_in_provider: "google.com" } }), {
+    liked: true,
+    likes: 1,
+  });
+});
+
+test("recordWorldPlay: the dedupe marker names its account and expires", async () => {
+  const s = fakeStore();
+  world(s, "wabcd");
+  await play(s, "u1", "wabcd", "play", T);
+  const marker = s.data.get(`worldStats/wabcd/seen/u1_${dayKey(T)}_play`);
+  assert.equal(marker.uid, "u1");
+  assert.equal(marker.at, T);
+  assert.ok(marker.expireAt instanceof Date);
+  assert.equal(marker.expireAt.getTime(), T + SEEN_TTL_MS);
+  assert.ok(SEEN_TTL_MS > DAY, "outlives the day it dedupes");
 });

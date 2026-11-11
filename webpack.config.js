@@ -2,19 +2,35 @@ const path = require("path");
 const webpack = require("webpack");
 const CopyPlugin = require("copy-webpack-plugin");
 const ESLintPlugin = require("eslint-webpack-plugin");
-// const TerserPlugin = require("terser-webpack-plugin");
 const DashboardPlugin = require("webpack-dashboard/plugin");
-// const { CleanWebpackPlugin } = require("clean-webpack-plugin");
 const { EsbuildPlugin } = require("esbuild-loader");
+const { firebaseEnv, missingFirebaseEnv, buildEnv } = require("./scripts/load-env");
 
-module.exports = {
-  mode: "development",
-  entry: path.resolve(__dirname, "./app/index.js"),
+// Deploys set REQUIRE_FIREBASE_ENV=1: a live build without its Firebase config
+// would ship a game whose sign-in, worlds and leaderboards all fail.
+if (missingFirebaseEnv.length) {
+  const message = `Missing ${missingFirebaseEnv.join(", ")} (copy .env.example to .env). Online features are off in this build.`;
+  if (process.env.REQUIRE_FIREBASE_ENV === "1") throw new Error(message);
+  console.warn(`\n[env] ${message}\n`);
+}
+
+const projectId = firebaseEnv.FIREBASE_PROJECT_ID || "demo-project";
+
+// a function so the build knows its mode (`--mode production` drops dev-only values)
+module.exports = (env, argv = {}) => ({
+  mode: argv.mode || "development",
+  entry: {
+    main: path.resolve(__dirname, "./app/index.js"),
+    // the page the account emails link to (/auth/action, app/pages/)
+    "auth-action": path.resolve(__dirname, "./app/pages/auth-action.js"),
+  },
   output: {
-    filename: "bundle.js",
+    filename: (pathData) => (pathData.chunk.name === "main" ? "bundle.js" : "[name].js"),
     // Firebase (sign-in, shared worlds) is a separate chunk, loaded on demand
     chunkFilename: "chunks/[name].[contenthash:8].js",
     publicPath: "auto",
+    // drop files from older builds (stale chunks would otherwise be deployed)
+    clean: true,
   },
   optimization: {
     minimizer: [
@@ -33,11 +49,12 @@ module.exports = {
     ],
   },
   plugins: [
-    // new CleanWebpackPlugin(),
     new DashboardPlugin(),
     // PREMIUM=1 unlocks premium by default (test builds).
     new webpack.DefinePlugin({
       PREMIUM_DEFAULT: JSON.stringify(process.env.PREMIUM === "1"),
+      // the Firebase web config from .env (app/firebase/config.js)
+      __FIREBASE_ENV__: JSON.stringify(buildEnv(argv.mode || "development")),
     }),
     new ESLintPlugin({}),
     new CopyPlugin({
@@ -50,6 +67,10 @@ module.exports = {
         { from: path.resolve(__dirname, "app/favicon.ico"), to: "favicon.ico" },
         { from: path.resolve(__dirname, "app/manifest.json"), to: "manifest.json" },
         { from: path.resolve(__dirname, "app/assetlinks.json"), to: "assetlinks.json" },
+        // Hosting's 404 page and the account email page, in the game's look
+        { from: path.resolve(__dirname, "app/pages/404.html"), to: "404.html" },
+        { from: path.resolve(__dirname, "app/pages/auth-action.html"), to: "auth-action.html" },
+        { from: path.resolve(__dirname, "app/pages/pages.css"), to: "pages.css" },
         // Android app links for the Play Store app (TWA)
         {
           from: path.resolve(__dirname, "app/assetlinks.json"),
@@ -64,7 +85,10 @@ module.exports = {
   devtool: "source-map",
   devServer: {
     static: path.resolve(__dirname, "./app"),
-    historyApiFallback: true,
+    // like Hosting (firebase.json): /auth/action is the account email page, the rest the game
+    historyApiFallback: {
+      rewrites: [{ from: /^\/auth\/action\/?$/, to: "/auth-action.html" }],
+    },
     host: "localhost",
     port: 2108,
     // ?emulators=1 talks to the Firebase emulators (pnpm emulators) through
@@ -75,7 +99,7 @@ module.exports = {
         target: "http://127.0.0.1:9099",
       },
       { context: ["/google.firestore.v1.Firestore"], target: "http://127.0.0.1:8085" },
-      { context: ["/dinos-adventure"], target: "http://127.0.0.1:5001" },
+      { context: [`/${projectId}`], target: "http://127.0.0.1:5001" },
     ],
     open: true,
     client: {
@@ -85,4 +109,4 @@ module.exports = {
       },
     },
   },
-};
+});

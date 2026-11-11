@@ -320,7 +320,7 @@ test("stop while the account's save is being read: nothing is written to it or t
 
 test("the Firestore rules limit saves/{uid} to its own account and its three keys", () => {
   const rules = fs.readFileSync(path.join(process.cwd(), "firestore.rules"), "utf8");
-  const block = rules.match(/match \/saves\/\{uid\} \{([\s\S]*?)\n    \}/);
+  const block = rules.match(/match \/saves\/\{uid\} \{([\s\S]*?)\n {4}\}/);
   assert.ok(block, "saves/{uid} block exists");
   const body = block[1];
   assert.match(body, /allow read: if request\.auth != null && request\.auth\.uid == uid;/);
@@ -411,7 +411,7 @@ test("a push merges what another device sent since, never overwriting it", async
 });
 
 test("a device whose session predates a switch-off keeps it off when it pushes, and adopts it", async () => {
-  const { backend, store, timers, cloud } = setup({
+  const { backend, store, cloud } = setup({
     local: withProgress({ lastSeen: switchAt(true, 100) }),
   });
   await cloud.start("u1");

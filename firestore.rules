@@ -32,6 +32,8 @@ rules_version = '2';
 //
 // limits/{uid}: per-user rate limit counters, functions only.
 //
+// runs/{ticket}: ranked run tickets (startRun), functions only.
+//
 // players/{uid}: a player's looks and, optionally, the UTC day they were last
 // online, shown on the boards. No client reads them: the getProfiles function
 // hands out the four fields, 30 players at a time, without the document's
@@ -99,6 +101,11 @@ service cloud.firestore {
 
     // pushSubs/{uid}: device tokens, written and read by the functions only.
     match /pushSubs/{uid} {
+      allow read, write: if false;
+    }
+
+    // runs/{ticket}: run tickets, written and read by the functions only.
+    match /runs/{ticket} {
       allow read, write: if false;
     }
 

@@ -3,7 +3,7 @@ import { firestoreDaily } from "../firebase/daily.js";
 /**
  * The daily challenge's global leaderboard.
  *
- *   leaderboard.submit({ seed, score, seconds })  -> { rank, total, best, improved }
+ *   leaderboard.submit({ seed, score, seconds, ticket }) -> { rank, total, best, improved }
  *   leaderboard.top(seed, limit = 50)             -> [{ uid, name, score, seconds, rank }]
  *   leaderboard.mine(seed, uid)                   -> { uid, name, score, seconds } | null
  *
@@ -26,8 +26,8 @@ const row = (entry) => ({
 
 export function createLeaderboard(backend) {
   return {
-    submit({ seed, score, seconds }) {
-      return backend.call("submitDailyScore", { seed, score, seconds });
+    submit({ seed, score, seconds, ticket }) {
+      return backend.call("submitDailyScore", { seed, score, seconds, ticket });
     },
 
     async top(seed, limit = TOP_LIMIT) {

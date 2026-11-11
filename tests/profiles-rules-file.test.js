@@ -12,7 +12,7 @@ import path from "node:path";
 import { PROFILE_IDS, PROFILE_SLOTS } from "../app/profiles/rules";
 
 const rules = fs.readFileSync(path.join(process.cwd(), "firestore.rules"), "utf8");
-const block = rules.match(/match \/players\/\{uid\} \{([\s\S]*?)\n    \}/);
+const block = rules.match(/match \/players\/\{uid\} \{([\s\S]*?)\n {4}\}/);
 
 test("firestore.rules has a players/{uid} match", () => {
   assert.ok(block, "a players/{uid} match exists");

@@ -109,7 +109,7 @@ test("slime, chameleon and beetle fire glob, spit and pebble", () => {
 });
 
 test("a walker shot costs the player a heart; a fireball burns it", () => {
-  const { world, walker } = setup();
+  const { world } = setup();
   tickUntil(world, () => shots(world).length > 0, 40);
   const hearts = world.player.hearts;
   const shot = shots(world)[0];

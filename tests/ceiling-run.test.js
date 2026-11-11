@@ -6,6 +6,7 @@ import { generateSequence, generateEndlessLevel } from "../app/pcg/generator";
 import { dailyLevels, dailyScoreCeiling, ENEMY_MAX_SCORE } from "../app/daily/rules";
 import { endlessScoreCeiling, checkEndlessRun } from "../app/modes/endless-rules";
 import { handleSubmitDaily } from "../functions/src/daily.js";
+import { fakeTickets, ticketed } from "./tickets-fake.js";
 
 /**
  * A perfect run through the real World code: every coin and enemy scored with the
@@ -59,14 +60,15 @@ test("the server takes the perfect daily score and refuses one point more", asyn
   const seed = 20261111;
   const score = perfectRun(dailyAreas(seed));
   const now = () => Date.UTC(2026, 10, 11, 12);
+  const auth = { uid: "u1", token: { name: "Ana", firebase: { sign_in_provider: "google.com" } } };
+  // every run needs a fresh run ticket (tests/run-tickets.test.js tests them)
+  const tickets = fakeTickets();
   const submit = (s) =>
     handleSubmitDaily(
-      {
-        auth: { uid: "u1", token: { name: "Ana", firebase: { sign_in_provider: "google.com" } } },
-        data: { seed, score: s, seconds: 60 },
-      },
+      { auth, data: ticketed(tickets, auth, "daily", { seed, score: s, seconds: 60 }, now()) },
       {
         now,
+        tickets,
         limiter: async () => false,
         scores: {
           get: async () => null,

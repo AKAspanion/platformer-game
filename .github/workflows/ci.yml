@@ -1,21 +1,30 @@
-# Lint, tests and a production build for every pull request. The deploy
-# workflow (firebase-hosting-merge.yml) runs this too before it deploys.
+# Lint, format, tests, dependency audit and a production build for every pull
+# request. The deploy workflow (firebase-hosting-merge.yml) runs this too
+# before it deploys.
 name: CI
 
 on:
   pull_request:
   workflow_call:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
 
       - uses: actions/setup-node@v7
         with:
@@ -26,10 +35,15 @@ jobs:
             functions/pnpm-lock.yaml
 
       - name: Install
-        run: pnpm install --frozen-lockfile
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm --dir functions install --frozen-lockfile
 
       - name: Lint
         run: pnpm lint
+
+      - name: Format
+        run: pnpm format:check
 
       - name: Tests
         run: pnpm test
@@ -47,9 +61,11 @@ jobs:
         run: node scripts/sync-functions-shared.js --check
 
       - name: Functions load
-        run: |
-          pnpm --dir functions install --frozen-lockfile
-          pnpm --dir functions check
+        run: pnpm --dir functions check
 
+      - name: Dependency audit
+        run: pnpm audit:all
+
+      # No .env here: the build plays offline, which is all the checks need.
       - name: Build
         run: pnpm build

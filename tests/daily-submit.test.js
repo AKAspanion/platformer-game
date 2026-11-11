@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { DAILY_LIMIT, handleSubmitDaily, outranks, rankIn } from "../functions/src/daily.js";
 import { handleDeleteAccount } from "../functions/src/handlers.js";
 import { dailyScoreCeiling, generatedName } from "../functions/shared/daily/rules.js";
+import { fakeTickets, ticketed } from "./tickets-fake.js";
 
 const SEED = 20261111;
 const NOW = Date.UTC(2026, 10, 11, 12);
@@ -43,8 +44,15 @@ function fakeScores(initial = {}) {
   };
 }
 const open = async () => false;
-const run = (auth, data, deps) =>
-  handleSubmitDaily({ auth, data }, { scores: fakeScores(), limiter: open, now, ...deps });
+// every run gets a valid ticket unless the test gives one (tests/run-tickets.test.js tests them)
+const run = (auth, data, deps = {}) => {
+  const tickets = deps.tickets || fakeTickets();
+  const sent = ticketed(tickets, auth, "daily", data, now());
+  return handleSubmitDaily(
+    { auth, data: sent },
+    { scores: fakeScores(), limiter: open, now, ...deps, tickets },
+  );
+};
 const rejected = (code, message) => (e) =>
   e.code === code && (message === undefined || e.message === message);
 const CANT_RANK = "That run can't be ranked.";
@@ -232,11 +240,25 @@ test("deleteAccount removes the caller's scores from every day before the accoun
     deleteSave: async () => calls.push("save"),
     deleteProfile: async () => calls.push("profile"),
     deleteReminders: async () => calls.push("reminders"),
+    deleteLikes: async () => calls.push("likes"),
+    deleteSeen: async () => calls.push("seen"),
+    deleteRuns: async () => calls.push("runs"),
     deleteData: async () => calls.push("data"),
     deleteUser: async () => calls.push("user"),
   };
   await handleDeleteAccount({ auth: user("u9") }, { accounts });
-  assert.deepEqual(calls, ["scores", "endless", "save", "profile", "reminders", "data", "user"]);
+  assert.deepEqual(calls, [
+    "scores",
+    "endless",
+    "save",
+    "profile",
+    "reminders",
+    "likes",
+    "seen",
+    "runs",
+    "data",
+    "user",
+  ]);
   assert.equal(await scores.get(20261110, "u9"), null);
   assert.equal(await scores.get(20261111, "u9"), null);
   assert.ok(await scores.get(20261110, "other"));
