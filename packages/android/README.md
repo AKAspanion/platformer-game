@@ -33,7 +33,7 @@ Then:
 
 Raise `appVersionCode` (and `appVersion`) in `twa-manifest.json` and regenerate first. `bubblewrap build`
 refuses an Android SDK without a `tools/` or `bin/` folder, so build with Gradle and sign by hand
-(replace `2.0.0-1` with the new version and code):
+(replace `1.0.0-1` with the new version and code):
 
 ```bash
 cd packages/android
@@ -41,13 +41,13 @@ export ANDROID_HOME=~/Library/Android/sdk JAVA_HOME=$(/usr/libexec/java_home -v 
 ./gradlew bundleRelease assembleRelease
 PW=$(cat ~/keys/dino/keystore-password.txt) BT=~/Library/Android/sdk/build-tools/36.1.0
 
-cp app/build/outputs/bundle/release/app-release.aab ~/keys/dino/app-release-2.0.0-1.aab
+cp app/build/outputs/bundle/release/app-release.aab ~/keys/dino/app-release-1.0.0-1.aab
 jarsigner -sigalg SHA256withRSA -digestalg SHA-256 -keystore ~/keys/dino/upload.keystore \
-  -storepass "$PW" -keypass "$PW" ~/keys/dino/app-release-2.0.0-1.aab upload
+  -storepass "$PW" -keypass "$PW" ~/keys/dino/app-release-1.0.0-1.aab upload
 
 $BT/zipalign -f -p 4 app/build/outputs/apk/release/app-release-unsigned.apk app/build/aligned.apk
 $BT/apksigner sign --v4-signing-enabled false --ks ~/keys/dino/upload.keystore --ks-key-alias upload \
-  --ks-pass pass:"$PW" --key-pass pass:"$PW" --out ~/keys/dino/app-release-2.0.0-1.apk app/build/aligned.apk
+  --ks-pass pass:"$PW" --key-pass pass:"$PW" --out ~/keys/dino/app-release-1.0.0-1.apk app/build/aligned.apk
 ```
 
 Upload the `.aab` to Play. The `.apk` is for installing by hand (`adb install -r`).
