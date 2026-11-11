@@ -1,5 +1,7 @@
 Privacy Policy for Dino's Adventure: Platformer Game
 
+_Last updated: 12 November 2026_
+
 This Privacy Policy describes how personal information is collected, used, and disclosed when you play Dino's Adventure: Platformer Game (referred to as "the Game").
 
 ### Information We Collect
@@ -8,7 +10,7 @@ When you play Dino's Adventure, we may collect certain information automatically
 
 - Device Information: We collect information about the device you use to access the Game, such as the device model, operating system version, unique device identifiers, and mobile network information.
 - Log Information: We collect log information when you interact with the Game, including the date and time of your actions, the features you use, and any errors that occur during gameplay.
-- Gameplay Information: We may collect information about your gameplay activities, such as your progress, achievements, and in-game purchases.
+- Gameplay Information: We may collect information about your gameplay activities, such as your progress, achievements, and the coins and looks you earn in the Game.
 
 ### Accounts and Shared Worlds
 
@@ -39,6 +41,16 @@ To hide when you were last online, open Settings in the Game and switch off "Sho
 
 Deleting your account in Settings deletes your profile too.
 
+### Daily Reminders
+
+Reminders are off until you switch on "Daily reminder" in Settings, which asks your device for permission to show notifications. When you switch them on, we store, with your account in Cloud Firestore (Google):
+
+- Your device's push token from Firebase Cloud Messaging (Google), or from Apple's push service in the iPhone app, so a reminder can reach that device.
+- Your time zone, so a reminder arrives at a sensible time of your day.
+- The last day a reminder was sent, so you get at most one a day.
+
+This is never shown to other players, and players' devices can't read it. Switching reminders off removes that device; deleting your account deletes all of it.
+
 ### Anonymous Usage Statistics
 
 The Game sends anonymous usage events to Google Analytics (through Firebase Analytics, by Google). The events carry no name, email address or account identifier. The events are:
@@ -61,7 +73,7 @@ We may use the information collected to:
 - Provide and maintain the Game;
 - Improve and optimize the Game's performance and user experience;
 - Analyze trends and user behavior to understand how players interact with the Game;
-- Personalize your gameplay experience by delivering tailored content and advertisements;
+- Keep your progress, looks and settings in step across the devices you play on;
 - Communicate with you, including responding to your inquiries and providing customer support;
 - Detect, prevent, and address technical issues or fraudulent activity.
 
@@ -85,12 +97,16 @@ You can choose to opt-out of certain data collection and use by adjusting your d
 
 Dino's Adventure is not intended for children under the age of 13. We do not knowingly collect personal information from children under 13. If you believe that we have inadvertently collected information from a child under 13, please contact us immediately.
 
+### Terms of Service
+
+Your use of the Game is also governed by our [Terms of Service](/terms).
+
 ### Changes to This Privacy Policy
 
 We may update this Privacy Policy from time to time to reflect changes in our practices or legal requirements. We will notify you of any material changes by posting the new Privacy Policy on this page.
 
 ### Contact Us
 
-If you have any questions or concerns about this Privacy Policy or our practices regarding your personal information, please contact us at panditankit1995@gmai.com.
+If you have any questions or concerns about this Privacy Policy or our practices regarding your personal information, please contact us at [panditankit1995@gmail.com](mailto:panditankit1995@gmail.com).
 
 By playing Dino's Adventure, you agree to the collection and use of information in accordance with this Privacy Policy.

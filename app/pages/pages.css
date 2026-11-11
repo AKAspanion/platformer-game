@@ -1,5 +1,6 @@
 /*
- * The game's standalone pages (404.html, the email link page /auth/action):
+ * The game's standalone pages (404.html, the email link page /auth/action,
+ * the legal pages /privacy and /terms):
  * the home screen's look, without the game. Colours and type match index.css.
  */
 :root {
@@ -224,6 +225,75 @@ body {
   .spinner {
     animation-duration: 2.4s;
   }
+}
+
+/* /privacy and /terms: a long read, so a wider panel with left-aligned text */
+.legal-page {
+  justify-content: flex-start;
+}
+.panel.legal {
+  width: min(760px, 100%);
+  padding: 28px clamp(18px, 4vw, 40px);
+  text-align: left;
+}
+.legal .title {
+  text-align: center;
+}
+.legal-nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 20px;
+  margin-top: 10px;
+  font-size: 15px;
+}
+.legal-nav a,
+.legal-body a {
+  color: var(--gold);
+}
+.legal-body {
+  margin-top: 18px;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  color: rgba(255, 247, 232, 0.9);
+  overflow-wrap: anywhere;
+}
+.legal-body h2,
+.legal-body h3 {
+  margin: 26px 0 8px;
+  font-family: var(--font);
+  font-weight: normal;
+  font-size: 21px;
+  line-height: 1.25;
+  color: white;
+}
+.legal-body p,
+.legal-body ul {
+  margin-top: 10px;
+}
+.legal-body ul {
+  padding-left: 22px;
+}
+.legal-body li + li {
+  margin-top: 6px;
+}
+.legal-body strong {
+  color: white;
+}
+.legal-body code {
+  padding: 1px 5px;
+  border-radius: 5px;
+  font-size: 0.9em;
+  background: rgba(255, 255, 255, 0.08);
+}
+.legal .actions {
+  align-items: center;
 }
 
 [hidden] {

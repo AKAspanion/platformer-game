@@ -273,6 +273,13 @@ canvas {
 .btn-danger {
   background: #6b2b33;
 }
+/* a link that looks like a button (Settings → Privacy, Terms) */
+a.btn {
+  display: inline-block;
+  font-family: var(--font);
+  line-height: normal;
+  text-decoration: none;
+}
 .btn[disabled] {
   opacity: 0.6;
   pointer-events: none;

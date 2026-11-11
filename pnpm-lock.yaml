@@ -207,6 +207,9 @@ importers:
       globals:
         specifier: ^17.14.0
         version: 17.14.0
+      marked:
+        specifier: 13.0.3
+        version: 13.0.3
       prettier:
         specifier: ^3.9.10
         version: 3.9.10
