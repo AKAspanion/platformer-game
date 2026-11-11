@@ -26,7 +26,14 @@ import {
   createEndlessSession,
   createCustomSession,
 } from "./modes";
-import { levelsFromSpec, requestSpec, worlds } from "./creator";
+import { requestSpec, worlds } from "./creator";
+import { auth } from "./auth";
+import { firebaseAuthBackend } from "./firebase/auth";
+import { firestoreWorlds } from "./firebase/worlds";
+import { FirestoreRepository, mergeWorlds, starterWorlds } from "./worlds/repository";
+import { newWorld } from "./worlds/spec";
+import { previewImage } from "./gen";
+import { getSkin } from "./util/registry";
 import { createCampaign, starsFor, targetTime, starCount, STAR } from "./campaign";
 
 import areas from "./areas";
@@ -36,7 +43,9 @@ preLoadAndFetch();
 populateLinks();
 populateHelp();
 
-const BUILD_WORLD_API = typeof WORLD_API_URL !== "undefined" ? WORLD_API_URL : "";
+// Firebase loads only for players who signed in before, or when they open Worlds
+auth.use(firebaseAuthBackend());
+auth.resume();
 
 let loadingActive = false;
 let controllerActive = false;
@@ -59,6 +68,7 @@ const portalScreen = $("portalScreen");
 const settingsScreen = $("settingsScreen");
 const premiumScreen = $("premiumScreen");
 const createScreen = $("createScreen");
+const loginScreen = $("loginScreen");
 const controllers = document.querySelectorAll(".controller");
 const loadingScreen = $("loadingScreen");
 const progressValue = $("progressValue");
@@ -321,7 +331,8 @@ window.addEventListener("load", function () {
   };
 
   const setupScreen = () => {
-    screen = new Screen(document.querySelector("canvas"), areas[areaId].world);
+    const area = areas[areaId];
+    screen = new Screen(document.querySelector("canvas"), area.world, getSkin(area.skin));
 
     screen.buffer.canvas.height = game.world.height;
     screen.buffer.canvas.width = game.world.width;
@@ -918,9 +929,10 @@ window.addEventListener("load", function () {
 
   const startCustom = (world) => {
     try {
-      session = { ...createCustomSession(world, levelsFromSpec), world };
+      session = createCustomSession(world);
     } catch (error) {
       setCreateStatus(`Couldn't build that world: ${error.message}`);
+      showToast(`Couldn't build that world`);
       return;
     }
     show(createScreen, false);
@@ -973,7 +985,12 @@ window.addEventListener("load", function () {
 
   // ------------------------------------------------------------------ home
 
-  const premiumModes = { daily: startDaily, endless: startEndless, create: () => openCreator() };
+  // the world creator is the one mode that needs an account
+  const premiumModes = {
+    daily: startDaily,
+    endless: startEndless,
+    create: () => requireLogin(() => openCreator()),
+  };
 
   const refreshHome = () => {
     updateHighScore();
@@ -1048,7 +1065,6 @@ window.addEventListener("load", function () {
   const setSound = $("setSound");
   const setVibration = $("setVibration");
   const setControls = $("setControls");
-  const setWorldApi = $("setWorldApi");
   const setPremiumDev = $("setPremiumDev");
 
   const refreshSettings = () => {
@@ -1059,7 +1075,6 @@ window.addEventListener("load", function () {
     setControls.querySelectorAll("button").forEach((b) => {
       b.classList.toggle("active", b.dataset.value === settings.get("controlSize"));
     });
-    setWorldApi.value = settings.get("worldApiUrl") || "";
     const premium = isPremium();
     $("premiumStatus").textContent = premium ? "Active ★" : "Locked";
     $("premiumBtn").style.display = premium ? "none" : "inline-block";
@@ -1067,6 +1082,9 @@ window.addEventListener("load", function () {
     setPremiumDev.checked = premium;
     $("unlockDevRow").style.display = canToggleLocally() ? "flex" : "none";
     $("setUnlockDev").checked = devUnlock();
+    const user = auth.currentUser;
+    $("accountStatus").textContent = user ? user.displayName : "Not signed in";
+    $("accountBtn").textContent = user ? "Sign out" : "Sign in";
   };
 
   $("settingsBtn").onclick = () => {
@@ -1093,7 +1111,11 @@ window.addEventListener("load", function () {
       refreshSettings();
     };
   });
-  setWorldApi.onchange = () => settings.set("worldApiUrl", setWorldApi.value.trim());
+  $("accountBtn").onclick = async () => {
+    if (auth.currentUser) await auth.signOut().catch(() => {});
+    else openLogin(() => refreshSettings());
+    refreshSettings();
+  };
   setPremiumDev.onchange = () => {
     setPremium(setPremiumDev.checked);
     refreshSettings();
@@ -1138,18 +1160,346 @@ window.addEventListener("load", function () {
     refreshHome();
   };
 
-  // --------------------------------------------------------------- creator
+  // ------------------------------------------------------------- sign-in
+
+  const esc = (text) =>
+    String(text).replace(
+      /[&<>"']/g,
+      (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch],
+    );
+
+  let afterLogin = null;
+  const loginName = $("loginName");
+  const loginEmail = $("loginEmail");
+  const loginPassword = $("loginPassword");
+  const loginError = $("loginError");
+  const loginButtons = ["loginGoogleBtn", "loginEmailBtn", "loginCreateBtn", "loginResetBtn"];
+
+  const openLogin = (then) => {
+    afterLogin = then || null;
+    loginError.textContent = "";
+    loginError.classList.remove("ok");
+    show(loginScreen, true);
+    // start downloading sign-in while the player types
+    auth.start();
+  };
+  const busyLogin = (busy) => loginButtons.forEach((id) => ($(id).disabled = busy));
+
+  /** Run `then` signed in: straight away, or after the sign-in screen. */
+  const requireLogin = async (then) => {
+    if (!auth.currentUser && !auth.known) {
+      showToast("<b>Checking your account…</b>");
+      await auth.ready();
+    }
+    return auth.currentUser ? then() : openLogin(then);
+  };
+
+  const signIn = async (method) => {
+    loginError.textContent = "";
+    loginError.classList.remove("ok");
+    busyLogin(true);
+    try {
+      if (method === "reset") {
+        await auth.resetPassword(loginEmail.value);
+        loginError.classList.add("ok");
+        loginError.textContent = "Check your email for a link to reset your password.";
+        return;
+      }
+      const user =
+        method === "google"
+          ? await auth.signInWithGoogle({ name: loginName.value })
+          : await auth.signInWithEmail({
+              email: loginEmail.value,
+              password: loginPassword.value,
+              name: loginName.value,
+              create: method === "create",
+            });
+      if (!user) return; // a redirect takes over
+    } catch (error) {
+      loginError.textContent = error.message;
+      return;
+    } finally {
+      busyLogin(false);
+    }
+    loginPassword.value = "";
+    show(loginScreen, false);
+    const next = afterLogin;
+    afterLogin = null;
+    if (next) next();
+  };
+  $("loginGoogleBtn").onclick = () => signIn("google");
+  $("loginEmailBtn").onclick = () => signIn("email");
+  $("loginCreateBtn").onclick = () => signIn("create");
+  $("loginResetBtn").onclick = () => signIn("reset");
+  [loginEmail, loginPassword].forEach((input) =>
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") signIn("email");
+    }),
+  );
+  $("loginCloseBtn").onclick = () => {
+    afterLogin = null;
+    show(loginScreen, false);
+  };
+
+  // account chip in the Worlds header: tap to arm, tap again to sign out
+  const accountChip = $("accountChip");
+  let signOutArmed = null;
+  const renderAccount = () => {
+    const user = auth.currentUser;
+    accountChip.style.display = user ? "flex" : "none";
+    if (!user) return;
+    $("accountAvatar").textContent = user.displayName.slice(0, 1).toUpperCase();
+    $("accountName").textContent = signOutArmed ? "Sign out?" : user.displayName;
+  };
+  accountChip.onclick = () => {
+    if (signOutArmed) {
+      clearTimeout(signOutArmed);
+      signOutArmed = null;
+      auth.signOut().catch(() => {});
+      show(createScreen, false);
+      return;
+    }
+    signOutArmed = setTimeout(() => {
+      signOutArmed = null;
+      renderAccount();
+    }, 3000);
+    renderAccount();
+  };
+  auth.onAuthStateChanged((user) => {
+    renderAccount();
+    if (user && !loginName.value) loginName.value = user.displayName;
+    if (user && isPremium()) watchCommunity();
+  });
+
+  // ------------------------------------------------------------ repository
+
+  const repo = new FirestoreRepository(firestoreWorlds);
+  let unwatch = null;
+  // the Dino Team's starter worlds are always there, even offline
+  let community = starterWorlds();
+  const freshIds = new Set();
+
+  /** New worlds from anyone, as they are published. */
+  const watchCommunity = () => {
+    if (unwatch) return;
+    unwatch = repo.subscribe((world) => {
+      community = mergeWorlds(community, [world]);
+      freshIds.add(world.id);
+      if (isVisible(createScreen)) renderCommunity();
+      const mine = auth.currentUser && world.author.uid === auth.currentUser.uid;
+      if (!mine && !isPlaying()) {
+        showToast(`<b>New world: ${esc(world.name)}</b><span>by ${esc(world.author.name)}</span>`);
+      }
+    });
+  };
+
+  const communityStatus = $("communityStatus");
+  let connection = "loading"; // loading | live | local | stale | error
+  let connectionError = "";
+  const renderStatus = () => {
+    const count = `${community.length} world${community.length === 1 ? "" : "s"}`;
+    communityStatus.className = connection === "live" ? "live-status on" : "live-status";
+    communityStatus.textContent = {
+      loading: "Loading worlds…",
+      live: `Live · ${count}`,
+      stale: `Offline · saved list · ${count}`,
+      error: `Offline (${connectionError}) · ${count}`,
+    }[connection];
+  };
+  const loadCommunity = async () => {
+    connection = "loading";
+    renderStatus();
+    try {
+      const list = await repo.list({ limit: 60 });
+      community = mergeWorlds(community, list);
+      connection = list.stale ? "stale" : "live";
+    } catch (error) {
+      connection = "error";
+      connectionError = error.message;
+    }
+    renderCommunity();
+  };
+  $("communityRefresh").onclick = loadCommunity;
+
+  // ---------------------------------------------------------- world cards
+
+  // previews are painted one at a time so a long list doesn't freeze the menu
+  const thumbs = new Map();
+  const thumbQueue = [];
+  const drainThumbs = () => {
+    const job = thumbQueue.shift();
+    if (!job) return;
+    const [img, world, key] = job;
+    if (!thumbs.has(key)) {
+      try {
+        const canvas = previewImage(world);
+        thumbs.set(key, canvas.toDataURL ? canvas.toDataURL() : "");
+      } catch (error) {
+        thumbs.set(key, "");
+      }
+    }
+    if (thumbs.get(key)) img.src = thumbs.get(key);
+    if (thumbQueue.length) setTimeout(drainThumbs, 16);
+  };
+  const queueThumb = (img, world) => {
+    const key = `${world.id}:${world.seed}`;
+    if (thumbs.has(key)) {
+      if (thumbs.get(key)) img.src = thumbs.get(key);
+      return;
+    }
+    thumbQueue.push([img, world, key]);
+    if (thumbQueue.length === 1) setTimeout(drainThumbs, 0);
+  };
+
+  const ago = (time) => {
+    const s = Math.max(0, (Date.now() - time) / 1000);
+    if (s < 60) return "just now";
+    if (s < 3600) return `${Math.floor(s / 60)} min ago`;
+    if (s < 86400) return `${Math.floor(s / 3600)} h ago`;
+    return `${Math.floor(s / 86400)} d ago`;
+  };
+
+  const worldCard = (world, { fresh = false, onRemove = null } = {}) => {
+    const { spec } = world;
+    const card = document.createElement("div");
+    card.className = `world-card${fresh ? " fresh" : ""}`;
+    const info = document.createElement("div");
+    info.className = "world-info";
+    const img = document.createElement("img");
+    img.className = "world-thumb";
+    img.alt = "";
+    queueThumb(img, world);
+    const text = document.createElement("div");
+    text.className = "world-text";
+    const name = document.createElement("div");
+    name.className = "world-name";
+    name.textContent = world.name;
+    if (fresh) {
+      const badge = document.createElement("span");
+      badge.className = "world-badge";
+      badge.textContent = "NEW";
+      name.appendChild(badge);
+    }
+    const meta = document.createElement("div");
+    meta.className = "world-meta";
+    meta.textContent = `by ${world.author.name} · ${ago(world.createdAt)} · ${"★".repeat(
+      spec.difficulty,
+    )} · Boss: ${spec.boss.name}`;
+    const best = records.best("custom", world.id);
+    if (best) meta.textContent += ` · best ${best.score}`;
+    text.append(name, meta);
+    if (world.tagline) {
+      const tagline = document.createElement("div");
+      tagline.className = "world-tagline";
+      tagline.textContent = world.tagline;
+      text.appendChild(tagline);
+    }
+    info.append(img, text);
+    const actions = document.createElement("div");
+    actions.className = "world-actions";
+    const play = document.createElement("button");
+    play.className = "btn btn-small";
+    play.textContent = "Play";
+    play.onclick = () => requireLogin(() => startCustom(world));
+    actions.appendChild(play);
+    if (onRemove) {
+      const remove = document.createElement("button");
+      remove.className = "delete-btn";
+      remove.setAttribute("aria-label", `Remove ${world.name} from this list`);
+      remove.onclick = onRemove;
+      actions.appendChild(remove);
+    }
+    card.append(info, actions);
+    return card;
+  };
+
+  const emptyNote = (text) => {
+    const empty = document.createElement("div");
+    empty.className = "world-empty";
+    empty.textContent = text;
+    return empty;
+  };
+
+  const renderCommunity = () => {
+    renderStatus();
+    const list = $("communityList");
+    list.innerHTML = "";
+    if (!community.length) {
+      list.appendChild(emptyNote("No worlds yet. Make the first one in Create!"));
+      return;
+    }
+    community.forEach((world) =>
+      list.appendChild(worldCard(world, { fresh: freshIds.has(world.id) })),
+    );
+  };
+
+  const myWorlds = () => {
+    const user = auth.currentUser;
+    const shared = user ? community.filter((w) => w.author.uid === user.uid) : [];
+    return mergeWorlds(shared, worlds.list());
+  };
+
+  const renderWorlds = (freshId) => {
+    const list = $("worldList");
+    list.innerHTML = "";
+    const mine = myWorlds();
+    if (!mine.length) {
+      list.appendChild(emptyNote("Worlds you create show up here."));
+      return;
+    }
+    mine.forEach((world) =>
+      list.appendChild(
+        worldCard(world, {
+          fresh: world.id === freshId,
+          onRemove: () => {
+            worlds.remove(world.id);
+            renderWorlds();
+          },
+        }),
+      ),
+    );
+  };
+
+  // --------------------------------------------------------------- tabs
+
+  const selectTab = (name) => {
+    document.querySelectorAll("#createScreen .tab").forEach((tab) => {
+      tab.classList.toggle("active", tab.dataset.tab === name);
+      tab.setAttribute("aria-selected", tab.dataset.tab === name);
+    });
+    document.querySelectorAll("#createScreen .tab-panel").forEach((panel) => {
+      panel.hidden = panel.dataset.panel !== name;
+    });
+    if (name === "community") renderCommunity();
+    if (name === "mine") renderWorlds();
+  };
+  document.querySelectorAll("#createScreen .tab").forEach((tab) => {
+    tab.onclick = () => selectTab(tab.dataset.tab);
+  });
+
+  const openCreator = (tab = "community") => {
+    setCreateStatus("");
+    renderAccount();
+    watchCommunity();
+    selectTab(tab);
+    show(createScreen, true);
+    loadCommunity();
+  };
+  $("createCloseBtn").onclick = () => show(createScreen, false);
+
+  // --------------------------------------------------------------- create
 
   const createPrompt = $("createPrompt");
   const createBtn = $("createBtn");
   const createStatus = $("createStatus");
+  const createSteps = $("createSteps");
   const setCreateStatus = (text) => (createStatus.textContent = text);
   const EXAMPLES = [
-    "A spooky graveyard full of bats, 3 levels",
-    "Easy sunny meadow for kids",
-    "Frozen fortress with beetles, really hard",
-    "Desert canyon full of spitters and spike traps",
-    "A factory of armoured beetles, 4 levels",
+    "A haunted candy factory run by a gummy ghost king",
+    "Frozen fortress with armoured beetles and an ice dragon, really hard",
+    "Sunny coral reef with bubble crabs, easy for kids",
+    "Volcano of lava pits and fire bats ruled by a magma titan",
+    "Neon robot city with laser turrets",
   ];
   EXAMPLES.forEach((text) => {
     const chip = document.createElement("button");
@@ -1159,102 +1509,83 @@ window.addEventListener("load", function () {
     $("createExamples").appendChild(chip);
   });
 
-  const THEME_NAMES = {
-    grasslands: "Grasslands",
-    iceland: "Iceland",
-    desert: "Desert",
-    graveyard: "Graveyard",
-    factory: "Factory",
-  };
-
-  const renderWorlds = (freshId) => {
-    const list = $("worldList");
-    list.innerHTML = "";
-    const saved = worlds.list();
-    if (!saved.length) {
-      const empty = document.createElement("div");
-      empty.className = "world-empty";
-      empty.textContent = "Worlds you create show up here.";
-      list.appendChild(empty);
-      return;
-    }
-    saved.forEach((world) => {
-      const { spec } = world;
-      const card = document.createElement("div");
-      card.className = `world-card${world.id === freshId ? " fresh" : ""}`;
-      const info = document.createElement("div");
-      const name = document.createElement("div");
-      name.className = "world-name";
-      name.textContent = world.name;
-      const meta = document.createElement("div");
-      meta.className = "world-meta";
-      meta.textContent = `${THEME_NAMES[spec.theme] || spec.theme} · ${spec.levels} level${
-        spec.levels > 1 ? "s" : ""
-      } · ${"★".repeat(spec.difficulty)} · ${spec.enemies.join(", ")}`;
-      info.append(name, meta);
-      if (spec.tagline) {
-        const tagline = document.createElement("div");
-        tagline.className = "world-tagline";
-        tagline.textContent = spec.tagline;
-        info.appendChild(tagline);
-      }
-      const best = records.best("custom", world.id);
-      if (best) meta.textContent += ` · best ${best.score}`;
-      const actions = document.createElement("div");
-      actions.className = "world-actions";
-      const play = document.createElement("button");
-      play.className = "btn btn-small";
-      play.textContent = "Play";
-      play.onclick = () => startCustom(world);
-      const remove = document.createElement("button");
-      remove.className = "delete-btn";
-      remove.setAttribute("aria-label", `Delete ${world.name}`);
-      remove.onclick = () => {
-        worlds.remove(world.id);
-        renderWorlds();
-      };
-      actions.append(play, remove);
-      card.append(info, actions);
-      list.appendChild(card);
+  const STEPS = ["Designing", "Painting & composing", "Building 6 levels", "Sharing"];
+  const setStep = (index) => {
+    createSteps.hidden = false;
+    createSteps.innerHTML = "";
+    STEPS.forEach((label, i) => {
+      const li = document.createElement("li");
+      li.textContent = label;
+      li.className = i < index ? "done" : i === index ? "doing" : "";
+      createSteps.appendChild(li);
     });
   };
+  const paint = () => new Promise((resolve) => setTimeout(resolve, 30));
 
-  const openCreator = () => {
-    setCreateStatus("");
-    renderWorlds();
-    show(createScreen, true);
-  };
-  $("createCloseBtn").onclick = () => show(createScreen, false);
+  createBtn.onclick = () =>
+    requireLogin(async () => {
+      const prompt = createPrompt.value.trim();
+      if (prompt.length < 3) {
+        setCreateStatus("Describe your world first.");
+        return;
+      }
+      createBtn.disabled = true;
+      $("createResult").innerHTML = "";
+      setCreateStatus("");
+      try {
+        setStep(0);
+        const { spec, source, error } = await requestSpec(prompt, (text) =>
+          firestoreWorlds.design(text),
+        );
+        const world = newWorld(spec, auth.currentUser);
 
-  createBtn.onclick = async () => {
-    const prompt = createPrompt.value.trim();
-    if (prompt.length < 3) {
-      setCreateStatus("Describe your world first.");
-      return;
-    }
-    createBtn.disabled = true;
-    setCreateStatus("Designing your world…");
-    const server = settings.get("worldApiUrl") || BUILD_WORLD_API;
-    const { spec, source, error } = await requestSpec(prompt, server);
-    const world = worlds.add(prompt, spec);
-    createBtn.disabled = false;
-    setCreateStatus(
-      source === "ai"
-        ? `Built "${world.name}" with AI.`
-        : server
-          ? `Server unavailable (${error}), built "${world.name}" offline.`
-          : `Built "${world.name}". (Offline builder: add a server in Settings for AI.)`,
-    );
-    renderWorlds(world.id);
-  };
+        setStep(1);
+        await paint();
+        setStep(2);
+        await paint();
+        // builds the art, music and all 6 levels (checks they are playable)
+        createCustomSession(world);
+
+        setStep(3);
+        await paint();
+        let shared = "";
+        let saved = world;
+        try {
+          saved = await repo.publish(world);
+          shared = "Shared with everyone.";
+          community = mergeWorlds(community, [saved]);
+        } catch (publishError) {
+          shared = `Saved on this device, not shared: ${publishError.message}`;
+        }
+        worlds.add(saved);
+        setStep(STEPS.length);
+        const how =
+          source === "ai"
+            ? "Designed with AI."
+            : `AI designer unavailable (${error}), designed offline.`;
+        setCreateStatus(`"${world.name}" is ready. ${how} ${shared}`);
+        $("createResult").appendChild(worldCard(saved, { fresh: true }));
+      } catch (buildError) {
+        setCreateStatus(`Couldn't build that world: ${buildError.message}`);
+        createSteps.hidden = true;
+      } finally {
+        createBtn.disabled = false;
+      }
+    });
 
   // --------------------------------------------------------------- input
 
   const isPlaying = () => engine.started && !game.over && !paused;
   const isMenuOpen = () =>
-    [helpScreen, infoScreen, portalScreen, settingsScreen, premiumScreen, createScreen].some(
-      isVisible,
-    );
+    [
+      helpScreen,
+      infoScreen,
+      portalScreen,
+      settingsScreen,
+      premiumScreen,
+      createScreen,
+      loginScreen,
+    ].some(isVisible);
 
   const keyDownUp = (event) => {
     const { type, keyCode } = event;

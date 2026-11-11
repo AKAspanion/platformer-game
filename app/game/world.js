@@ -3,7 +3,7 @@ import Water from "./water";
 import Player from "./player";
 import Object from "./object";
 import Portal from "./portal";
-import Enemies from "./enemies";
+import Enemies, { enemyTypes } from "./enemies";
 import PowerUps from "./powerups";
 import Collider from "./collider";
 import Effects from "./effects";
@@ -12,6 +12,7 @@ import Projectiles from "./projectiles";
 import Boss, { bossAssets } from "./boss";
 import { POWERUP_TICKS } from "./player";
 import AudioController from "../controller/audio";
+import { getSkin } from "../util/registry";
 import sfx, { ENEMY_SFX, BOSS_MOVE_SFX, ALL_SFX, preloadSfx } from "../controller/sfx";
 
 // particles when a projectile breaks, by kind
@@ -149,7 +150,8 @@ export default class World {
 
     this.portals = data.portals.map((p) => new Portal(p));
 
-    this.water = new Water(data.water, this.tileSize);
+    const skin = getSkin(data.skin);
+    this.water = new Water(data.water, this.tileSize, skin && skin.liquid);
 
     this.fireballs.reset();
     this.projectiles.reset();
@@ -595,7 +597,7 @@ export default class World {
             id: `${boss.id}m${this.minions}`,
             type,
             left: spots[i % spots.length],
-            top: type === "bat" ? top - 4 : top,
+            top: enemyTypes[type] && enemyTypes[type].kind === "flyer" ? top - 4 : top,
             sway: 24,
             dir: i % 2 === 0 ? 1 : -1,
           });
@@ -640,7 +642,7 @@ export default class World {
       });
       this.effects.hitStop(1);
       this.emit("kill");
-      sfx("boss-hit");
+      sfx((boss.config.sounds && boss.config.sounds.hit) || "boss-hit");
     } else if (result === "dead") {
       this.killedEnemies += `${boss.id},`;
       this.totalEnemies += 1;
@@ -654,7 +656,7 @@ export default class World {
       this.emit("boss");
       // victory fanfare, then the world's own music again
       this.stopThemeMusic();
-      sfx("boss-defeat");
+      sfx((boss.config.sounds && boss.config.sounds.defeat) || "boss-defeat");
       this.musicSwap = 75;
     }
   }

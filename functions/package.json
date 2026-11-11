@@ -1,0 +1,22 @@
+{
+  "name": "dino-functions",
+  "description": "Dino's Adventure world creator: designWorld (Claude) and publishWorld (Firestore)",
+  "scripts": {
+    "check": "node --input-type=module -e \"await import('./index.js'); console.log('functions load ok')\"",
+    "serve": "firebase emulators:start",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "engines": {
+    "node": "24"
+  },
+  "main": "index.js",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.8.0",
+    "firebase-admin": "^13.6.0",
+    "firebase-functions": "^7.0.0",
+    "zod": "^4.6.7"
+  },
+  "private": true,
+  "type": "module"
+}

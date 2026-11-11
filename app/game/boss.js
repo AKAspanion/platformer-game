@@ -38,6 +38,7 @@ export const BOSSES = {
     width: 50,
     height: 34,
     speed: 0.7,
+    splits: true, // splits in two when first badly hurt
     moves: ["bounce", "icicles", "bounce", "icicles"],
     minion: "slime",
     colors: ["#e6f6ff", "#9fd8ff", "#5fb4f0"],
@@ -115,6 +116,17 @@ const load = (kind) => {
   return set;
 };
 
+/**
+ * Add a boss at runtime (generated worlds). `config` is like a BOSSES entry,
+ * plus `crown` (px of headroom drawn above the hit box) and optionally
+ * `flyMinion` (what "swarm" calls). `set` holds drawn frames:
+ * { "walk-left": [], "walk-right": [], "attack-left": [], ..., "dead-right": [] }.
+ */
+export const registerBoss = (kind, config, set) => {
+  BOSSES[kind] = config;
+  frames[kind] = set;
+};
+
 export const bossAssets = {
   get assetCount() {
     return loader.assetCount;
@@ -163,7 +175,7 @@ export default class Boss extends Object {
     this.dead = false;
     this.split = false;
     this.performed = new Set(); // moves used so far (tests, debugging)
-    this.crown = (config.height * CROWN) / BASE_HEIGHT[config.base];
+    this.crown = config.crown ?? (config.height * CROWN) / BASE_HEIGHT[config.base];
 
     // look in motion
     this.scaleX = 1;
@@ -296,7 +308,7 @@ export default class Boss extends Object {
     if (this.timer > 0) this.timer -= 1;
 
     // split in two when first hurt badly (Frost Slime)
-    if (this.kind === "frostSlime" && this.enraged && !this.split) {
+    if (this.config.splits && this.enraged && !this.split) {
       this.split = true;
       act.summon(this.config.minion, 2);
       this.scaleX = 0.7;
@@ -760,7 +772,7 @@ const MOVES = {
     },
     length: () => 24,
     start(boss, player, act) {
-      act.summon("bat", boss.enraged ? 3 : 2);
+      act.summon(boss.config.flyMinion || "bat", boss.enraged ? 3 : 2);
     },
     update(boss) {
       boss.idle();

@@ -7,3 +7,10 @@ node_modules
 *.apk
 *.keystore
 signing-key-info.txt
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+*-debug.log
+.firebase/
+functions/.secret.local
+functions/.env.local

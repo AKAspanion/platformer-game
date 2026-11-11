@@ -1,4 +1,5 @@
 import { getData } from "../util";
+import { audioSrc } from "../util/registry";
 
 /**
  * Short sound effects from app/assets/audio/sfx (made by
@@ -23,7 +24,7 @@ const lastPlayed = {};
 
 const source = (name) => {
   if (!cache[name]) {
-    const audio = new Audio(`./assets/audio/sfx/${name}.wav`);
+    const audio = new Audio(audioSrc(name, "wav", "sfx/"));
     audio.preload = "auto";
     cache[name] = audio;
   }
@@ -35,6 +36,9 @@ export const resetSfxGap = () => Object.keys(lastPlayed).forEach((k) => delete l
 
 /** Warm the cache so the first play isn't delayed. */
 export const preloadSfx = (names) => names.forEach(source);
+
+/** Forget a cached sound (a generated world re-registered it). */
+export const forgetSfx = (name) => delete cache[name];
 
 export default function sfx(name, volume) {
   if (!name || getData("mute_sounds")) return;

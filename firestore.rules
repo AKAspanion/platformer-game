@@ -1,0 +1,23 @@
+rules_version = '2';
+
+// Dino's Adventure.
+//
+// worlds/{id}: every world anyone has shared. Anyone can read them (the
+// community list is public, sign-in is only needed to create). Nobody writes
+// them from a client: the publishWorld function validates each world with the
+// game's sanitizeWorld and stamps the author from the caller's ID token.
+//
+// limits/{uid}: per-user rate limit counters, functions only.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /worlds/{worldId} {
+      allow get: if true;
+      allow list: if request.query.limit <= 100;
+      allow write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

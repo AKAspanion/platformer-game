@@ -2,6 +2,14 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      // the game's home is dino.spanion.in: send the default Firebase Hosting
+      // domains there (preview channels and localhost stay where they are)
+      if (/^dinos-adventure\.(web\.app|firebaseapp\.com)$/.test(location.hostname)) {
+        location.replace("https://dino.spanion.in" + location.pathname + location.search);
+      }
+    </script>
+    <link rel="canonical" href="https://dino.spanion.in/" />
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no"
@@ -23,18 +31,12 @@
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="en_GB" />
     <meta property="og:title" content="Dino's Adventure" />
-    <meta
-      property="og:image"
-      content="https://akaspanion.github.io/platformer-game/images/ss-game.png"
-    />
-    <meta property="og:url" content="https://akaspanion.github.io/platformer-game/" />
+    <meta property="og:image" content="https://dino.spanion.in/images/ss-game.png" />
+    <meta property="og:url" content="https://dino.spanion.in/" />
     <meta property="og:description" content="A pixel styled, platformer adventure game." />
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="Dino's Adventure" />
-    <meta
-      name="twitter:image"
-      content="https://akaspanion.github.io/platformer-game/images/ss-game.png"
-    />
+    <meta name="twitter:image" content="https://dino.spanion.in/images/ss-game.png" />
     <meta name="twitter:image:alt" content="Dino's Adventure platformer game" />
     <meta name="twitter:description" content="A pixel styled, platformer adventure game." />
     <script>
@@ -105,8 +107,9 @@
             ><span class="mode-badge">★</span>
           </button>
           <button class="mode-card premium" data-mode="create">
-            <span class="mode-icon icon-create"></span><span class="mode-name">Create</span
-            ><span class="mode-info">Describe a world</span><span class="mode-badge">★</span>
+            <span class="mode-icon icon-create"></span><span class="mode-name">Worlds</span
+            ><span class="mode-info">Create &amp; share worlds</span
+            ><span class="mode-badge">★</span>
           </button>
         </div>
       </div>
@@ -157,6 +160,13 @@
             </div>
           </div>
           <div class="setting-row">
+            <span>Account</span>
+            <div class="setting-value">
+              <span id="accountStatus"></span>
+              <button id="accountBtn" class="btn btn-small"></button>
+            </div>
+          </div>
+          <div class="setting-row">
             <span>Premium</span>
             <div class="setting-value">
               <span id="premiumStatus"></span>
@@ -171,15 +181,6 @@
             ><span>Premium (developer switch)</span
             ><input type="checkbox" id="setPremiumDev" class="switch"
           /></label>
-          <div class="setting-row setting-stack">
-            <span>World creator server</span>
-            <input
-              type="url"
-              id="setWorldApi"
-              class="text-input"
-              placeholder="https://your-server/api/world (empty = offline)"
-            />
-          </div>
           <div class="setting-row">
             <span>Progress</span>
             <button id="resetBtn" class="btn btn-small btn-danger">Reset progress</button>
@@ -198,7 +199,9 @@
           <ul class="premium-list">
             <li><b>Daily challenge</b> 5 fresh levels every day</li>
             <li><b>Endless mode</b> levels that never run out, getting harder</li>
-            <li><b>Create worlds</b> describe a world, AI builds it</li>
+            <li>
+              <b>Create worlds</b> describe a world, AI builds its art, music, levels and boss
+            </li>
           </ul>
           <button id="premiumUnlockBtn" class="btn btn-primary">Unlock Premium</button>
           <div id="premiumNote" class="premium-note"></div>
@@ -209,23 +212,101 @@
     <div id="createScreen" class="flex-item modal-screen">
       <div class="flex-item modal-container">
         <div class="flex-item modal-header">
-          <div class="modal-title">Create a world</div>
-          <div id="createCloseBtn" class="close-btn" role="button" aria-label="Close"></div>
+          <div class="modal-title">Worlds</div>
+          <div class="header-right">
+            <button id="accountChip" class="account-chip" aria-label="Account">
+              <span class="avatar" id="accountAvatar"></span><span id="accountName"></span>
+            </button>
+            <div id="createCloseBtn" class="close-btn" role="button" aria-label="Close"></div>
+          </div>
         </div>
-        <div class="modal-content-wrapper create-body">
+        <div class="tabs" role="tablist">
+          <button class="tab active" data-tab="community" role="tab">Community</button>
+          <button class="tab" data-tab="create" role="tab">Create</button>
+          <button class="tab" data-tab="mine" role="tab">My worlds</button>
+        </div>
+        <div class="modal-content-wrapper create-body tab-panel" data-panel="community">
+          <div class="community-head">
+            <span id="communityStatus" class="live-status"></span>
+            <button id="communityRefresh" class="chip">Refresh</button>
+          </div>
+          <div id="communityList" class="world-list"></div>
+        </div>
+        <div class="modal-content-wrapper create-body tab-panel" data-panel="create" hidden>
+          <div class="create-intro">
+            Describe a world. AI designs its look, creatures, boss and music, then builds 5 levels
+            and a boss fight. It's shared with everyone as soon as it's built.
+          </div>
           <textarea
             id="createPrompt"
             class="text-input create-prompt"
             maxlength="400"
             rows="3"
-            placeholder="e.g. A frozen fortress full of bats and beetles, really hard, 4 levels"
+            placeholder="e.g. A frozen fortress full of bats and armoured beetles, ruled by an ice dragon"
           ></textarea>
           <div class="chip-row" id="createExamples"></div>
           <button id="createBtn" class="btn btn-primary">Build my world</button>
-          <div id="createStatus" class="create-status"></div>
-          <div id="createPreview"></div>
-          <div class="create-subtitle">My worlds</div>
+          <ol id="createSteps" class="create-steps" hidden></ol>
+          <div id="createStatus" class="create-status" role="status" aria-live="polite"></div>
+          <div id="createResult"></div>
+        </div>
+        <div class="modal-content-wrapper create-body tab-panel" data-panel="mine" hidden>
           <div id="worldList" class="world-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="loginScreen" class="flex-item modal-screen">
+      <div class="flex-item modal-container modal-narrow">
+        <div class="flex-item modal-header">
+          <div class="modal-title">Sign in</div>
+          <div id="loginCloseBtn" class="close-btn" role="button" aria-label="Close"></div>
+        </div>
+        <div class="modal-content-wrapper login-body">
+          <p class="login-lead">Sign in to create worlds and play the ones others share.</p>
+          <label class="field">
+            <span>Your name (shown on your worlds)</span>
+            <input
+              id="loginName"
+              class="text-input"
+              maxlength="20"
+              autocomplete="nickname"
+              placeholder="Optional with Google: your first name"
+            />
+          </label>
+          <button id="loginGoogleBtn" class="btn btn-google">
+            <span class="g-logo" aria-hidden="true">G</span>Continue with Google
+          </button>
+          <div class="login-or"><span>or</span></div>
+          <label class="field">
+            <span>Email</span>
+            <input
+              id="loginEmail"
+              class="text-input"
+              type="email"
+              autocomplete="email"
+              placeholder="you@example.com"
+            />
+          </label>
+          <label class="field">
+            <span>Password</span>
+            <input
+              id="loginPassword"
+              class="text-input"
+              type="password"
+              autocomplete="current-password"
+              minlength="6"
+            />
+          </label>
+          <div class="login-row">
+            <button id="loginEmailBtn" class="btn btn-secondary">Sign in</button>
+            <button id="loginCreateBtn" class="btn btn-secondary">Create account</button>
+          </div>
+          <button id="loginResetBtn" class="link-btn">Forgot password?</button>
+          <div id="loginError" class="login-error" role="alert"></div>
+          <div class="premium-note">
+            Only your name is shown to other players, never your email.
+          </div>
         </div>
       </div>
     </div>

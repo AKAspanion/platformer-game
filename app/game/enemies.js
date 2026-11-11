@@ -79,6 +79,22 @@ const loadFrames = () => {
   return sharedFrames;
 };
 
+/**
+ * Add an enemy type at runtime (generated worlds, see app/gen). `config` is
+ * like an `enemyTypes` entry; `frames` holds already-drawn images:
+ * { left, right, attackLeft, attackRight, deadLeft, deadRight }.
+ */
+export const registerEnemyType = (type, config, frames) => {
+  const sets = loadFrames();
+  enemyTypes[type] = config;
+  sets[`${type}Left`] = frames.left;
+  sets[`${type}Right`] = frames.right;
+  sets[`${type}AttackLeft`] = frames.attackLeft || [];
+  sets[`${type}AttackRight`] = frames.attackRight || [];
+  sets[`${type}DeadLeft`] = frames.deadLeft;
+  sets[`${type}DeadRight`] = frames.deadRight;
+};
+
 export default class Enemies {
   constructor(enemies = [], tileSize = 16, killedEnemies = "") {
     this.items = [];

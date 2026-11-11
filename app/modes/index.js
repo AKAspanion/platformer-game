@@ -1,5 +1,7 @@
 import areas from "../areas";
 import { FINISH, generateEndlessLevel, generateSequence, themeFor } from "../pcg/generator";
+import { buildWorld } from "../gen";
+import { LEVELS_PER_WORLD } from "../worlds/spec";
 
 /**
  * Game modes built on the level generator (premium):
@@ -81,19 +83,33 @@ export function createEndlessSession(seed = Math.floor(Math.random() * 1e9)) {
   };
 }
 
-/** `world` is a saved creator world: { name, spec, seed }. */
-export function createCustomSession(world, buildLevels) {
+/**
+ * A created world: 5 levels and a boss arena, with its own generated art,
+ * creatures, boss, music and sounds (app/gen). `world` is a world record
+ * { id, name, spec, seed }. `options.audio` is passed to buildWorld.
+ */
+export function createCustomSession(world, options = {}) {
   clearRange(RANGES.custom);
-  register(
-    generateSequence({ idBase: RANGES.custom, seed: world.seed, levels: buildLevels(world.spec) }),
-  );
-  const count = world.spec.levels;
+  const assets = buildWorld(world, options);
+  const levels = generateSequence({
+    idBase: RANGES.custom,
+    seed: assets.seed,
+    levels: assets.levels,
+  });
+  levels.forEach((data) => (data.skin = assets.key));
+  register(levels);
   return {
     kind: "custom",
     key: world.id,
+    world,
     startId: RANGES.custom,
     ...START,
-    label: (id) => `${world.name} ${id - RANGES.custom + 1}/${count}`,
+    label: (id) => {
+      const n = id - RANGES.custom + 1;
+      return n === LEVELS_PER_WORLD
+        ? `${world.name} · Boss`
+        : `${world.name} ${n}/${LEVELS_PER_WORLD}`;
+    },
     ensure: () => {},
   };
 }

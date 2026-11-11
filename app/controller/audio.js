@@ -1,4 +1,5 @@
 import { getData } from "../util/";
+import { audioSrc } from "../util/registry";
 export default class AudioController {
   constructor() {
     this.count = 4;
@@ -8,7 +9,7 @@ export default class AudioController {
   static play(key, ext = "wav", volume = 0.4) {
     if (getData("mute_sounds")) return;
 
-    const audio = new Audio(`./assets/audio/${key}.${ext}`);
+    const audio = new Audio(audioSrc(key, ext));
     audio.volume = volume;
     // play() rejects when the browser blocks autoplay; a missed sound is fine
     const playing = audio.play();
@@ -18,7 +19,7 @@ export default class AudioController {
   play(key, ext = "wav") {
     try {
       if (!this.audios[key]) {
-        this.audios[key] = new Audio(`./assets/audio/${key}.${ext}`);
+        this.audios[key] = new Audio(audioSrc(key, ext));
       }
 
       this.audios[key].volume = 0.4;
@@ -53,7 +54,7 @@ export default class AudioController {
       this.audios[file] = new Audio();
       this.audios[file].addEventListener("canplaythrough", onload, { once: true });
       this.audios[file].addEventListener("error", onload, { once: true });
-      this.audios[file].src = `./assets/audio/${file}.${ext}`;
+      this.audios[file].src = audioSrc(file, ext);
       this.audios[file].volume = 0.5;
     });
   }

@@ -10,6 +10,16 @@ When you play Dino's Adventure, we may collect certain information automatically
 - Log Information: We collect log information when you interact with the Game, including the date and time of your actions, the features you use, and any errors that occur during gameplay.
 - Gameplay Information: We may collect information about your gameplay activities, such as your progress, achievements, and in-game purchases.
 
+### Accounts and Shared Worlds
+
+Signing in is optional and only needed for the Worlds feature (creating and sharing worlds). If you sign in:
+
+- Account Information: your email address, your display name and, for Google sign-in, your Google account identifier, stored with Firebase Authentication (Google). Your password, if you use one, is handled by Firebase Authentication and never stored by the Game.
+- Worlds You Share: the worlds you create are public. Each one is stored in Cloud Firestore (Google) with your display name and an account identifier, and is shown to every player. Your email address is never shown to other players.
+- World Descriptions: the description you type to create a world is sent to Anthropic's Claude API to design the world. It is not stored with the world or shown to other players.
+
+You can sign out at any time in Settings. To delete your account or a world you shared, contact us at the address below.
+
 ### How We Use Your Information
 
 We may use the information collected to:

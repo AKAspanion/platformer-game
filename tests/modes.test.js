@@ -11,7 +11,7 @@ import {
   createCustomSession,
   dailySeed,
 } from "../app/modes";
-import { specFromPrompt, normalizeSpec, levelsFromSpec, requestSpec } from "../app/creator";
+import { specFromPrompt, normalizeWorldSpec, requestSpec } from "../app/creator";
 import { tick } from "./helpers";
 
 /** Walk into each area like a portal would and idle: nobody should die on arrival. */
@@ -139,88 +139,139 @@ test("endless levels are entered at the height the previous one left", () => {
 
 // ----------------------------------------------------------------- creator
 
-test("offline world builder understands themes, enemies, difficulty and length", () => {
-  const spec = specFromPrompt("A spooky graveyard full of bats and beetles, really hard, 4 levels");
-  assert.equal(spec.theme, "graveyard");
-  assert.deepEqual(spec.enemies.sort(), ["bat", "beetle"]);
+test("offline world builder reads the place, difficulty and name from the prompt", () => {
+  const spec = specFromPrompt("A spooky graveyard full of bats and beetles, really hard");
+  assert.equal(spec.version, 2);
+  assert.equal(spec.terrain.surface, "moss");
+  assert.equal(spec.backdrop.celestial, "moon");
   assert.equal(spec.difficulty, 4);
-  assert.equal(spec.levels, 4);
   assert.equal(spec.enemyDensity, "high");
+  assert.ok(
+    spec.enemies.some((e) => e.behavior === "flyer"),
+    "bats fly",
+  );
+  assert.ok(
+    spec.enemies.some((e) => e.body === "bug" && e.armored),
+    "beetles are armoured bugs",
+  );
 
   const easy = specFromPrompt("an easy sunny meadow for kids called Happy Hills");
-  assert.equal(easy.theme, "grasslands");
+  assert.equal(easy.terrain.surface, "grass");
   assert.equal(easy.difficulty, 1);
   assert.equal(easy.name, "Happy Hills");
 
-  assert.equal(specFromPrompt("a toxic robot factory").theme, "factory");
-  assert.equal(specFromPrompt("frozen cave").theme, "iceland");
+  assert.equal(specFromPrompt("a toxic robot factory").terrain.surface, "metal");
+  assert.equal(specFromPrompt("frozen glacier").terrain.surface, "snow");
+  assert.equal(specFromPrompt("lava volcano").terrain.surface, "ash");
+  // same prompt, same world
+  assert.deepEqual(specFromPrompt("candy land"), specFromPrompt("candy land"));
 });
 
-test("normalizeSpec clamps anything into a safe spec", () => {
-  const spec = normalizeSpec({
+test("normalizeWorldSpec clamps anything into a safe, complete spec", () => {
+  const spec = normalizeWorldSpec({
+    version: 2,
     name: "<script>alert(1)</script> World of Doom and Gloom and More",
-    theme: "moon",
-    levels: 99,
+    palette: { skyTop: "red", ground: "#12345", accent: "#ABCDEF" },
+    terrain: { surface: "lava", pits: "trampoline" },
+    enemies: [{ behavior: "flyer", body: "dragon", features: ["horns", "wings", "horns"] }],
+    boss: { flyer: true, moves: ["charge", "swoop", "nope", "rings"] },
+    music: { tempo: 999, mood: "angry" },
     difficulty: -3,
-    enemies: ["dragon", "bat", "bat"],
-    enemyDensity: "max",
     powerups: [],
   });
   assert.ok(!/[<>()]/.test(spec.name));
   assert.ok(spec.name.length <= 24);
-  assert.equal(spec.theme, "grasslands");
-  assert.equal(spec.levels, 5);
+  assert.match(spec.palette.skyTop, /^#[0-9a-f]{6}$/);
+  assert.match(spec.palette.ground, /^#[0-9a-f]{6}$/);
+  assert.equal(spec.palette.accent, "#abcdef");
+  assert.equal(spec.terrain.surface, "grass");
+  assert.equal(spec.terrain.pits, "liquid");
+  assert.ok(spec.enemies.length >= 2);
+  assert.ok(
+    spec.enemies.some((e) => e.behavior === "walker"),
+    "always someone on the ground",
+  );
+  assert.equal(spec.enemies[0].body, "round");
+  assert.deepEqual(spec.enemies[0].features, ["horns"]);
+  assert.ok(!spec.boss.moves.includes("charge"), "a flying boss can't charge");
+  assert.ok(spec.boss.moves.includes("swoop"));
+  assert.ok(spec.boss.moves.length >= 3);
+  assert.equal(spec.music.tempo, 180);
+  assert.equal(spec.music.mood, "happy");
   assert.equal(spec.difficulty, 1);
-  assert.deepEqual(spec.enemies, ["bat"]);
-  assert.equal(spec.enemyDensity, "medium");
   assert.deepEqual(spec.powerups, ["heart", "shield", "triple", "wings"]);
 });
 
-test("a created world builds playable levels from its spec", () => {
+test("old (v1) worlds open as v2 worlds", () => {
+  const spec = normalizeWorldSpec({
+    name: "Old Graves",
+    theme: "graveyard",
+    levels: 3,
+    difficulty: 3,
+    enemies: ["bat", "beetle"],
+  });
+  assert.equal(spec.version, 2);
+  assert.equal(spec.name, "Old Graves");
+  assert.equal(spec.terrain.pits, "void");
+  assert.equal(spec.difficulty, 3);
+  assert.deepEqual(
+    spec.enemies.map((e) => e.behavior),
+    ["flyer", "walker"],
+  );
+});
+
+test("a created world is 5 playable levels and a boss arena, with its own creatures", () => {
   for (const prompt of [
-    "graveyard with spitters and lots of pits, 3 levels",
-    "factory of beetles, very hard, 5 levels",
-    "calm desert, 1 level",
+    "graveyard with spitters and lots of pits",
+    "factory of beetles, very hard",
+    "calm desert",
+    "candy kingdom with flying gumdrops",
   ]) {
     const spec = specFromPrompt(prompt);
-    const world = { id: "w1", name: spec.name, spec, seed: 99 };
-    const session = createCustomSession(world, levelsFromSpec);
-    const ids = Array.from({ length: spec.levels }, (_, i) => session.startId + i);
+    const world = { id: `w-${prompt.replace(/\W/g, "")}`, name: spec.name, spec, seed: 99 };
+    const session = createCustomSession(world, { audio: false });
+    const ids = Array.from({ length: 6 }, (_, i) => session.startId + i);
     ids.forEach((id) => assert.ok(areas[id], `${prompt}: level ${id}`));
+    ids.forEach((id) => assert.ok(areas[id].skin, `${prompt}: level ${id} has generated art`));
+    assert.ok(!areas[ids[4]].boss, `${prompt}: level 5 is a normal level`);
+    assert.ok(areas[ids[5]].boss, `${prompt}: level 6 is the boss`);
+    assert.equal(areas[ids[5]].portals[1].destinationArea, FINISH);
     const used = new Set(ids.flatMap((id) => areas[id].enemies.map((e) => e.type)));
-    used.forEach((type) => assert.ok(spec.enemies.includes(type), `${prompt}: unexpected ${type}`));
+    used.forEach((type) => assert.ok(type.startsWith("w"), `${prompt}: story enemy ${type}`));
+    assert.match(session.label(ids[5]), /Boss/);
     playThrough(ids, prompt);
   }
 });
 
-test("requestSpec uses the server's spec, or falls back offline when it fails", async () => {
-  const original = globalThis.fetch;
-  try {
-    globalThis.fetch = async () => ({
-      ok: true,
-      json: async () => ({
-        spec: {
-          name: "Moon Base",
-          theme: "factory",
-          levels: 2,
-          difficulty: 3,
-          enemies: ["beetle"],
-        },
-      }),
-    });
-    const ai = await requestSpec("whatever", "http://server/api/world");
-    assert.equal(ai.source, "ai");
-    assert.equal(ai.spec.name, "Moon Base");
-    assert.equal(ai.spec.theme, "factory");
+test("requestSpec uses the AI designer's spec, or falls back offline", async () => {
+  const spec = {
+    version: 2,
+    name: "Moon Base",
+    terrain: { surface: "metal", pits: "void" },
+    enemies: [{ name: "Zorp", behavior: "walker", body: "box" }],
+  };
+  const prompts = [];
+  const ai = await requestSpec("whatever", async (prompt) => {
+    prompts.push(prompt);
+    return spec;
+  });
+  assert.deepEqual(prompts, ["whatever"]);
+  assert.equal(ai.source, "ai");
+  assert.equal(ai.spec.name, "Moon Base");
+  assert.equal(ai.spec.terrain.surface, "metal");
+  assert.equal(ai.spec.enemies[0].name, "Zorp");
 
-    globalThis.fetch = async () => ({ ok: false, status: 503 });
-    const down = await requestSpec("snowy hills", "http://server/api/world");
-    assert.equal(down.source, "offline");
-    assert.equal(down.spec.theme, "iceland");
+  const down = await requestSpec("snowy hills", async () => {
+    throw new Error("Can't reach the server right now.");
+  });
+  assert.equal(down.source, "offline");
+  assert.equal(down.error, "Can't reach the server right now.");
+  assert.equal(down.spec.terrain.surface, "snow");
 
-    const none = await requestSpec("snowy hills", "");
-    assert.equal(none.source, "offline");
-  } finally {
-    globalThis.fetch = original;
-  }
+  const slow = await requestSpec("snowy hills", () => new Promise(() => {}), { timeoutMs: 20 });
+  assert.equal(slow.source, "offline");
+  assert.match(slow.error, /too long/);
+
+  const none = await requestSpec("snowy hills", null);
+  assert.equal(none.source, "offline");
 });
