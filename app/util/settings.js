@@ -10,6 +10,7 @@ const DEFAULTS = {
   ghost: false, // show the kept ghost of the fastest run on campaign levels
   analytics: true, // anonymous usage stats (Google Analytics); see PRIVACY.md
   controlSize: "auto", // auto | s | m | l
+  controlOpacity: "medium", // low | medium | high: how see-through the touch buttons are
   worldApiUrl: "", // prompt-to-world server (see server/README.md)
 };
 

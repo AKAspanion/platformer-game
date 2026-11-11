@@ -98,13 +98,13 @@ canvas {
   color: #cccccc;
   user-select: none;
   border-radius: 100%;
-  opacity: 0.85;
+  opacity: var(--ctrl-idle, 0.45);
   transition:
     transform 0.06s ease,
     opacity 0.06s ease;
 }
 .controller-btn.pressed {
-  opacity: 1;
+  opacity: var(--ctrl-pressed, 0.75);
   transform: scale(0.9);
 }
 #jumpBtn {
@@ -133,16 +133,20 @@ canvas {
 .persistent-controller {
   position: fixed;
   z-index: 6;
-  top: calc(var(--sat) + 4px);
+  /* bottom middle, inside the safe area, level with the other touch buttons */
+  bottom: calc(var(--sab) + var(--ctrl) * 0.18);
   left: 50%;
   transform: translateX(-50%);
 }
 #pauseBtn {
-  width: 40px;
-  height: 40px;
+  width: var(--ctrl);
+  height: var(--ctrl);
   cursor: pointer;
-  opacity: 0.8;
-  background: url(images/pause_btn.webp) center center / 40px no-repeat;
+  opacity: var(--ctrl-idle, 0.45);
+  background: url(images/pause_btn.webp) center center / 100% no-repeat;
+}
+#pauseBtn:active {
+  opacity: var(--ctrl-pressed, 0.75);
 }
 
 /* ------------------------------------------------------------------- buttons */
@@ -1938,7 +1942,8 @@ canvas {
 .hint {
   position: fixed;
   z-index: 9;
-  bottom: calc(var(--sab) + 12px);
+  /* above the pause button, never under it */
+  bottom: calc(var(--sab) + var(--ctrl) * 1.18 + 8px);
   left: 50%;
   max-width: min(520px, calc(100vw - 32px));
   padding: 8px 16px;
@@ -1997,5 +2002,81 @@ canvas {
     max-width: 44vw;
     font-size: 13px;
     padding: 6px 12px;
+  }
+}
+
+/* ------------------------------------------- short screens: compact home and menus */
+
+/* A landscape phone (667 x 375, 844 x 390): about 25% smaller, taps stay 44 px tall. */
+@media (max-height: 499px) {
+  .screen {
+    padding: calc(var(--sat) + 6px) calc(var(--sar) + 12px) calc(var(--sab) + 6px)
+      calc(var(--sal) + 12px);
+  }
+  .home-logo {
+    font-size: clamp(26px, 7vmin, 40px);
+  }
+  .home-logo span {
+    letter-spacing: 3px;
+  }
+  .home-sub {
+    margin-top: 4px;
+    font-size: 12px;
+  }
+  .home-main {
+    gap: 6px;
+  }
+  .btn {
+    min-height: 44px;
+    padding: 8px 21px;
+    font-size: 15px;
+  }
+  #playBtn {
+    padding: 8px 48px;
+    font-size: clamp(18px, 4vmin, 22px);
+  }
+  .btn-small {
+    min-height: 44px;
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+  .mode-grid {
+    gap: 8px;
+  }
+  .mode-card {
+    min-height: 44px;
+    padding: 6px 6px;
+    border-radius: 12px;
+  }
+  .mode-icon {
+    width: clamp(28px, 6vmin, 38px);
+    height: clamp(28px, 6vmin, 38px);
+    margin-bottom: 0;
+  }
+  .mode-name {
+    font-size: clamp(12px, 2.6vmin, 14px);
+  }
+  .mode-info {
+    font-size: 10px;
+  }
+  .wallet-row {
+    gap: 6px;
+  }
+  .coin-chip {
+    padding: 4px 10px;
+    font-size: 13px;
+  }
+  #leaderboardsBtn,
+  #settingsBtn,
+  #helpBtn,
+  #infoBtn {
+    --small-btn-size: 44px;
+  }
+  .icon-row {
+    gap: 6px;
+  }
+  .setting-row {
+    padding: 6px 4px;
+    font-size: 15px;
   }
 }

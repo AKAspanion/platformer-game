@@ -4,6 +4,7 @@ import Screen from "./screen";
 import GameEngine from "./engine";
 import Controller from "./controller";
 import MouseInput from "./controller/mouse-input";
+import { controlOpacity } from "./controller/opacity";
 import { MAX_HEARTS, POWERUP_TICKS } from "./game/player";
 import { loadIcons } from "./game/powerups";
 
@@ -88,7 +89,8 @@ import areas from "./areas";
 readPremiumFromUrl();
 preLoadAndFetch();
 populateLinks();
-populateHelp();
+const isTouchesEnabled = "ontouchstart" in document.documentElement;
+populateHelp(isTouchesEnabled);
 
 // Firebase loads only for players who signed in before, or when they open Worlds
 auth.use(firebaseAuthBackend());
@@ -96,7 +98,6 @@ auth.resume();
 
 let loadingActive = false;
 let controllerActive = false;
-const isTouchesEnabled = "ontouchstart" in document.documentElement;
 
 const $ = (id) => document.getElementById(id);
 const homeScreen = $("homeScreen");
@@ -149,6 +150,15 @@ const sizeControls = () => {
   const scale = { s: 0.8, m: 1, l: 1.25 }[settings.get("controlSize")] || 1;
   document.documentElement.style.setProperty("--ctrl", `${Math.round(medium * scale)}px`);
 };
+
+/** Touch button opacity from Settings, as the --ctrl-idle and --ctrl-pressed CSS variables. */
+const applyControlOpacity = () => {
+  const { idle, pressed } = controlOpacity(settings.get("controlOpacity"));
+  const style = document.documentElement.style;
+  style.setProperty("--ctrl-idle", idle);
+  style.setProperty("--ctrl-pressed", pressed);
+};
+applyControlOpacity();
 
 /** Safe-area insets in px (notches, gesture bar), measured with a probe. */
 const probe = document.createElement("div");
@@ -1775,6 +1785,7 @@ window.addEventListener("load", function () {
   const setGhost = $("setGhost");
   const setShake = $("setShake");
   const setControls = $("setControls");
+  const setOpacity = $("setOpacity");
   const setPremiumDev = $("setPremiumDev");
 
   const refreshSettings = () => {
@@ -1787,6 +1798,9 @@ window.addEventListener("load", function () {
     $("vibrationRow").style.display = navigator.vibrate ? "flex" : "none";
     setControls.querySelectorAll("button").forEach((b) => {
       b.classList.toggle("active", b.dataset.value === settings.get("controlSize"));
+    });
+    setOpacity.querySelectorAll("button").forEach((b) => {
+      b.classList.toggle("active", b.dataset.value === settings.get("controlOpacity"));
     });
     const premium = isPremium();
     $("premiumStatus").textContent = premium ? "Active ★" : "Locked";
@@ -1867,6 +1881,13 @@ window.addEventListener("load", function () {
     b.onclick = () => {
       settings.set("controlSize", b.dataset.value);
       sizeControls();
+      refreshSettings();
+    };
+  });
+  setOpacity.querySelectorAll("button").forEach((b) => {
+    b.onclick = () => {
+      settings.set("controlOpacity", b.dataset.value);
+      applyControlOpacity();
       refreshSettings();
     };
   });
