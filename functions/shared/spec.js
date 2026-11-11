@@ -559,6 +559,8 @@ export function sanitizeWorld(raw) {
   const spec = normalizeWorldSpec(raw.spec || {});
   const author = raw.author && typeof raw.author === "object" ? raw.author : {};
   const created = Number(raw.createdAt || raw.created);
+  const remixOf =
+    typeof raw.remixOf === "string" && /^[A-Za-z0-9_-]{4,48}$/.test(raw.remixOf) ? raw.remixOf : "";
   return {
     id,
     name: cleanText(raw.name || spec.name, 24, spec.name),
@@ -573,6 +575,7 @@ export function sanitizeWorld(raw) {
     },
     createdAt: Number.isFinite(created) && created > 0 ? created : Date.now(),
     version: SPEC_VERSION,
+    ...(remixOf ? { remixOf } : {}),
   };
 }
 

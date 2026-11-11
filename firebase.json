@@ -4,6 +4,12 @@
     "public": "dist",
     "ignore": ["firebase.json", "**/node_modules/**", "**/*.map"],
     "cleanUrls": false,
+    "rewrites": [
+      {
+        "source": "/w/**",
+        "function": { "functionId": "worldPage", "region": "asia-south1" }
+      }
+    ],
     "headers": [
       {
         "source": "/",

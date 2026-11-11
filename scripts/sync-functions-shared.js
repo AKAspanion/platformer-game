@@ -1,6 +1,6 @@
 /**
- * Copies the game code the server shares (world validation, the daily rules
- * and the level generator they use) into functions/shared/, because a
+ * Copies the game code the server shares (world validation, the community
+ * rules, the daily rules and the level generator they use) into functions/shared/, because a
  * functions deploy only uploads functions/.
  *
  *   node scripts/sync-functions-shared.js          copy
@@ -20,6 +20,7 @@ const FILES = [
   ["worlds/spec.js", "spec.js"],
   ["daily/rules.js", "daily/rules.js"],
   ["pcg/generator.js", "pcg/generator.js"],
+  ["worlds/community.js", "worlds/community.js"],
 ];
 
 const jobs = FILES.map(([from, to]) => {

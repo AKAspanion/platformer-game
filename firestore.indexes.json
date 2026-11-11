@@ -19,6 +19,14 @@
   ],
   "fieldOverrides": [
     {
+      "collectionGroup": "worldStats",
+      "fieldPath": "trend",
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION" },
+        { "order": "DESCENDING", "queryScope": "COLLECTION" }
+      ]
+    },
+    {
       "collectionGroup": "scores",
       "fieldPath": "uid",
       "indexes": [{ "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }]
