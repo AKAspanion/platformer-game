@@ -1,6 +1,6 @@
 /**
- * The shop's catalogue: three slots, one free item each (owned and worn from
- * the start). Cosmetics change looks only, never speed, jumps, hearts, damage
+ * The shop's catalogue: four slots, one free item each (owned and worn from
+ * the start). Companions cost nothing and can only be hatched. Cosmetics change looks only, never speed, jumps, hearts, damage
  * or score.
  */
 export const CATALOG = {
@@ -26,14 +26,39 @@ export const CATALOG = {
     { id: "green", name: "Green flame", price: 250 },
     { id: "purple", name: "Purple flame", price: 400 },
   ],
+  companion: [
+    { id: "none", name: "None", price: 0 },
+    { id: "hatchling", name: "Hatchling", price: 0, hatch: "common" },
+    { id: "ptero", name: "Ptero Chick", price: 0, hatch: "common" },
+    { id: "trike", name: "Mini Trike", price: 0, hatch: "common" },
+    { id: "stego", name: "Tiny Stego", price: 0, hatch: "common" },
+    { id: "raptor", name: "Baby Raptor", price: 0, hatch: "common" },
+    { id: "ankylo", name: "Little Anky", price: 0, hatch: "common" },
+    { id: "golden", name: "Golden Hatchling", price: 0, hatch: "rare" },
+    { id: "crystal", name: "Crystal Drake", price: 0, hatch: "rare" },
+  ],
 };
 
 export const SLOTS = Object.keys(CATALOG);
 
 /** The item of each slot that is owned and worn from the start. */
-export const FREE = { skin: "classic", hat: "none", fireball: "classic" };
+export const FREE = { skin: "classic", hat: "none", fireball: "classic", companion: "none" };
 
 export function itemOf(slot, id) {
   const items = Object.prototype.hasOwnProperty.call(CATALOG, slot) ? CATALOG[slot] : [];
   return items.find((item) => item.id === id) || null;
+}
+
+const hatched = (kind) =>
+  CATALOG.companion.filter((item) => item.hatch === kind).map((item) => item.id);
+
+/** The 8 hatchable companions, in catalogue order (Track D's rules list them). */
+export const COMPANION_IDS = CATALOG.companion.filter((item) => item.hatch).map((item) => item.id);
+export const COMMON_COMPANIONS = hatched("common");
+export const RARE_COMPANIONS = hatched("rare");
+
+/** An item that can't be bought: it is only hatched. */
+export function isHatchOnly(slot, id) {
+  const item = itemOf(slot, id);
+  return !!item && !!item.hatch;
 }

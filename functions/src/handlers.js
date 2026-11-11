@@ -127,11 +127,12 @@ export async function handleSearch({ auth, data }, { allWorlds, worldsByIds }) {
 /**
  * Deletes the caller's account. Their worlds stay shared, credited to
  * "Anonymous" with no account behind them; their daily leaderboard scores are
- * deleted, and so are their endless entry, cloud save, reminders, likes,
- * run tickets and play markers (counts stay: they hold no account); then their rate limits and
- * the account itself go. `accounts`: anonymizeWorlds(uid, author) -> count,
- * deleteDailyScores(uid), deleteEndless(uid), deleteSave(uid), deleteReminders(uid),
- * deleteLikes(uid), deleteSeen(uid), deleteRuns(uid), deleteData(uid), deleteUser(uid).
+ * deleted, and so are their endless entry, cloud save, leaderboard profile, reminders,
+ * likes, run tickets and play markers (counts stay: they hold no account); then their rate
+ * limits and the account itself go. `accounts`: anonymizeWorlds(uid, author) -> count,
+ * deleteDailyScores(uid), deleteEndless(uid), deleteSave(uid), deleteProfile(uid),
+ * deleteReminders(uid), deleteLikes(uid), deleteSeen(uid), deleteRuns(uid), deleteData(uid),
+ * deleteUser(uid).
  */
 export async function handleDeleteAccount({ auth }, { accounts }) {
   const user = signedIn(auth);
@@ -139,6 +140,7 @@ export async function handleDeleteAccount({ auth }, { accounts }) {
   await accounts.deleteDailyScores(user.uid);
   await accounts.deleteEndless(user.uid);
   await accounts.deleteSave(user.uid);
+  await accounts.deleteProfile(user.uid);
   await accounts.deleteReminders(user.uid);
   await accounts.deleteLikes(user.uid);
   await accounts.deleteSeen(user.uid);

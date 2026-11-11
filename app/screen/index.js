@@ -1,11 +1,11 @@
-import TileSet from "./tileset";
+import { tileSetFor } from "./tileset";
 
 export default class Screen {
   constructor(canvas, world, skin = null) {
     this.buffer = canvas.getContext("2d");
     this.canvas = canvas;
 
-    this.tileSet = new TileSet(16, 8, world, skin);
+    this.tileSet = tileSetFor(16, 8, world, skin);
   }
 
   drawMap(map) {

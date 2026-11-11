@@ -98,13 +98,13 @@ canvas {
   color: #cccccc;
   user-select: none;
   border-radius: 100%;
-  opacity: 0.85;
+  opacity: var(--ctrl-idle, 0.45);
   transition:
     transform 0.06s ease,
     opacity 0.06s ease;
 }
 .controller-btn.pressed {
-  opacity: 1;
+  opacity: var(--ctrl-pressed, 0.75);
   transform: scale(0.9);
 }
 #jumpBtn {
@@ -133,16 +133,25 @@ canvas {
 .persistent-controller {
   position: fixed;
   z-index: 6;
-  top: calc(var(--sat) + 4px);
+  /* bottom middle, inside the safe area, level with the other touch buttons */
+  bottom: calc(var(--sab) + var(--ctrl) * 0.18);
   left: 50%;
   transform: translateX(-50%);
 }
 #pauseBtn {
-  width: 40px;
-  height: 40px;
+  width: var(--ctrl);
+  height: var(--ctrl);
   cursor: pointer;
-  opacity: 0.8;
-  background: url(images/pause_btn.webp) center center / 40px no-repeat;
+  opacity: var(--ctrl-idle, 0.45);
+  background: url(images/pause_btn.webp) center center / 100% no-repeat;
+}
+#pauseBtn:active {
+  opacity: var(--ctrl-pressed, 0.75);
+}
+/* without touch, pause is the only on-screen control: not a faint touch button */
+.no-touch #pauseBtn,
+.no-touch #pauseBtn:active {
+  opacity: 1;
 }
 
 /* ------------------------------------------------------------------- buttons */
@@ -1532,11 +1541,14 @@ canvas {
   width: 100%;
   list-style: none;
 }
+/* Fixed columns so the rows line up; on a landscape phone (a 464 px list) they
+   leave the name at least 80 px, which then truncates (tests/board-layout.test.js). */
 .lb-row {
   display: grid;
-  grid-template-columns: 3.2em minmax(0, 1fr) auto 3.4em;
-  gap: 8px;
+  grid-template-columns: 2.6em 40px minmax(80px, 1fr) auto 3.4em 3.6em;
+  gap: 4px;
   align-items: center;
+  min-height: 44px;
   padding: 8px 10px;
   border-radius: 10px;
   font-size: 16px;
@@ -1555,7 +1567,23 @@ canvas {
   box-shadow: 0 -2px 0 rgba(29, 26, 36, 0.2);
 }
 .lb-row.endless {
-  grid-template-columns: 3.2em minmax(0, 1fr) 3.6em auto 3.4em;
+  grid-template-columns: 2.6em 40px minmax(80px, 1fr) 3.4em auto 3.4em 3.6em;
+}
+.lb-avatar {
+  display: block;
+  width: 40px;
+  height: 28px;
+}
+.lb-avatar canvas {
+  display: block;
+  width: 40px;
+  height: 28px;
+}
+.lb-seen {
+  font-size: 12px;
+  text-align: right;
+  white-space: nowrap;
+  opacity: 0.7;
 }
 .lb-level {
   text-align: right;
@@ -1569,6 +1597,7 @@ canvas {
 .lb-score,
 .lb-time {
   text-align: right;
+  white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
 .lb-time {
@@ -1938,7 +1967,8 @@ canvas {
 .hint {
   position: fixed;
   z-index: 9;
-  bottom: calc(var(--sab) + 12px);
+  /* above the pause button, never under it */
+  bottom: calc(var(--sab) + var(--ctrl) * 1.18 + 8px);
   left: 50%;
   max-width: min(520px, calc(100vw - 32px));
   padding: 8px 16px;
@@ -1997,5 +2027,271 @@ canvas {
     max-width: 44vw;
     font-size: 13px;
     padding: 6px 12px;
+  }
+}
+
+/* ------------------------------------------- short screens: compact home and menus */
+
+/* A landscape phone (667 x 375, 844 x 390): about 25% smaller, taps stay 44 px tall. */
+@media (max-height: 499px) {
+  .screen {
+    padding: calc(var(--sat) + 6px) calc(var(--sar) + 12px) calc(var(--sab) + 6px)
+      calc(var(--sal) + 12px);
+  }
+  .home-logo {
+    font-size: clamp(26px, 7vmin, 40px);
+  }
+  .home-logo span {
+    letter-spacing: 3px;
+  }
+  .home-sub {
+    margin-top: 4px;
+    font-size: 12px;
+  }
+  .home-main {
+    gap: 6px;
+  }
+  .btn {
+    min-height: 44px;
+    padding: 8px 21px;
+    font-size: 15px;
+  }
+  #playBtn {
+    padding: 8px 48px;
+    font-size: clamp(18px, 4vmin, 22px);
+  }
+  .btn-small {
+    min-height: 44px;
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+  .mode-grid {
+    gap: 8px;
+  }
+  .mode-card {
+    min-height: 44px;
+    padding: 6px 6px;
+    border-radius: 12px;
+  }
+  .mode-icon {
+    width: clamp(28px, 6vmin, 38px);
+    height: clamp(28px, 6vmin, 38px);
+    margin-bottom: 0;
+  }
+  .mode-name {
+    font-size: clamp(12px, 2.6vmin, 14px);
+  }
+  .mode-info {
+    font-size: 10px;
+  }
+  .wallet-row {
+    gap: 6px;
+  }
+  .coin-chip {
+    padding: 4px 10px;
+    font-size: 13px;
+  }
+  #leaderboardsBtn,
+  #settingsBtn,
+  #helpBtn,
+  #infoBtn {
+    --small-btn-size: 44px;
+  }
+  .icon-row {
+    gap: 6px;
+  }
+  .setting-row {
+    min-height: 44px;
+    padding: 6px 4px;
+    font-size: 15px;
+  }
+  /* tabs, segmented buttons, chips and links: a small look, a 44 px hit area */
+  .tab,
+  .segmented button,
+  .account-chip,
+  .chip,
+  .seg-btn,
+  .link-btn {
+    min-height: 44px;
+  }
+  .link-btn {
+    display: inline-flex;
+    align-items: center;
+  }
+  .delete-btn,
+  .like-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .text-input {
+    min-height: 44px;
+  }
+}
+
+/* ------------------------------------------------ quests, nest and the hatch card */
+
+.home-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  width: min(720px, 100%);
+  margin: 12px 0;
+}
+.home-card {
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 14px;
+}
+.card-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+  color: var(--gold);
+  font-size: 15px;
+  text-transform: uppercase;
+}
+.quest-keys {
+  color: var(--cream);
+  font-size: 13px;
+  text-transform: none;
+}
+.quest-list,
+.nest-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.quest-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 2px;
+}
+.quest-text {
+  grid-column: 1 / -1;
+  font-size: 13px;
+  line-height: 1.2;
+}
+.quest-bar {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.16);
+}
+.quest-fill {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--gold);
+}
+.quest-row.done .quest-fill {
+  background: #6fcf6f;
+}
+.quest-row.done .quest-text {
+  opacity: 0.7;
+}
+.quest-count,
+.quest-coins {
+  font-size: 12px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.quest-coins {
+  color: var(--gold);
+}
+.nest-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.nest-row.ready {
+  color: var(--gold);
+}
+.card-note {
+  font-size: 12px;
+  opacity: 0.75;
+}
+.hatch-image {
+  width: 96px;
+  height: 84px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+#hatchScreen {
+  z-index: 13;
+}
+#hatchTitle {
+  font-size: clamp(20px, 4vmin, 30px);
+}
+
+@media (max-width: 560px) {
+  .home-cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* A landscape phone: the cards stand in a column beside the title, play and modes. */
+@media (max-height: 499px) and (min-width: 560px) {
+  .home-screen {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(210px, 38%);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    column-gap: 12px;
+    align-items: stretch;
+    justify-items: center;
+  }
+  .home-hero {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .home-main {
+    grid-column: 1;
+    grid-row: 2;
+    align-self: center;
+    width: 100%;
+  }
+  .home-footer {
+    grid-column: 1;
+    grid-row: 3;
+  }
+  .home-cards {
+    grid-column: 2;
+    grid-row: 1 / 4;
+    grid-template-columns: minmax(0, 1fr);
+    align-content: center;
+    gap: 5px;
+    width: 100%;
+    margin: 0;
+  }
+  /* the four mode cards stay in one row (they sit two to a row only under 561 px) */
+  .mode-grid {
+    gap: 6px;
+  }
+  .mode-card {
+    padding: 4px 2px;
+  }
+  .home-card {
+    padding: 5px 10px;
+  }
+  .card-title {
+    margin-bottom: 3px;
+    font-size: 13px;
+  }
+  .quest-list,
+  .nest-list {
+    gap: 3px;
+  }
+  .quest-text {
+    font-size: 12px;
+  }
+  .nest-row {
+    font-size: 12px;
   }
 }

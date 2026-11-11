@@ -33,6 +33,16 @@ rules_version = '2';
 // limits/{uid}: per-user rate limit counters, functions only.
 //
 // runs/{ticket}: ranked run tickets (startRun), functions only.
+//
+// players/{uid}: a player's looks and, optionally, the UTC day they were last
+// online, shown on the boards. No client reads them: the getProfiles function
+// hands out the four fields, 30 players at a time, without the document's
+// create and update times. Only that account writes its own, anonymous accounts included, and a write
+// carries exactly skin, hat and companion, each an item ID the shop has (the
+// lists match app/shop/catalog.js, checked by tests/profiles-rules-file.test.js),
+// and optionally seenDay: an int, yesterday's, today's or tomorrow's UTC day
+// number by the server's clock. Never a name or a time. Nobody deletes it from a client: the
+// deleteAccount function does.
 service cloud.firestore {
   match /databases/{database}/documents {
     match /worlds/{worldId} {
@@ -102,6 +112,29 @@ service cloud.firestore {
     match /config/{doc} {
       allow get: if true;
       allow write: if false;
+    }
+
+    match /players/{uid} {
+      // today's UTC day number by the server's clock, yesterday's or tomorrow's:
+      // a device clock a day off either way still counts
+      function isSeenDay(day) {
+        let today = int(request.time.toMillis() / 86400000);
+        return day is int && day >= today - 1 && day <= today + 1;
+      }
+
+      // No client reads or lists profiles, the owner included: Firestore hands
+      // every reader a document's create and update times, which would show the
+      // time of day a player played. Boards ask the getProfiles function, which
+      // returns only the four fields (functions/src/profiles.js).
+      allow read: if false;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['skin', 'hat', 'companion', 'seenDay'])
+        && request.resource.data.keys().hasAll(['skin', 'hat', 'companion'])
+        && request.resource.data.skin in ['classic', 'mint', 'sunset', 'midnight', 'ghost', 'gold']
+        && request.resource.data.hat in ['none', 'cap', 'party', 'viking', 'wizard', 'crown']
+        && request.resource.data.companion in ['none', 'hatchling', 'ptero', 'trike', 'stego', 'raptor', 'ankylo', 'golden', 'crystal']
+        && (!('seenDay' in request.resource.data) || isSeenDay(request.resource.data.seenDay));
+      allow delete: if false;
     }
 
     match /{document=**} {

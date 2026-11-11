@@ -16,7 +16,7 @@ import {
 } from "../app/modes/endless-rules";
 import { createEndlessBoard } from "../app/modes/endless-board";
 import { generateEndlessLevel } from "../app/pcg/generator";
-import { COIN_SCORE, ENEMY_MAX_SCORE } from "../app/daily/rules";
+import { COIN_SCORE, ENEMY_MAX_SCORE, FULL_HEART_BONUS } from "../app/daily/rules";
 
 const root = process.cwd();
 const SYNC = path.join(root, "scripts", "sync-functions-shared.js");
@@ -51,6 +51,34 @@ test("endlessScoreCeiling is stable and covers what endless mode builds", () => 
   assert.ok(possible > 0);
   assert.ok(ceiling >= possible, `${ceiling} >= ${possible}`);
   assert.ok(endlessScoreCeiling(seed, 6) > ceiling, "more levels, more to score");
+});
+
+test("endlessScoreCeiling is 4 x (coins and enemies) plus 100 per power-up over levels 1..level", () => {
+  const seed = 12345;
+  let prevExit = 9;
+  let coins = 0;
+  let enemies = 0;
+  let powerups = 0;
+  for (let index = 0; index < 3; index++) {
+    const { data, exit } = generateEndlessLevel({
+      id: 4000 + index,
+      seed: seed + index * 7919,
+      index,
+      prevExit,
+    });
+    prevExit = exit;
+    coins += data.coins.length;
+    enemies += data.enemies.length;
+    powerups += (data.powerups || []).length;
+  }
+  const expected =
+    4 * (COIN_SCORE * coins + ENEMY_MAX_SCORE * enemies) + FULL_HEART_BONUS * powerups;
+  assert.equal(endlessScoreCeiling(seed, 3), expected);
+  assert.equal(checkEndlessRun({ seed, level: 3, score: expected, seconds: 60 }), null);
+  assert.equal(
+    checkEndlessRun({ seed, level: 3, score: expected + 1, seconds: 60 }),
+    "That score is more than the levels give.",
+  );
 });
 
 test("checkEndlessRun rejects what can't have happened", () => {

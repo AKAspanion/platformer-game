@@ -205,14 +205,14 @@ test("killed enemies stay dead when the area is entered again", () => {
   );
 });
 
-test("a hit freezes the world briefly (hit-stop), without screen shake", () => {
+test("a hit freezes the world briefly (hit-stop), and a plain kill does not shake", () => {
   const world = makeWorld(arena({ enemies: [enemy("pig", 4)] }));
   freeze(world);
   fire(world);
   tickUntil(world, () => byId(world, "pig").dying);
 
   assert.ok(world.effects.freeze > 0, "hit-stop expected");
-  assert.equal("shake" in world.effects, false, "no screen shake");
+  assert.deepEqual(world.effects.shakeOffset(), { x: 0, y: 0 }, "a plain kill does not shake");
   assert.equal(world.effects.texts[0].text, "+100");
 
   world.player.velocityX = 3;

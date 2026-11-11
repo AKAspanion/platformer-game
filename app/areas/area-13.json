@@ -196,7 +196,8 @@
       "left": 9.85,
       "top": 7,
       "sway": 12,
-      "dir": -1
+      "dir": -1,
+      "shoots": true
     },
     {
       "id": "A13E02",
@@ -212,7 +213,8 @@
       "left": 10.85,
       "top": 5,
       "sway": 12,
-      "dir": 1
+      "dir": 1,
+      "shoots": true
     },
     {
       "id": "A13E04",
@@ -228,7 +230,8 @@
       "left": 10.35,
       "top": 2,
       "sway": 20,
-      "dir": 1
+      "dir": 1,
+      "shoots": true
     }
   ],
   "powerups": [
@@ -480,5 +483,10 @@
       0,
       0
     ]
-  ]
+  ],
+  "egg": {
+    "id": "s13",
+    "left": 15.25,
+    "top": 1.1
+  }
 }

@@ -11,6 +11,7 @@
  */
 const fs = require("fs");
 const path = require("path");
+const { placeEggs } = require("./place-eggs");
 
 const TILE = 16;
 const COLS = 21;
@@ -66,6 +67,10 @@ async function main() {
     );
     if (print) console.log(ascii(result) + "\n");
   });
+
+  // each non-boss story area gets its hidden egg (an `egg` field, nothing else changes)
+  const placed = await placeEggs({ outDir });
+  if (placed.length) console.log(`eggs placed in areas ${placed.join(", ")}`);
 }
 
 main().catch((error) => {

@@ -119,6 +119,16 @@
           <button id="achievementsBtn" class="btn btn-small">Achievements</button>
         </div>
       </div>
+      <div class="home-cards">
+        <section id="questCard" class="home-card" aria-label="Quests">
+          <div class="card-title">Quests <span id="questKeys" class="quest-keys"></span></div>
+          <div id="questList" class="quest-list"></div>
+        </section>
+        <section id="nestCard" class="home-card" aria-label="Nest">
+          <div class="card-title">Nest</div>
+          <div id="nestList" class="nest-list"></div>
+        </section>
+      </div>
       <div class="home-footer">
         <div class="icon-row">
           <div id="leaderboardsBtn" role="button" aria-label="Leaderboards"></div>
@@ -191,6 +201,13 @@
           <label class="setting-row" id="vibrationRow"
             ><span>Vibration</span><input type="checkbox" id="setVibration" class="switch"
           /></label>
+          <label class="setting-row"
+            ><span>Screen shake</span><input type="checkbox" id="setShake" class="switch"
+          /></label>
+          <label class="setting-row"
+            ><span>Show when I was last online</span
+            ><input type="checkbox" id="setLastSeen" class="switch"
+          /></label>
           <label class="setting-row" id="ghostRow"
             ><span>Show ghost</span><input type="checkbox" id="setGhost" class="switch"
           /></label>
@@ -209,6 +226,13 @@
             <div class="segmented" id="setControls">
               <button data-value="auto">Auto</button><button data-value="s">S</button
               ><button data-value="m">M</button><button data-value="l">L</button>
+            </div>
+          </div>
+          <div class="setting-row">
+            <span>Control opacity</span>
+            <div class="segmented" id="setOpacity">
+              <button data-value="low">Low</button><button data-value="medium">Medium</button
+              ><button data-value="high">High</button>
             </div>
           </div>
           <div class="setting-row">
@@ -559,9 +583,22 @@
               <button class="tab active" data-slot="skin" role="tab">Skins</button>
               <button class="tab" data-slot="hat" role="tab">Hats</button>
               <button class="tab" data-slot="fireball" role="tab">Fireballs</button>
+              <button class="tab" data-slot="companion" role="tab">Companions</button>
             </div>
             <div id="shopItems" class="shop-items"></div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="hatchScreen" class="flex-item modal-screen">
+      <div class="flex-item modal-container modal-narrow world1-container">
+        <img id="hatchImage" class="hatch-image" alt="" width="96" height="84" />
+        <div class="modal-title" id="hatchTitle">Your egg hatched!</div>
+        <div id="hatchNote" class="world1-text" hidden></div>
+        <div class="world1-actions">
+          <button id="hatchWearBtn" class="btn btn-primary">Wear</button>
+          <button id="hatchLaterBtn" class="btn btn-secondary">Later</button>
         </div>
       </div>
     </div>

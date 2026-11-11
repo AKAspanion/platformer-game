@@ -10,6 +10,8 @@ import {
   MAX_SECONDS,
   COIN_SCORE,
   ENEMY_MAX_SCORE,
+  FULL_HEART_BONUS,
+  COMBO_MAX,
   dailyLevels,
   dailyScoreCeiling,
   seedToDate,
@@ -59,6 +61,21 @@ test("dailyScoreCeiling is stable and covers every coin and enemy", () => {
     0,
   );
   assert.ok(a >= everything, `${a} >= ${everything}`);
+});
+
+test("dailyScoreCeiling is COMBO_MAX x (coins and enemies) plus 100 per power-up", () => {
+  assert.equal(COMBO_MAX, 4);
+  for (const seed of [20261111, 20260101, 20271231]) {
+    const areas = generateSequence({ idBase: 3000, seed, levels: dailyLevels(seed) });
+    const coins = areas.reduce((n, a) => n + a.coins.length, 0);
+    const enemies = areas.reduce((n, a) => n + a.enemies.length, 0);
+    const powerups = areas.reduce((n, a) => n + (a.powerups || []).length, 0);
+    assert.ok(coins > 0 && enemies > 0 && powerups > 0);
+    assert.equal(
+      dailyScoreCeiling(seed),
+      4 * (COIN_SCORE * coins + ENEMY_MAX_SCORE * enemies) + FULL_HEART_BONUS * powerups,
+    );
+  }
 });
 
 test("seedIsOpen: yesterday, today and tomorrow by UTC date", () => {

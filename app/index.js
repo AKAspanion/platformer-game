@@ -4,6 +4,7 @@ import Screen from "./screen";
 import GameEngine from "./engine";
 import Controller from "./controller";
 import MouseInput from "./controller/mouse-input";
+import { controlOpacity } from "./controller/opacity";
 import { MAX_HEARTS, POWERUP_TICKS } from "./game/player";
 import { loadIcons } from "./game/powerups";
 
@@ -19,6 +20,7 @@ import {
   preLoadAndFetch,
 } from "./util";
 import { settings, vibrate } from "./util/settings";
+import { COMBO_WINDOW } from "./game/combo";
 import { track, armAnalytics, setAnalyticsEnabled, appOpenParams } from "./analytics";
 import { isPremium, setPremium, readPremiumFromUrl, canToggleLocally } from "./util/premium";
 import {
@@ -64,11 +66,28 @@ import {
 import { createOnboarding } from "./onboarding/onboarding";
 import { createCampaign, starsFor, targetTime, starCount, STAR } from "./campaign";
 import { createWallet } from "./progress/wallet";
+import { createLastSeen } from "./progress/last-seen";
 import { createStats } from "./progress/stats";
+import { featsFrom } from "./rewards/feed";
+import { createNest, hatchLabel, DUPLICATE_COINS } from "./rewards/eggs";
+import {
+  createQuests,
+  claimChest,
+  payFinished,
+  metEnemies,
+  unlockedModes,
+  CHEST_KEYS,
+  CHEST_COINS,
+} from "./rewards/quests";
+import { createFollower, companionFrames, COMPANION_SIZE } from "./game/companion";
 import { createEarnings } from "./progress/earn";
 import { readLocal, writeLocal, resetLocal } from "./progress/save";
 import { createCloudSave } from "./progress/cloud";
 import { firestoreSaves } from "./firebase/saves";
+import { profiles } from "./profiles";
+import { createProfileGate } from "./profiles/gate";
+import { avatarCanvas, rowLooks, loadProfiles } from "./profiles/avatar";
+import { dayNumber } from "./profiles/rules";
 import {
   SECRET_STARS,
   campaignStars,
@@ -76,18 +95,23 @@ import {
   bossRushOpen,
   bossesBeaten,
 } from "./progress/unlocks";
-import { CATALOG, FREE, itemOf } from "./shop/catalog";
+import { CATALOG, FREE, itemOf, isHatchOnly } from "./shop/catalog";
 import { ACHIEVEMENTS } from "./achievements/catalog";
 import { newlyEarned, progressToward } from "./achievements/check";
 import { createSecretSession } from "./modes/secret";
 import { createBossRushSession, bossLevels } from "./modes/bossrush";
+import { SPIT_COLORS } from "./game/projectile-look";
+import { drawShieldGlow, glowFlickers } from "./game/shield-fx";
 
 import areas from "./areas";
 
 readPremiumFromUrl();
 preLoadAndFetch();
 populateLinks();
-populateHelp();
+const isTouchesEnabled = "ontouchstart" in document.documentElement;
+// the pause button is a touch button only on a touch device (see app/index.css)
+document.documentElement.classList.toggle("no-touch", !isTouchesEnabled);
+populateHelp(isTouchesEnabled);
 
 // Firebase loads only for players who signed in before, or when they open Worlds
 auth.use(firebaseAuthBackend());
@@ -95,7 +119,6 @@ auth.resume();
 
 let loadingActive = false;
 let controllerActive = false;
-const isTouchesEnabled = "ontouchstart" in document.documentElement;
 
 const $ = (id) => document.getElementById(id);
 const homeScreen = $("homeScreen");
@@ -148,6 +171,15 @@ const sizeControls = () => {
   const scale = { s: 0.8, m: 1, l: 1.25 }[settings.get("controlSize")] || 1;
   document.documentElement.style.setProperty("--ctrl", `${Math.round(medium * scale)}px`);
 };
+
+/** Touch button opacity from Settings, as the --ctrl-idle and --ctrl-pressed CSS variables. */
+const applyControlOpacity = () => {
+  const { idle, pressed } = controlOpacity(settings.get("controlOpacity"));
+  const style = document.documentElement.style;
+  style.setProperty("--ctrl-idle", idle);
+  style.setProperty("--ctrl-pressed", pressed);
+};
+applyControlOpacity();
 
 /** Safe-area insets in px (notches, gesture bar), measured with a probe. */
 const probe = document.createElement("div");
@@ -203,7 +235,17 @@ window.addEventListener("load", function () {
   const icons = loadIcons();
   let campaign = createCampaign();
   const wallet = createWallet();
+  const lastSeen = createLastSeen(); // "Show when I was last online": the account's, via cloud save
   const stats = createStats();
+  const nest = createNest();
+  const quests = createQuests(undefined, undefined, () => {
+    const saved = readLocal().campaign;
+    return { unlocked: unlockedModes(saved), metEnemies: metEnemies(saved) };
+  });
+  const eggsFoundNow = new Set(); // found this session: gone even when the save can't be written
+  const follower = createFollower();
+  let wornCompanion = "none"; // the companion drawn in this level
+  let bossBounced = false; // a fireball bounced off a boss shield in this level
   const earnings = createEarnings();
   const isCampaignLevel = (id) => !session && LEVELS.some((l) => l.id === id);
 
@@ -251,8 +293,22 @@ window.addEventListener("load", function () {
     $("shopBalance").innerHTML = coinText(wallet.balance());
   };
 
+  // The player's look (and last-online day) follows the account: written each time cloud save
+  // has merged the account's save (onMerge), so never with a switch another device has since
+  // turned off. Wearing an item or flipping the switch sends the save now, and the profile
+  // follows that merge. No account, no profile, and nothing loads. Never shows an error.
+  const profileGate = createProfileGate({
+    sync: profiles.sync,
+    read: () => ({ worn: wallet.worn(), showLastSeen: lastSeen.on() }),
+  });
+  const syncProfile = () => {
+    cloud.changed();
+    cloud.flush();
+  };
+
   // The account's save is merged in, then kept in step; it never shows an error.
   const cloud = createCloudSave({
+    onMerge: (uid) => profileGate.merged(uid),
     backend: firestoreSaves,
     local: {
       read: () => readLocal(),
@@ -308,6 +364,70 @@ window.addEventListener("load", function () {
   const progressChanged = () => {
     checkAchievements();
     cloud.changed();
+  };
+
+  // ------------------------------------------------------ eggs and quests
+
+  /** The quest mode of what is being played; Starfall Peaks counts as community. */
+  const questMode = () => {
+    const kind = session ? session.kind : "story";
+    return ["story", "daily", "endless", "bossrush"].includes(kind) ? kind : "community";
+  };
+
+  const queueToast = (html) => {
+    achievementQueue.push(html);
+    pumpAchievements();
+  };
+
+  /** Opens the week's chest when it is due and unpaid, whatever brought the keys to 12: true when it paid. */
+  const openChest = (chest) => {
+    if (!claimChest(chest, wallet, nest)) return false;
+    queueToast(`<b>🎁 Weekly chest · +${coinText(CHEST_COINS)} and an egg</b>`);
+    track("chest_open", {});
+    return true;
+  };
+
+  /** One thing the player did: advances the day's quests, pays and toasts what it finished. */
+  const recordFeat = (feat) => {
+    const { finished, chest } = quests.record(feat, questMode());
+    const paid = payFinished(finished, wallet);
+    paid.forEach(({ pick }) => {
+      queueToast(`<b>✅ ${esc(pick.text)} · +${coinText(pick.coins)}</b>`);
+      track("quest_complete", { quest: pick.id });
+    });
+    return openChest(chest) || finished.length > 0; // finished quests changed the save, paid or not
+  };
+
+  /** This frame's events, the world's feats and coins: stats, eggs and quests. */
+  const feedRewards = (events, coinsGained) => {
+    const { world } = game;
+    const out = featsFrom(events, world.feats.splice(0), coinsGained);
+    let changed = false;
+    if (out.shieldBounced) bossBounced = true;
+    if (events.includes("boss")) {
+      if (!bossBounced) stats.markShieldlessBoss();
+      out.feats.push({ type: "boss" });
+      changed = true;
+    }
+    if (events.includes("combo-up")) out.feats.push({ type: "combo", value: world.combo.count });
+    if (out.burned) {
+      stats.addBurned(out.burned);
+      changed = true;
+    }
+    out.eggs.forEach((id) => {
+      eggsFoundNow.add(id);
+      nest.find(id, id.startsWith("d") ? "daily" : "story");
+      track("egg_found", { source: id.startsWith("d") ? "daily" : "story" });
+      queueToast("<b>🥚 Egg found! It hatches in 24 hours.</b>");
+      changed = true;
+    });
+    out.feats.forEach((feat) => {
+      if (recordFeat(feat)) changed = true;
+    });
+    if (changed) {
+      renderBalance();
+      progressChanged();
+    }
   };
 
   // analytics: the mode being played and how long the player has been in this area
@@ -619,6 +739,7 @@ window.addEventListener("load", function () {
 
   // GAME
   const game = new Game((score) => {
+    reportCombo();
     track("level_fail", { mode: modeName(), level_id: areaId, seconds: areaSeconds() });
     const best = recordRun(score);
     const inDaily = !!session && session.kind === "daily";
@@ -654,6 +775,17 @@ window.addEventListener("load", function () {
       if (endlessRun) submitEndless(endlessRun);
     }, 1400);
   });
+
+  // an egg found before (or this session) isn't placed again
+  game.world.eggFound = (id) => eggsFoundNow.has(id) || nest.has(id);
+
+  /** A level is over: its best combo is reported once if it reached 5. */
+  const reportCombo = () => {
+    const { combo } = game.world;
+    stats.bestCombo(combo.best);
+    if (combo.best >= 5) track("combo_best", { mode: modeName(), combo: combo.best });
+    combo.resetLevel();
+  };
 
   const finishRun = () => {
     paused = true;
@@ -692,6 +824,7 @@ window.addEventListener("load", function () {
     if (session.kind === "bossrush") {
       const seconds = rush.seconds();
       const fastest = stats.bossRushTime(seconds);
+      recordFeat({ type: "bossrush-finished" });
       track("boss_rush_complete", { seconds });
       panelScore = `Time ${clock(seconds)} · Score ${score}`;
       panelBest = `Best ${clock(fastest)}`;
@@ -733,6 +866,16 @@ window.addEventListener("load", function () {
     hurtInLevel = false;
     heartsSeen = game.world.player.hearts;
     applyWornLook();
+    bossBounced = false;
+    follower.reset();
+    wornCompanion = wallet.worn().companion || "none";
+    companionFrames(wornCompanion); // asks again for a sprite that failed to load
+    if (session && session.kind === "endless") {
+      const reached = session.level(areaId);
+      stats.endlessDeepest(reached);
+      recordFeat({ type: "endless-level", level: reached });
+      progressChanged();
+    }
     recorder.reset();
     keptGhost = isCampaignLevel(areaId) ? ghostStore.get(areaId) : null;
     ghostOn = settings.get("ghost") !== false;
@@ -781,6 +924,7 @@ window.addEventListener("load", function () {
     const loadValue = loadPercent();
 
     const { player, portal } = game.world;
+    let coinsGained = 0;
 
     if (loadValue < 100) {
       setProgressValue(loadValue == 99 ? 100 : loadValue);
@@ -817,6 +961,11 @@ window.addEventListener("load", function () {
     }
 
     if (portal) {
+      reportCombo();
+      if (portal.direction > 0) {
+        recordFeat({ type: "level", flawless: !hurtInLevel });
+        progressChanged();
+      }
       if (session && session.kind === "daily" && portal.direction > 0) daily.levelDone();
       if (session && portal.direction > 0) {
         track("level_complete", {
@@ -867,6 +1016,12 @@ window.addEventListener("load", function () {
         }
       }
       game.update();
+      if (loaded) {
+        follower.push(
+          { x: player.x, y: player.y, direction: player.direction },
+          game.world.respawns,
+        );
+      }
       if (session && session.kind === "daily" && loaded && !game.over) {
         daily.ticks += 1;
         daily.watchHearts();
@@ -879,6 +1034,7 @@ window.addEventListener("load", function () {
         heartsSeen = hearts;
         // every coin and kill counts at once; dying or quitting never takes them back
         const gained = earnings.tick(game.world);
+        coinsGained = gained.coins;
         if (gained.coins) wallet.earn(gained.coins);
         if (gained.kills) stats.addKills(gained.kills);
         if (gained.coins || gained.kills) {
@@ -892,6 +1048,7 @@ window.addEventListener("load", function () {
 
     // shell feedback for what happened this tick
     const { events } = game.world;
+    if (events.length || game.world.feats.length || coinsGained) feedRewards(events, coinsGained);
     while (events.length) vibrate(events.shift());
   };
 
@@ -912,6 +1069,41 @@ window.addEventListener("load", function () {
     ctx.globalAlpha = GHOST_ALPHA;
     ctx.translate(at.x + player.width * 0.5, at.y + player.height);
     ctx.drawImage(frame, -6 + xOffset, -35, 60, 40);
+    ctx.restore();
+  };
+
+  /** The level's hidden egg: bobbing, with a soft glow. */
+  const drawEgg = (ctx, egg) => {
+    const image = egg.image;
+    if (!image || !image.complete || !image.naturalWidth) return;
+    const cx = egg.getCenterX();
+    const cy = egg.getCenterY();
+    const glow = ctx.createRadialGradient(cx, cy, 1, cx, cy, egg.glow + 3);
+    glow.addColorStop(0, "rgba(255, 244, 180, 0.55)");
+    glow.addColorStop(1, "rgba(255, 244, 180, 0)");
+    ctx.fillStyle = glow;
+    ctx.fillRect(cx - 14, cy - 14, 28, 28);
+    ctx.drawImage(image, egg.x, egg.y, egg.width, egg.height);
+  };
+
+  /** The worn companion: where the dino stood 10 ticks ago, behind it, facing the way it ran. Only drawn. */
+  const drawCompanion = (ctx, player) => {
+    if (wornCompanion === "none") return;
+    const at = follower.at();
+    const frames = companionFrames(wornCompanion);
+    if (!at || !frames.length) return;
+    const frame = frames[at.moving ? Math.floor(game.world.areaTicks / 6) % 2 : 0];
+    if (!frame || !frame.complete || !frame.naturalWidth) return;
+    ctx.save();
+    ctx.translate(at.x + player.width / 2 - at.direction * 14, at.y + player.height);
+    if (at.direction < 0) ctx.scale(-1, 1);
+    ctx.drawImage(
+      frame,
+      -COMPANION_SIZE.width / 2,
+      -COMPANION_SIZE.height,
+      COMPANION_SIZE.width,
+      COMPANION_SIZE.height,
+    );
     ctx.restore();
   };
 
@@ -978,13 +1170,44 @@ window.addEventListener("load", function () {
       ctx.fillRect(feetX - boss.width, feetY - boss.height * 1.6, boss.width * 2, boss.height * 2);
     }
 
+    // the shield: a ring pulsing round the boss while it is up
+    const centreY = feetY - boss.height / 2;
+    if (boss.shield === "up") {
+      const pulse = 0.5 + Math.sin(Date.now() / 90) * 0.5;
+      const radius = Math.max(boss.width, boss.height) * 0.75 + pulse * 3;
+      const fade = boss.shieldTimer < 15 && Math.floor(Date.now() / 60) % 2 === 0 ? 0.5 : 1;
+      ctx.save();
+      ctx.globalAlpha = fade * (0.7 + pulse * 0.3);
+      ctx.fillStyle = "rgba(124, 200, 245, 0.18)";
+      ctx.strokeStyle = "#bfe8ff";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(feetX, centreY, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+
     ctx.save();
     ctx.globalAlpha = boss.alpha * (boss.flash > 0 && boss.flash % 2 === 0 ? 0.45 : 1);
     ctx.translate(feetX, feetY);
     ctx.rotate(boss.tilt);
     ctx.scale(boss.scaleX, boss.scaleY);
     ctx.drawImage(boss.animator.frameValue, -rect.width / 2, -rect.height, rect.width, rect.height);
+    // glowing before the shield rises: the sprite flickers brighter (drawn again, added on top)
+    if (glowFlickers(boss)) {
+      ctx.globalCompositeOperation = "lighter";
+      ctx.globalAlpha *= 0.7;
+      ctx.drawImage(
+        boss.animator.frameValue,
+        -rect.width / 2,
+        -rect.height,
+        rect.width,
+        rect.height,
+      );
+    }
     ctx.restore();
+    drawShieldGlow(ctx, boss, feetX, centreY);
   };
 
   const drawProjectile = (ctx, p) => {
@@ -1035,6 +1258,58 @@ window.addEventListener("load", function () {
         ctx.fillRect(-4, -2.5, 8, 5);
         ctx.fillStyle = "#e8344a";
         ctx.fillRect(3, -2.5, 2, 5);
+        ctx.restore();
+        return;
+      }
+      case "mud":
+        ctx.fillStyle = "#4a3220";
+        ctx.beginPath();
+        ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#8f6a42";
+        ctx.fillRect(cx - 2.5, cy - 2.5, 2, 2);
+        ctx.fillRect(cx + 1, cy + 0.5, 1.5, 1.5);
+        return;
+      case "glob": {
+        // a wobbling blob, in its creature's colours when it has them
+        const [body = "#6fcf5f", edge = "#3f9a3a"] = p.colors || [];
+        const wobble = Math.sin(Date.now() / 70) * 0.8;
+        ctx.fillStyle = edge;
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, 4.2 + wobble, 3.6 - wobble, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = body;
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, 3 + wobble * 0.6, 2.4 - wobble * 0.6, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(cx - 1.5, cy - 1.5, 1.2, 1.2);
+        return;
+      }
+      case "spit": {
+        // a fast streak of sand with a trail
+        const dir = Math.sign(p.vx) || 1;
+        ctx.save();
+        ctx.globalAlpha = 0.4;
+        ctx.fillStyle = SPIT_COLORS.trail;
+        ctx.fillRect(dir > 0 ? cx - 9 : cx + 1, cy - 1, 8, 2);
+        ctx.restore();
+        ctx.fillStyle = SPIT_COLORS.body;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = SPIT_COLORS.glint;
+        ctx.fillRect(cx - 1, cy - 1, 1.5, 1.5);
+        return;
+      }
+      case "pebble": {
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(p.life * 0.4);
+        ctx.fillStyle = "#8a847a";
+        ctx.fillRect(-3, -3, 6, 6);
+        ctx.fillStyle = "#c4beb2";
+        ctx.fillRect(-3, -3, 3, 3);
         ctx.restore();
         return;
       }
@@ -1261,6 +1536,23 @@ window.addEventListener("load", function () {
     ctx.fillStyle = "#ffffff";
     ctx.fillText(score, width - 50, 14);
 
+    // the combo, left of the score, with a bar that drains as the window closes
+    const { combo } = game.world;
+    if (combo.count >= 2) {
+      const scoreWidth = ctx.measureText(score).width;
+      const text = `${combo.count} \u00b7 x${combo.multiplier}`;
+      const right = width - 50 - scoreWidth - 8;
+      const textWidth = ctx.measureText(text).width;
+      ctx.fillStyle = "rgba(0,0,0,0.45)";
+      ctx.fillText(text, right + 1, 15);
+      ctx.fillStyle = combo.multiplier > 1 ? "#ffd84d" : "#ffffff";
+      ctx.fillText(text, right, 14);
+      ctx.fillStyle = "rgba(0,0,0,0.35)";
+      ctx.fillRect(right - textWidth, 17, textWidth, 2);
+      ctx.fillStyle = combo.multiplier > 1 ? "#ffd84d" : "#ffffff";
+      ctx.fillRect(right - textWidth, 17, Math.max(1, (textWidth * combo.left) / COMBO_WINDOW), 2);
+    }
+
     ctx.drawImage(coins.frameSets.coin[0], width - 17, 5, 10, 10);
     ctx.fillStyle = "rgba(0,0,0,0.45)";
     ctx.fillText(String(totalCoins), width - 19, 15);
@@ -1272,6 +1564,10 @@ window.addEventListener("load", function () {
   const render = () => {
     screen.drawBackground();
     const ctx = screen.buffer;
+    // the world shakes, the HUD doesn't; with the setting off nothing moves
+    const shake = settings.get("shake") ? game.world.effects.shakeOffset() : { x: 0, y: 0 };
+    ctx.save();
+    ctx.translate(shake.x, shake.y);
 
     const {
       map,
@@ -1324,6 +1620,8 @@ window.addEventListener("load", function () {
       ctx.drawImage(icons[item.type], item.x, item.y, item.width, item.height);
     }
 
+    if (game.world.egg) drawEgg(ctx, game.world.egg);
+
     for (let index = 0; index < fireballs.items.length; index++) {
       const f = fireballs.items[index];
       screen.drawObject(f.animator.frameValue, f.x, f.y, f.width, f.height);
@@ -1346,10 +1644,12 @@ window.addEventListener("load", function () {
     if (game.world.boss) drawBoss(ctx, game.world.boss);
 
     drawGhost(ctx, player);
+    drawCompanion(ctx, player);
     drawPlayer(ctx, player, game.world.isPlayerDead);
     if (game.world.bossArea) drawGates(ctx);
 
     game.world.effects.draw(ctx);
+    ctx.restore();
     drawHud(ctx);
 
     screen.render();
@@ -1374,6 +1674,8 @@ window.addEventListener("load", function () {
       },
       wallet,
       stats,
+      nest,
+      quests,
       cloud,
       unlockAll: () => {
         campaign.unlockAll(LEVELS.map((l) => l.id));
@@ -1416,6 +1718,7 @@ window.addEventListener("load", function () {
 
   const startStory = (level = LEVELS[0]) => {
     session = null;
+    quests.played("story");
     track("mode_start", { mode: "story" });
     loadWorld(level.id, level.left, level.top);
   };
@@ -1423,6 +1726,7 @@ window.addEventListener("load", function () {
   const startDaily = () => {
     session = createDailySession();
     daily.start();
+    quests.played("daily");
     // asked in the background: the daily seed is the day's, so play starts at once
     daily.ticket = runTickets.start("daily", daily.seed, { wait: Infinity });
     track("mode_start", { mode: "daily" });
@@ -1441,6 +1745,7 @@ window.addEventListener("load", function () {
     toggleLoadingScreen(false);
     session = createEndlessSession(ticket ? ticket.seed : undefined);
     endless.ticks = 0;
+    quests.played("endless");
     endless.ticket = ticket ? ticket.ticket : null;
     track("mode_start", { mode: "endless", ranked: !!ticket });
     loadWorld(session.startId, session.left, session.top);
@@ -1449,6 +1754,7 @@ window.addEventListener("load", function () {
   const startSecret = () => {
     session = createSecretSession();
     show(portalScreen, false);
+    quests.played("community");
     track("mode_start", { mode: "secret" });
     track("secret_world_start", {});
     loadWorld(session.startId, session.left, session.top);
@@ -1458,6 +1764,7 @@ window.addEventListener("load", function () {
     session = createBossRushSession();
     rush.ticks = 0;
     show(portalScreen, false);
+    quests.played("bossrush");
     track("mode_start", { mode: "bossrush" });
     track("boss_rush_start", {});
     loadWorld(session.startId, session.left, session.top);
@@ -1472,6 +1779,7 @@ window.addEventListener("load", function () {
       return;
     }
     show(createScreen, false);
+    quests.played("community");
     track("mode_start", { mode: "custom" });
     played.mark(world.id);
     social.recordPlay(world.id, "play");
@@ -1506,6 +1814,7 @@ window.addEventListener("load", function () {
   };
 
   const goHome = () => {
+    reportCombo();
     clearMouse();
     controller.releaseAll();
     paused = true;
@@ -1515,6 +1824,7 @@ window.addEventListener("load", function () {
     show(pauseScreen, false);
     refreshHome();
     show(homeScreen, true);
+    hatchNext();
     flushPending();
   };
 
@@ -1527,8 +1837,119 @@ window.addEventListener("load", function () {
     create: () => openCreator(),
   };
 
-  const refreshHome = () => {
+  const NEST_ROWS = 3; // rows the Nest card shows before "+n more"
+
+  /** The Nest card: one row per unhatched egg, or a hint to go find some. */
+  const renderNest = () => {
+    const list = $("nestList");
+    list.innerHTML = "";
+    const eggs = nest.list();
+    if (!eggs.length) {
+      const hint = document.createElement("div");
+      hint.className = "card-note";
+      hint.textContent = "Find eggs in story levels and the daily challenge.";
+      list.appendChild(hint);
+      return;
+    }
+    const now = Date.now();
+    eggs.slice(0, NEST_ROWS).forEach((egg) => {
+      const row = document.createElement("div");
+      row.className = `nest-row${egg.ready ? " ready" : ""}`;
+      row.dataset.id = egg.id;
+      const icon = document.createElement("span");
+      icon.className = "nest-egg";
+      icon.setAttribute("aria-hidden", "true");
+      icon.textContent = "🥚";
+      const label = document.createElement("span");
+      label.textContent = hatchLabel(egg, now);
+      row.append(icon, label);
+      list.appendChild(row);
+    });
+    if (eggs.length > NEST_ROWS) {
+      const more = document.createElement("div");
+      more.className = "card-note";
+      more.textContent = `+${eggs.length - NEST_ROWS} more`;
+      list.appendChild(more);
+    }
+  };
+
+  /** The Quests card: today's three quests with their progress, and the chest's keys. */
+  const renderQuests = () => {
+    const list = $("questList");
+    list.innerHTML = "";
+    quests.today().forEach((quest) => {
+      const row = document.createElement("div");
+      row.className = `quest-row${quest.done ? " done" : ""}`;
+      const text = document.createElement("span");
+      text.className = "quest-text";
+      text.textContent = quest.text;
+      const bar = document.createElement("span");
+      bar.className = "quest-bar";
+      const fill = document.createElement("span");
+      fill.className = "quest-fill";
+      fill.style.width = `${Math.round((quest.have / quest.target) * 100)}%`;
+      bar.appendChild(fill);
+      const count = document.createElement("span");
+      count.className = "quest-count";
+      count.textContent = quest.done ? "Done" : `${quest.have} / ${quest.target}`;
+      const coins = document.createElement("span");
+      coins.className = "quest-coins";
+      coins.innerHTML = coinText(quest.coins);
+      row.append(text, bar, count, coins);
+      list.appendChild(row);
+    });
+    $("questKeys").textContent = `🔑 ${quests.keys()} / ${CHEST_KEYS}`;
+  };
+
+  // ---------------------------------------------------- the hatch card
+
+  const hatchScreen = $("hatchScreen");
+  let hatching = null; // { companion } while the card is up
+
+  /** Hatches the oldest due egg and shows its card; the next one follows when it closes. */
+  const hatchNext = () => {
+    if (hatching || !isVisible($("homeScreen"))) return;
+    const egg = nest.due()[0];
+    if (!egg) return;
+    const result = nest.hatch(egg.id, wallet);
+    if (!result) return;
+    const item = itemOf("companion", result.companion);
+    const name = item ? item.name : "a new friend";
+    hatching = { companion: result.companion };
+    track("egg_hatched", { companion: result.companion, duplicate: result.duplicate });
+    $("hatchTitle").textContent = `Your egg hatched! Meet ${name}.`;
+    $("hatchImage").src = `./assets/sprites/companions/${result.companion}-1.png`;
+    $("hatchImage").alt = name;
+    const note = $("hatchNote");
+    note.innerHTML = result.duplicate
+      ? `You already have ${esc(name)} · +${coinText(DUPLICATE_COINS)}`
+      : "";
+    note.hidden = !result.duplicate;
+    $("hatchWearBtn").hidden = result.duplicate && wallet.worn().companion === result.companion;
     renderBalance();
+    progressChanged();
+    refreshHome();
+    show(hatchScreen, true);
+  };
+  const closeHatch = (wear) => {
+    if (wear && hatching && wallet.wear("companion", hatching.companion)) {
+      progressChanged();
+      syncProfile();
+    }
+    hatching = null;
+    show(hatchScreen, false);
+    refreshHome();
+    hatchNext();
+  };
+  $("hatchWearBtn").onclick = () => closeHatch(true);
+  $("hatchLaterBtn").onclick = () => closeHatch(false);
+
+  const refreshHome = () => {
+    // keys that a cloud merge brought to 12 open the chest here
+    if (openChest(quests.chest())) progressChanged();
+    renderBalance();
+    renderNest();
+    renderQuests();
     const premium = isPremium();
     document.querySelectorAll(".mode-card.premium").forEach((card) => {
       card.classList.toggle("locked", !premium);
@@ -1689,7 +2110,10 @@ window.addEventListener("load", function () {
   const setVibration = $("setVibration");
   const setAnalytics = $("setAnalytics");
   const setGhost = $("setGhost");
+  const setShake = $("setShake");
+  const setLastSeen = $("setLastSeen");
   const setControls = $("setControls");
+  const setOpacity = $("setOpacity");
   const setPremiumDev = $("setPremiumDev");
 
   const refreshSettings = () => {
@@ -1698,9 +2122,14 @@ window.addEventListener("load", function () {
     setVibration.checked = !!settings.get("vibration");
     setAnalytics.checked = settings.get("analytics") !== false;
     setGhost.checked = settings.get("ghost") !== false;
+    setShake.checked = settings.get("shake") !== false;
+    setLastSeen.checked = lastSeen.on();
     $("vibrationRow").style.display = navigator.vibrate ? "flex" : "none";
     setControls.querySelectorAll("button").forEach((b) => {
       b.classList.toggle("active", b.dataset.value === settings.get("controlSize"));
+    });
+    setOpacity.querySelectorAll("button").forEach((b) => {
+      b.classList.toggle("active", b.dataset.value === settings.get("controlOpacity"));
     });
     const premium = isPremium();
     $("premiumStatus").textContent = premium ? "Active ★" : "Locked";
@@ -1732,6 +2161,12 @@ window.addEventListener("load", function () {
   };
   setSound.onchange = () => (settings.soundMuted = !setSound.checked);
   setAnalytics.onchange = () => setAnalyticsEnabled(setAnalytics.checked);
+  setShake.onchange = () => settings.set("shake", setShake.checked);
+  setLastSeen.onchange = () => {
+    // the account's setting: the save goes now, so the other devices take it at their next merge
+    lastSeen.set(setLastSeen.checked);
+    syncProfile();
+  };
   setGhost.onchange = () => {
     settings.set("ghost", setGhost.checked);
     ghostOn = setGhost.checked;
@@ -1780,6 +2215,13 @@ window.addEventListener("load", function () {
     b.onclick = () => {
       settings.set("controlSize", b.dataset.value);
       sizeControls();
+      refreshSettings();
+    };
+  });
+  setOpacity.querySelectorAll("button").forEach((b) => {
+    b.onclick = () => {
+      settings.set("controlOpacity", b.dataset.value);
+      applyControlOpacity();
       refreshSettings();
     };
   });
@@ -1939,11 +2381,23 @@ window.addEventListener("load", function () {
       `fireball:${shopPick.fireball}`,
       FIREBALL_PALETTES[shopPick.fireball],
     );
+    const pals = shopPick.companion !== "none" ? companionFrames(shopPick.companion) : [];
+    const palFrame = pals[Math.floor(preview.index / 4) % 2];
     ctx.save();
     // the dino's visible body spans x -17..15 and y -33..1 (game units), the tallest
-    // hat reaches y -41 and the flame ends near x 31: all inside 240x140 with a margin
-    ctx.translate(100, 125);
+    // hat reaches y -41 and the flame ends near x 31: all inside 240x140 with a margin;
+    // with a companion beside it, the pair moves right to make room
+    ctx.translate(pals.length ? 144 : 100, 125);
     ctx.scale(2.8, 2.8);
+    if (palFrame && spriteReady(palFrame)) {
+      ctx.drawImage(
+        palFrame,
+        -48,
+        -COMPANION_SIZE.height,
+        COMPANION_SIZE.width,
+        COMPANION_SIZE.height,
+      );
+    }
     if (dino) ctx.drawImage(dino, -18, -35, 60, 40);
     const hat = hatImage(shopPick.hat);
     if (hat && hat.naturalWidth) drawHat(ctx, hat, 1, dino);
@@ -1978,6 +2432,7 @@ window.addEventListener("load", function () {
       const state = document.createElement("span");
       state.className = "shop-item-state";
       if (isWorn || owned) state.textContent = isWorn ? "Worn" : "Owned";
+      else if (isHatchOnly(shopSlot, item.id)) state.textContent = "From an egg";
       else state.innerHTML = coinText(item.price);
       button.append(name, state);
       button.onclick = () => {
@@ -1995,6 +2450,7 @@ window.addEventListener("load", function () {
       const balance = wallet.balance();
       if (worn[shopSlot] === picked.id) label = "Worn";
       else if (wallet.owns(shopSlot, picked.id)) ((label = "Wear"), (can = true));
+      else if (isHatchOnly(shopSlot, picked.id)) label = "From an egg";
       else if (balance >= picked.price) ((label = `Buy · ${coinText(picked.price)}`), (can = true));
       else label = `Need ${coinText(picked.price - balance)} more`;
     }
@@ -2009,7 +2465,10 @@ window.addEventListener("load", function () {
     const picked = itemOf(slot, shopPick[slot]);
     if (!picked) return;
     if (wallet.owns(slot, picked.id)) {
-      if (wallet.worn()[slot] !== picked.id && wallet.wear(slot, picked.id)) progressChanged();
+      if (wallet.worn()[slot] !== picked.id && wallet.wear(slot, picked.id)) {
+        progressChanged();
+        syncProfile();
+      }
     } else if (wallet.buy(slot, picked.id).ok) {
       track("shop_buy", { item: `${slot}:${picked.id}`, price: picked.price });
       progressChanged();
@@ -2088,7 +2547,11 @@ window.addEventListener("load", function () {
         side.append(reward, date);
       } else {
         const toward = progressToward(id, progress, LEVELS);
-        if (toward) side.textContent = `${num(toward.have)} / ${num(toward.need)}`;
+        if (toward) {
+          side.textContent = `${num(toward.have)} / ${num(toward.need)}${
+            toward.unit ? ` ${toward.unit}` : ""
+          }`;
+        }
       }
       row.append(icon, text, side);
       list.appendChild(row);
@@ -2110,10 +2573,13 @@ window.addEventListener("load", function () {
     const user = auth.currentUser;
     if (user && user.uid !== cloudUid) {
       cloudUid = user.uid;
-      // the account's save may bring stars or a streak that earn something
+      // the profile waits for this account's save to merge (onMerge), so it carries the
+      // account's look and switch, not this device's; the save may also earn something
+      profileGate.start(user.uid);
       cloud.start(user.uid).then(checkAchievements);
     } else if (!user && cloudUid) {
       cloudUid = null;
+      profileGate.stop();
       cloud.stop();
     }
   };
@@ -3249,14 +3715,17 @@ window.addEventListener("load", function () {
     // names come from other players: text only, never HTML
     [
       ["lb-rank", typeof entry.rank === "number" ? `#${entry.rank}` : entry.rank],
+      ["lb-avatar", ""],
       ["lb-name", entry.name],
       ...(ranked ? [["lb-level", `Lv ${entry.level}`]] : []),
       ["lb-score", String(entry.score)],
       ["lb-time", clock(entry.seconds)],
+      ["lb-seen", ""],
     ].forEach(([cls, text]) => {
       const cell = document.createElement("span");
       cell.className = cls;
       cell.textContent = text;
+      if (cls === "lb-avatar") cell.appendChild(avatarCanvas(null)); // the classic dino until profiles arrive
       row.appendChild(cell);
     });
     return row;
@@ -3272,6 +3741,21 @@ window.addEventListener("load", function () {
       top: () => leaderboard.top(seed, TOP_LIMIT),
       mine: (uid) => leaderboard.mine(seed, uid),
     };
+  };
+
+  /** Dinos and last-online on the rows already showing: one read for the whole board, never blocking it. */
+  const paintLooks = async (load, shown) => {
+    const found = await loadProfiles([...new Set(shown.map((row) => row.uid))], {
+      fetch: (list) => profiles.fetch(list),
+      isCurrent: () => load === board.load,
+    });
+    if (!found) return;
+    const looks = rowLooks(shown, found, dayNumber(Date.now()));
+    looks.forEach((look, i) => {
+      const { el } = shown[i];
+      el.querySelector(".lb-avatar").replaceChildren(avatarCanvas(look.profile));
+      el.querySelector(".lb-seen").textContent = look.seen;
+    });
   };
 
   const loadLeaderboard = async () => {
@@ -3293,18 +3777,25 @@ window.addEventListener("load", function () {
       }
       board.status.textContent = "";
       const endlessTab = tab === "endless";
-      rows.forEach((entry) =>
-        board.list.appendChild(boardRow(entry, { me: entry.uid === uid, endless: endlessTab })),
-      );
+      const shown = rows.map((entry) => ({
+        uid: entry.uid,
+        el: boardRow(entry, { me: entry.uid === uid, endless: endlessTab }),
+      }));
       if (mine) {
         // outside the top 50: the exact place isn't known here, and a stale one would be wrong
-        board.list.appendChild(
-          boardRow(
+        shown.push({
+          uid,
+          el: boardRow(
             { ...mine, rank: `${TOP_LIMIT}+` },
             { me: true, pinned: true, endless: endlessTab },
           ),
-        );
+        });
       }
+      shown.forEach(({ el }) => board.list.appendChild(el));
+      // never blocks the board: a drawing that throws leaves the classic dinos, and a log line
+      paintLooks(load, shown).catch((error) =>
+        console.warn("Profiles failed:", error && error.name),
+      );
     } catch (error) {
       if (load !== board.load) return;
       console.warn("Leaderboard failed:", friendlyError(error));
@@ -3420,6 +3911,7 @@ window.addEventListener("load", function () {
   refreshHome();
   // progress already on the device may have earned something (no Firebase needed)
   checkAchievements();
+  hatchNext(); // an egg that came due while the game was closed
 
   // a run that couldn't be sent goes out with the first input (Firebase stays unloaded until then)
   const flushOnInput = () => {

@@ -5,14 +5,19 @@ import Object from "./object";
 import Portal from "./portal";
 import Enemies, { enemyTypes, enemyImages } from "./enemies";
 import PowerUps from "./powerups";
+import Egg, { EGG_IMAGE } from "./egg";
 import Collider from "./collider";
 import Effects from "./effects";
+import Combo from "./combo";
 import Fireballs from "./fireballs";
 import Projectiles, { SEED_IMAGES } from "./projectiles";
+import { walkerShoots, storyDifficulty } from "../pcg/generator";
 import Boss, { bossAssets, bossImages, BOSSES } from "./boss";
 import { POWERUP_TICKS } from "./player";
 import AudioController from "../controller/audio";
-import { getSkin, audioSrc, hasAudio } from "../util/registry";
+import { getSkin, audioSrc } from "../util/registry";
+import areas from "../areas";
+import { preloadArea } from "./preload";
 import sfx, { ENEMY_SFX, BOSS_MOVE_SFX } from "../controller/sfx";
 
 // particles when a projectile breaks, by kind
@@ -22,6 +27,16 @@ const PROJECTILE_BREAK = {
   shard: { count: 5, colors: ["#e6f6ff", "#9fd8ff"], speed: 1.4, life: 7 },
   icicle: { count: 9, colors: ["#ffffff", "#bfe8ff", "#7cc8f5"], speed: 2, life: 9, gravity: 0.2 },
   orb: { count: 5, colors: ["#e0c8ff", "#a070e0"], speed: 1.2, life: 7, gravity: 0 },
+  mud: { count: 5, colors: ["#6b4a2b", "#8f6a42", "#4a3220"], speed: 1.1, life: 6, gravity: 0.1 },
+  glob: { count: 6, colors: ["#8be07a", "#c8f5a8", "#4fb04a"], speed: 1.3, life: 7, gravity: 0.08 },
+  spit: { count: 5, colors: ["#d8f07a", "#f4ffb0", "#9ac83a"], speed: 1.2, life: 6, gravity: 0.04 },
+  pebble: {
+    count: 5,
+    colors: ["#b8b2a8", "#8a847a", "#e0dcd0"],
+    speed: 1.2,
+    life: 6,
+    gravity: 0.12,
+  },
   missile: {
     count: 14,
     colors: ["#ffffff", "#ffd84d", "#ff7a2a", "#5a5560"],
@@ -29,6 +44,14 @@ const PROJECTILE_BREAK = {
     life: 11,
     gravity: 0.1,
   },
+};
+
+// the sound of a walker throwing its shot, by projectile kind
+const THROW_SFX = {
+  mud: "mud-throw",
+  glob: "glob-throw",
+  spit: "spit-throw",
+  pebble: "pebble-throw",
 };
 
 const POWERUP_TEXT = { heart: "+1 HEART", shield: "SHIELD", triple: "TRIPLE FIRE", wings: "WINGS" };
@@ -48,6 +71,25 @@ const needsOf = (area) => {
   const turret = types.some((type) => enemyTypes[type] && enemyTypes[type].kind === "turret");
   return { types, boss, minions: boss ? bossMinions(boss) : [], seed: turret || !!boss };
 };
+
+/**
+ * What an area needs downloaded: { images, audio } urls. Sprites for the
+ * enemy kinds in it (and the boss, its minions, the seed sprites for what
+ * spits or lobs), and the area's music. Sound effects load on first play.
+ */
+export const assetsOf = (area) => {
+  const { types, minions, boss, seed } = needsOf(area);
+  const images = [
+    ...enemyImages([...types, ...minions]),
+    ...(boss ? bossImages(boss) : []),
+    ...(seed ? SEED_IMAGES : []),
+    ...(area.egg ? [EGG_IMAGE] : []),
+  ];
+  const tracks = [area.theme, boss && `boss-${boss}`].filter(Boolean);
+  return { images, audio: tracks.map((track) => audioSrc(track, "mp3")) };
+};
+
+const FEATS_KEPT = 50;
 
 export default class World {
   constructor(friction = 0.87, gravity = 2) {
@@ -74,30 +116,32 @@ export default class World {
     this.fireballs = new Fireballs();
     this.projectiles = new Projectiles();
     this.effects = new Effects();
+    this.combo = new Combo();
     // game events for the shell (vibration, HUD): drained by the caller each frame
     this.events = [];
+    // what the player did, for the shell's quests and eggs: { type: "kill", enemy } and
+    // { type: "egg", id }. Drained each frame, at most FEATS_KEPT kept.
+    this.feats = [];
+    // set by the shell: an egg already found isn't placed again
+    this.eggFound = () => false;
+    this.egg = null;
 
     this.audioController = new AudioController();
     // music downloads count towards the loading bar too
     this.music = { assetCount: 0, loadCount: 0 };
   }
 
-  /**
-   * What an area needs downloaded: { images, audio } urls. Sprites for the
-   * enemy kinds in it (and the boss, its minions, the seed sprites for what
-   * spits or lobs), and the area's music. Sound effects load on first play.
-   */
+  /** What an area needs downloaded: { images, audio } urls (see assetsOf). */
   assetsFor(area) {
-    const { types, minions, boss, seed } = needsOf(area);
-    const images = [
-      ...enemyImages([...types, ...minions]),
-      ...(boss ? bossImages(boss) : []),
-      ...(seed ? SEED_IMAGES : []),
-    ];
-    const tracks = [area.theme, boss && `boss-${boss}`].filter(
-      (track) => track && !hasAudio(track),
-    );
-    return { images, audio: tracks.map((track) => audioSrc(track, "mp3")) };
+    return assetsOf(area);
+  }
+
+  /** Once this level has loaded, start fetching the level its forward portal leads to. */
+  preloadNext() {
+    if (this.preloadStarted) return;
+    this.preloadStarted = true;
+    const forward = this.portals.find((p) => p.direction > 0 && p.destinationArea != null);
+    if (forward) preloadArea(areas[forward.destinationArea]);
   }
 
   /** Download a track (once) and note when it is in. */
@@ -126,6 +170,7 @@ export default class World {
     this.musicSwap = 0;
     // music starts from update() once the level has loaded, never before
     this.playedThemeMusic = false;
+    this.preloadStarted = false;
     if (this.theme !== track && track) {
       this.stopThemeMusic();
       this.theme = track;
@@ -150,15 +195,27 @@ export default class World {
 
     this.deathAreas = data.death.map(({ x, y, height, width }) => new Object(x, y, width, height));
 
-    this.enemies = new Enemies(data.enemies, this.tileSize, this.killedEnemies);
+    // a story area's walkers shoot by where they stand and how hard the level is;
+    // generated areas (community worlds) say so per entry
+    const difficulty = storyDifficulty(data.id);
+    const entries = data.enemies?.map((entry) =>
+      entry.shoots === undefined && enemyTypes[entry.type]?.kind === "walker"
+        ? { ...entry, shoots: walkerShoots(entry.left, difficulty, entry.sway) }
+        : entry,
+    );
+    this.enemies = new Enemies(entries, this.tileSize, this.killedEnemies);
 
     this.coins = new Coins(data.coins, this.tileSize, this.collectedCoins);
 
     this.powerups = new PowerUps(data.powerups, this.tileSize, this.collectedPowerups);
 
+    // the level's hidden egg, unless it was found before
+    this.egg = data.egg && !this.eggFound(data.egg.id) ? new Egg(data.egg, this.tileSize) : null;
+
     // level 6 of each world: a boss, unless already beaten in this run
     this.boss = null;
     this.bossState = null;
+    this.shieldSeen = "none";
     this.bossArea = !!data.boss;
     // arena gates: 0 = open, 1 = shut. They start open and slam shut as the
     // fight begins; they lift again once the boss is beaten.
@@ -176,6 +233,7 @@ export default class World {
     }
     // what spits or lobs seeds needs those sprites (a boss may lob them too)
     if (this.boss || needsOf(data).seed) this.projectiles.load();
+    this.combo.resetLevel();
     this.areaTicks = 0; // time spent in this area (stars: target time)
 
     this.portals = data.portals.map((p) => new Portal(p));
@@ -200,6 +258,7 @@ export default class World {
     this.spawn = { x: this.player.x, y: this.player.y };
     this.lastSafe = null;
     this.safeTicks = 0;
+    this.respawns = 0; // pit falls that put the dino back on safe ground (the companion follows)
   }
 
   reset() {
@@ -210,6 +269,8 @@ export default class World {
     this.collectedCoins = "";
     this.collectedPowerups = "";
     this.events = [];
+    this.feats = [];
+    this.combo.resetLevel();
 
     this.player.reset();
   }
@@ -218,9 +279,41 @@ export default class World {
     return this.totalEnemies * 100 + this.totalCoins * 20 + this.bonus;
   }
 
+  /**
+   * A kill or coin worth `points`: steps the combo and puts the multiplier's
+   * extra into the bonus. Returns the points it came to.
+   */
+  comboScore(points) {
+    const { multiplier, count, tierUp } = this.combo.step();
+    this.bonus += points * (multiplier - 1);
+    sfx(`combo-${Math.min(count, 8)}`);
+    if (tierUp) {
+      sfx("combo-chime");
+      this.emit("combo-up");
+    }
+    return points * multiplier;
+  }
+
+  /** A coin picked up: 20 points, multiplied by the combo. */
+  scoreCoin() {
+    this.totalCoins += 1;
+    return this.comboScore(20);
+  }
+
+  /** The combo ends: a heart was lost. */
+  endCombo() {
+    this.combo.end();
+  }
+
   emit(type) {
     this.events.push(type);
     if (this.events.length > 20) this.events.shift();
+  }
+
+  /** Something the shell counts (a kill by enemy type, an egg found); the oldest go first. */
+  addFeat(feat) {
+    this.feats.push(feat);
+    if (this.feats.length > FEATS_KEPT) this.feats.splice(0, this.feats.length - FEATS_KEPT);
   }
 
   playJumpSound() {
@@ -399,10 +492,12 @@ export default class World {
 
     this.killedEnemies += `${enemy.id},`;
     this.totalEnemies += 1;
+    this.addFeat({ type: "kill", enemy: enemy.type });
     this.bonus += enemy.score - 100;
+    const points = this.comboScore(enemy.score);
 
     this.effects.enemyDeath(x, y, direction);
-    this.effects.popup(`+${enemy.score}`, x, enemy.getTop() - 2, "#ffe066");
+    this.effects.popup(`+${points}`, x, enemy.getTop() - 2, "#ffe066");
     this.effects.hitStop(2);
     this.emit("kill");
 
@@ -451,6 +546,7 @@ export default class World {
       sfx("shield-block");
       return;
     }
+    this.effects.shake(2, 6);
     if (result === "dead") {
       this.die(onGameOver);
       return;
@@ -462,6 +558,7 @@ export default class World {
       life: 9,
     });
     this.effects.hitStop(3);
+    this.endCombo();
     this.emit("hurt");
     AudioController.play("hurt");
   }
@@ -471,12 +568,15 @@ export default class World {
     const { player } = this;
     if (player.invulnerable <= 0) {
       player.hearts = Math.max(0, player.hearts - 1);
+      this.endCombo();
+      this.effects.shake(2, 6);
       if (player.hearts === 0) {
         this.die(onGameOver, "fall");
         return;
       }
     }
     const to = this.lastSafe || this.spawn;
+    this.respawns += 1;
     this.effects.dust(player.getCenterX(), Math.min(player.getBottom(), this.height - 4), 8);
     player.x = player.xOld = to.x;
     player.y = player.yOld = to.y;
@@ -498,6 +598,7 @@ export default class World {
     this.player.velocityY = -10;
     this.player.velocityX = 0;
     this.player.invulnerable = 0;
+    this.endCombo();
     this.emit("death");
     this.onPlayerDead(onGameOver, audio);
   }
@@ -674,12 +775,26 @@ export default class World {
       this.effects.hitStop(1);
       this.emit("kill");
       sfx((boss.config.sounds && boss.config.sounds.hit) || "boss-hit");
+    } else if (result === "bounced") {
+      // the shield throws the fireball back the way it came
+      const tip = { x: boss.getCenterX() - direction * (boss.width / 2 + 4), y };
+      this.effects.burst(tip.x, tip.y, {
+        count: 8,
+        colors: ["#ffffff", "#cfe8ff", "#7cc8f5"],
+        speed: 2.8,
+        life: 8,
+        gravity: 0,
+        direction: -direction * 2,
+      });
+      this.emit("shield-bounce");
+      sfx("shield-clang");
     } else if (result === "dead") {
       this.killedEnemies += `${boss.id},`;
       this.totalEnemies += 1;
       this.bonus += 1000 - 100;
+      const points = this.comboScore(1000);
       for (let i = 0; i < 3; i++) this.effects.enemyDeath(x + (i - 1) * 12, y, direction);
-      this.effects.popup("+1000", x, boss.getTop() - 6, "#ffe066");
+      this.effects.popup(`+${points}`, x, boss.getTop() - 6, "#ffe066");
       this.effects.popup(`${boss.name} defeated!`, this.width / 2, 60, "#ffffff");
       this.effects.hitStop(8);
       // minions flee with their boss
@@ -702,6 +817,7 @@ export default class World {
       this.fireballs,
       this.powerups,
       this.projectiles,
+      ...(this.egg ? [this.egg] : []),
     ];
   }
 
@@ -748,6 +864,7 @@ export default class World {
         this.playedThemeMusic = true;
       }
     }
+    if (!this.preloadStarted && this.isLoaded()) this.preloadNext();
 
     // hit-stop: freeze the world for a couple of ticks when something is hit
     if (this.effects.freeze > 0) {
@@ -755,7 +872,9 @@ export default class World {
       return;
     }
 
+    this.effects.tickShake();
     this.effects.update();
+    this.combo.tick();
     this.areaTicks += 1;
     if (this.musicSwap > 0 && --this.musicSwap === 0) this.switchTrack(this.areaTheme);
 
@@ -790,7 +909,7 @@ export default class World {
           coin.getCenterX() + coin.offsetX,
           coin.getCenterY() + coin.offsetY,
         );
-        this.totalCoins += 1;
+        this.scoreCoin();
       }
     }
 
@@ -801,6 +920,16 @@ export default class World {
       if (!this.isPlayerDead && this.checkCollision(player, item, 3, 3)) {
         this.powerups.remove(item);
         this.applyPowerup(item);
+      }
+    }
+
+    // the egg: found by touch, it gives no score and no coins
+    if (this.egg) {
+      this.egg.update();
+      if (!this.isPlayerDead && this.checkCollision(player, this.egg, 3, 3)) {
+        this.effects.coinSparkle(this.egg.getCenterX(), this.egg.getCenterY());
+        this.addFeat({ type: "egg", id: this.egg.id });
+        this.egg = null;
       }
     }
 
@@ -827,6 +956,7 @@ export default class World {
         this.fireballs.remove(fireball);
       } else if (seed) {
         this.projectiles.remove(seed);
+        this.emit("burn");
         this.effects.fireImpact(tip.x, tip.y, fireball.direction);
         this.fireballs.remove(fireball);
       } else if (this.isWallAt(tip.x, tip.y)) {
@@ -873,6 +1003,13 @@ export default class World {
         if (BOSS_MOVE_SFX[boss.state]) sfx(BOSS_MOVE_SFX[boss.state]);
       }
       boss.updateAnimation();
+      if (boss.shield !== this.shieldSeen) {
+        this.shieldSeen = boss.shield;
+        if (boss.shield === "up") {
+          this.emit("shield-up");
+          sfx("shield-up");
+        }
+      }
       if (!this.isPlayerDead && !boss.dying && this.checkCollision(player, boss, -5, -5)) {
         this.hurtPlayer(boss.getCenterX(), onGameOver);
       }
@@ -894,7 +1031,10 @@ export default class World {
     this.updateGates();
     this.updateHazards(onGameOver);
 
-    const spit = (x, y, direction) => this.projectiles.add(x, y, direction);
+    const spit = (x, y, direction, options) => {
+      this.projectiles.add(x, y, direction, options);
+      if (options && THROW_SFX[options.kind]) sfx(THROW_SFX[options.kind]);
+    };
     this.enemies.update(this.isPlayerDead ? null : player, spit);
     this.enemies.updateAnimation();
     // enemy cries: a walker winding up, a bat diving, a spitter spitting

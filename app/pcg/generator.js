@@ -165,6 +165,8 @@ const backdropTile = (r, c) => (r === 0 ? (c % 2 ? 19 : 18) : (r + c) % 2 ? 21 :
 
 // Desert spikes (world-3 object 15): pit floors and 1-tile ground traps.
 // Boss arenas (level 6 of every world): a flat floor and three ledges.
+export const MIN_PLATFORM_ROWS = 2; // rows that hold floating platforms
+export const MIN_PLATFORM_TILES = 10; // floating platform tiles in all
 const BOSS_FLOOR = 9;
 const BOSS_LEDGES = [
   [7, 2, 5],
@@ -189,6 +191,33 @@ export const ENEMY_TYPES = {
   4: ["slime", "bat", "beetle", "chameleon", "bat", "spitter"],
   5: ["beetle", "pig", "spitter", "beetle", "slime", "bat"],
 };
+/** Shooting walkers (phase 6a): how a walker's shot is placed and paced. */
+export const SHOOT_MIN = 52; // px: closer than this, a walker lunges instead
+export const SHOOT_MAX = 120; // px
+export const SHOOT_HEIGHT = 24; // px: the player's centre within this of the walker's
+export const SHOOT_EVERY = 90; // ticks between shots (3 s)
+/** Area x (px) of the two portal arrival spots a level is entered at. */
+export const ARRIVALS = [16, 330];
+/** Half a walker's width in px: its patrol centre is `left` tiles plus this. */
+const WALKER_HALF = 10;
+/** How far past its patrol range a lunge carries a walker, plus slack for its half-width. */
+const LUNGE_REACH = 12;
+/**
+ * Whether a walker standing at `left` (tiles) in a level of `difficulty` may shoot.
+ * `sway` is its patrol half-range (Enemy's default is 24): the walker must stay out of
+ * range of both portal arrival spots from every x it can reach, not only from its spawn.
+ */
+export function walkerShoots(left, difficulty, sway = 24) {
+  if (difficulty < 2) return false;
+  const centre = left * TILE + WALKER_HALF;
+  const reach = sway + LUNGE_REACH;
+  return ARRIVALS.every((x) => Math.abs(centre - x) - reach > SHOOT_MAX);
+}
+/** A story level's difficulty from LEVELS, or 1 for a hand-made level LEVELS doesn't list. */
+export function storyDifficulty(areaId) {
+  return LEVELS.find((l) => l.id === areaId)?.difficulty ?? 1;
+}
+
 export const WALKERS = ["pig", "slime", "chameleon", "beetle"];
 export const ALL_ENEMIES = [...WALKERS, "bat", "spitter"];
 export const POWERUPS = ["heart", "shield", "triple", "wings"];
@@ -207,6 +236,7 @@ export const LEVELS = [
     world: 1,
     theme: "grasslands",
     seed: 9001,
+    placement: "v1",
     difficulty: 2,
     entryHeight: 9,
     exitHeight: 9,
@@ -218,6 +248,7 @@ export const LEVELS = [
     world: 1,
     theme: "grasslands",
     seed: 10001,
+    placement: "v1",
     difficulty: 3,
     entryHeight: 9,
     exitHeight: 10,
@@ -229,6 +260,7 @@ export const LEVELS = [
     world: 2,
     theme: "iceland",
     seed: 11001,
+    placement: "v1",
     difficulty: 3,
     entryHeight: 9,
     exitHeight: 9,
@@ -240,6 +272,7 @@ export const LEVELS = [
     world: 2,
     theme: "iceland",
     seed: 12001,
+    placement: "v1",
     difficulty: 4,
     entryHeight: 10,
     exitHeight: 9,
@@ -251,6 +284,7 @@ export const LEVELS = [
     world: 3,
     theme: "desert",
     seed: 13169,
+    placement: "v1",
     difficulty: 3,
     entryHeight: 9,
     exitHeight: 9,
@@ -262,6 +296,7 @@ export const LEVELS = [
     world: 3,
     theme: "desert",
     seed: 14006,
+    placement: "v1",
     difficulty: 3,
     entryHeight: 9,
     exitHeight: 10,
@@ -273,6 +308,7 @@ export const LEVELS = [
     world: 3,
     theme: "desert",
     seed: 15052,
+    placement: "v1",
     difficulty: 4,
     entryHeight: 10,
     exitHeight: 9,
@@ -284,6 +320,7 @@ export const LEVELS = [
     world: 3,
     theme: "desert",
     seed: 16189,
+    placement: "v1",
     difficulty: 4,
     entryHeight: 9,
     exitHeight: 9,
@@ -304,6 +341,7 @@ export const LEVELS = [
     world,
     theme,
     seed: id * 1000 + 1,
+    placement: "v1",
     difficulty,
     entryHeight: 9,
     exitHeight: i % 2 ? 9 : 10,
@@ -335,6 +373,7 @@ export const FINISH = -1; // the last boss's exit ends the campaign
     world,
     theme,
     seed: id * 1000 + 1,
+    placement: "v1",
     difficulty,
     ...(boss ? { boss } : {}),
     entryHeight: 9,
@@ -464,13 +503,16 @@ function placePlatforms(rng, level, heights, segments, pits) {
   });
 
   // Above flat segments: a 2-tier climb for bonus coins.
+  const v1 = level.placement === "v1";
   segments.forEach((seg, i) => {
     if (i === 0 || i === segments.length - 1) return;
     if (rng() > 0.55 + level.difficulty * 0.05) return;
     const w = randInt(rng, 2, 4);
     const s = Math.max(1, Math.min(COLS - w - 1, seg.start + randInt(rng, -1, 1)));
     const e = s + w - 1;
-    const r = seg.height - 2 - (rng() < 0.4 ? 1 : 0);
+    // placement v1 (the story levels) sometimes sat 3 rows up: 48 px, past the 44.4 px
+    // highest jump, so the platform (and the sky tier linked to it) was unreachable
+    const r = seg.height - 2 - (v1 && rng() < 0.4 ? 1 : 0);
     if (r >= 1 && free(r, s, e)) platforms.push([r, s, e]);
     const r2 = r - 2;
     const s2 = Math.min(COLS - 3, e + 1 + randInt(rng, 0, 1));
@@ -488,6 +530,16 @@ function placePlatforms(rng, level, heights, segments, pits) {
 function placeSkyPlatforms(rng, level, heights, platforms) {
   const target = 7 + Math.floor(level.difficulty / 2);
   const added = [];
+  const v1 = level.placement === "v1";
+  // v1 links to any surface; otherwise only to surfaces the player can reach from the entry
+  let surf = null;
+  let standable = null;
+  const refresh = () => {
+    surf = surfaces(heights, platforms);
+    const entry = surf.findIndex((s) => s.col === 0 && s.row === heights[0]);
+    standable = v1 || entry < 0 ? null : reachable(surf, entry);
+  };
+  refresh();
   const clear = (r, s, e) =>
     r >= 2 &&
     s >= 1 &&
@@ -511,14 +563,16 @@ function placeSkyPlatforms(rng, level, heights, platforms) {
     // the HUD (area / coin count) covers the top corners
     if (r <= 2 && (s <= 3 || e >= COLS - 4)) continue;
 
-    const surf = surfaces(heights, platforms);
     const cells = [];
     for (let c = s; c <= e; c++) cells.push({ row: r, col: c });
-    const linked = cells.some((cell) => surf.some((from) => canJump(from, cell)));
+    const linked = cells.some((cell) =>
+      surf.some((from, i) => (!standable || standable.has(i)) && canJump(from, cell)),
+    );
     if (!linked) continue;
 
     platforms.push([r, s, e]);
     added.push([r, s, e]);
+    refresh();
   }
   return added;
 }
@@ -540,7 +594,7 @@ export function buildLevel(input, seed) {
   return result;
 }
 
-function buildLevelOnce(input, seed, dropped) {
+export function buildLevelOnce(input, seed, dropped) {
   const level = { ...input, world: input.world || THEMES[input.theme] || 1 };
   const T = TILESETS[level.world] || TILES_A;
   const rng = mulberry32(seed);
@@ -790,6 +844,12 @@ function buildLevelOnce(input, seed, dropped) {
     if (walking.length > 3) walking[0].type = pick(rng, others);
   }
 
+  // Walkers far enough from the portals may shoot (a flag: no random numbers drawn).
+  enemies.forEach((en) => {
+    if (kindOf(en.type) === "walker" && walkerShoots(en.left, level.difficulty, en.sway))
+      en.shoots = true;
+  });
+
   // Power-ups on top of floating platforms with no enemy on them.
   const powerups = [];
   const allowed = level.boss ? ["heart"] : level.powerups || POWERUPS;
@@ -941,6 +1001,8 @@ function buildLevelOnce(input, seed, dropped) {
     heights,
     platforms,
     traps,
+    ...(level.placement ? { placement: level.placement } : {}),
+    ...(level.boss ? { boss: level.boss } : {}),
   };
 }
 
@@ -1053,7 +1115,13 @@ function unreachablePlatformIndexes(level) {
   return out;
 }
 
-export function validate({ heights, platforms, traps, data }) {
+/** Floating platform rows and tiles: the platform rule counts these. */
+function platformCount(platforms) {
+  const rows = new Set(platforms.map(([r]) => r));
+  return { rows: rows.size, tiles: platforms.reduce((n, [, s, e]) => n + e - s + 1, 0) };
+}
+
+export function validate({ heights, platforms, traps, data, placement, boss }) {
   const surf = surfaces(heights, platforms, traps);
   const entry = surf.findIndex((s) => s.col === 0 && s.row === heights[0]);
   const exit = surf.findIndex((s) => s.col === COLS - 1 && s.row === heights[COLS - 1]);
@@ -1065,6 +1133,13 @@ export function validate({ heights, platforms, traps, data }) {
   if (stranded.length) {
     const s = surf[stranded[0]];
     return `platform ${s.col},${s.row} unreachable`;
+  }
+
+  if (placement !== "v1" && !boss) {
+    const { rows, tiles } = platformCount(platforms);
+    if (rows < MIN_PLATFORM_ROWS || tiles < MIN_PLATFORM_TILES) {
+      return `too few floating platforms (${rows} rows, ${tiles} tiles)`;
+    }
   }
 
   const fromEntry = reachable(surf, entry);

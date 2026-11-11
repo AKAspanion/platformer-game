@@ -48,6 +48,15 @@ jobs:
       - name: Tests
         run: pnpm test
 
+      # the Firestore emulator needs Java
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Firestore rules
+        run: pnpm test:rules
+
       - name: Functions share the game's world validation
         run: node scripts/sync-functions-shared.js --check
 

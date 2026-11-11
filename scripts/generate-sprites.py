@@ -6,6 +6,7 @@ Generates the game's procedural pixel art (needs Pillow):
   - attack frames (crouch, flash, lunge, bite) for every walking enemy
   - power-up icons (heart, shield, triple fire, wings) and HUD hearts
   - the shop's hats (cap, party, viking, wizard, crown), 12x12 at 1x
+  - the egg icon and the 8 hatchable companions (2 frames each)
 
     python3 scripts/generate-sprites.py && python3 scripts/generate-enemy-death.py
 
@@ -20,6 +21,7 @@ from PIL import Image, ImageDraw
 ROOT = os.path.join(os.path.dirname(__file__), "..", "app", "assets", "sprites")
 ENEMIES = os.path.join(ROOT, "enemies")
 ITEMS = os.path.join(ROOT, "items")
+COMPANIONS = os.path.join(ROOT, "companions")
 SCALE = 2
 OUTLINE = (34, 24, 44, 255)
 
@@ -390,6 +392,157 @@ def hats():
         art().save(os.path.join(HATS, f"{name}.webp"), lossless=True)
 
 
+# ---------------------------------------------------------------- egg, companions
+
+
+def egg_icon():
+    img, d = canvas(11, 14)
+    shell, shade, spot = (250, 240, 215, 255), (222, 205, 165, 255), (120, 190, 110, 255)
+    d.ellipse((1, 1, 9, 12), fill=shell)
+    d.pieslice((1, 5, 9, 14), 20, 160, fill=shade)
+    for x, y in ((4, 4), (6, 7), (3, 8), (7, 4)):
+        d.rectangle((x, y, x + 1, y + 1), fill=spot)
+    d.point((3, 3), fill=(255, 255, 255, 255))
+    return outline(img)
+
+
+EYE = (255, 255, 255, 255)
+PUPIL = (34, 24, 44, 255)
+
+
+def companion(frame, body, belly, shade, extra=None, tail_len=4, snout=1):
+    """A 16x14 baby dino facing right. `frame` 0/1 bobs the body and swaps the legs."""
+    img, d = canvas(16, 14)
+    bob = frame  # frame 2 is one pixel lower
+    # tail
+    d.polygon([(4, 8 + bob), (4 - tail_len, 9 + bob), (4, 11 + bob)], fill=shade)
+    if extra:
+        extra("back", d, bob, frame)
+    # legs: alternate
+    for i, x in enumerate((6, 10)):
+        lift = 1 if (i + frame) % 2 == 0 else 0
+        d.rectangle((x, 11 + bob, x + 1, 13 - lift), fill=shade)
+    # body, belly, head
+    d.ellipse((3, 5 + bob, 12, 12 + bob), fill=body)
+    d.ellipse((5, 8 + bob, 11, 12 + bob), fill=belly)
+    d.ellipse((9, 1 + bob, 15, 8 + bob), fill=body)
+    d.rectangle((14, 5 + bob, 14 + snout, 6 + bob), fill=body)
+    d.point((12, 3 + bob), fill=EYE)
+    d.point((13, 3 + bob), fill=PUPIL)
+    if extra:
+        extra("front", d, bob, frame)
+    return outline(img)
+
+
+def hatchling(frame):
+    def extra(layer, d, bob, f):
+        if layer == "front":  # a bit of eggshell still on the head
+            d.polygon([(9, 3 + bob), (10, 0 + bob), (11, 2 + bob), (12, 0 + bob), (14, 3 + bob)], fill=(250, 240, 215, 255))
+
+    return companion(frame, (150, 205, 90, 255), (228, 238, 170, 255), (104, 160, 60, 255), extra)
+
+
+def ptero(frame):
+    def extra(layer, d, bob, f):
+        if layer == "back":
+            # wings: up on the first frame, down on the second
+            tip = 0 if f == 0 else 9
+            d.polygon([(5, 6 + bob), (9, 6 + bob), (3, tip + bob)], fill=(214, 120, 96, 255))
+        if layer == "front":
+            d.polygon([(10, 2 + bob), (6, 0 + bob), (9, 4 + bob)], fill=(170, 80, 70, 255))  # crest
+            d.rectangle((15, 5 + bob, 15, 6 + bob), fill=(255, 205, 80, 255))  # beak
+
+    return companion(frame, (236, 150, 120, 255), (252, 214, 190, 255), (186, 100, 84, 255), extra, snout=1)
+
+
+def trike(frame):
+    def extra(layer, d, bob, f):
+        if layer == "back":
+            d.pieslice((7, 0 + bob, 14, 8 + bob), 180, 300, fill=(214, 96, 70, 255))  # frill
+        if layer == "front":
+            horn = (250, 240, 215, 255)
+            d.polygon([(13, 3 + bob), (15, 0 + bob), (14, 3 + bob)], fill=horn)
+            d.polygon([(14, 6 + bob), (16, 4 + bob), (15, 7 + bob)], fill=horn)
+
+    return companion(frame, (120, 160, 200, 255), (200, 224, 240, 255), (80, 116, 160, 255), extra)
+
+
+def stego(frame):
+    def extra(layer, d, bob, f):
+        if layer == "back":
+            plate = (240, 160, 60, 255)
+            for x in (4, 6, 8, 10):
+                d.polygon([(x, 5 + bob), (x + 1, 2 + bob), (x + 2, 5 + bob)], fill=plate)
+
+    return companion(frame, (150, 120, 190, 255), (214, 196, 234, 255), (108, 84, 148, 255), extra)
+
+
+def raptor(frame):
+    def extra(layer, d, bob, f):
+        if layer == "front":
+            d.line([(14, 8 + bob), (15, 8 + bob)], fill=(255, 255, 255, 255))  # teeth
+            d.polygon([(7, 10 + bob), (6, 12 + bob), (9, 11 + bob)], fill=(255, 255, 255, 255))  # claw
+            d.line([(5, 6 + bob), (10, 5 + bob)], fill=(210, 70, 60, 255))  # stripe
+
+    return companion(frame, (200, 110, 70, 255), (240, 200, 160, 255), (150, 72, 46, 255), extra, tail_len=6)
+
+
+def ankylo(frame):
+    def extra(layer, d, bob, f):
+        if layer == "back":
+            d.ellipse((0, 8 + bob, 3, 11 + bob), fill=(120, 130, 110, 255))  # tail club
+        if layer == "front":
+            for x, y in ((5, 6), (7, 5), (9, 6)):
+                d.rectangle((x, y + bob, x + 1, y + 1 + bob), fill=(224, 218, 170, 255))  # armour studs
+
+    return companion(frame, (130, 150, 110, 255), (206, 214, 170, 255), (92, 110, 78, 255), extra)
+
+
+def sparkle(d, x, y, color):
+    d.point((x, y), fill=color)
+    for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+        if 0 <= x + dx < 16 and 0 <= y + dy < 14:
+            d.point((x + dx, y + dy), fill=color)
+
+
+def golden(frame):
+    def extra(layer, d, bob, f):
+        if layer == "front":
+            sparkle(d, 2 if f == 0 else 14, 2 if f == 0 else 11, (255, 250, 200, 255))
+            d.point((8, 7 + bob), fill=(255, 250, 200, 255))
+
+    return companion(frame, (245, 196, 60, 255), (255, 232, 150, 255), (205, 150, 30, 255), extra)
+
+
+def crystal(frame):
+    def extra(layer, d, bob, f):
+        if layer == "back":
+            for x in (4, 6, 8):
+                d.polygon([(x, 5 + bob), (x + 1, 1 + bob), (x + 2, 5 + bob)], fill=(150, 230, 255, 255))
+        if layer == "front":
+            d.polygon([(9, 3 + bob), (10, 0 + bob), (11, 3 + bob)], fill=(190, 245, 255, 255))  # horn
+            sparkle(d, 1 if f == 0 else 14, 10 if f == 0 else 1, (230, 255, 255, 255))
+
+    return companion(frame, (96, 190, 230, 255), (190, 236, 250, 255), (60, 140, 190, 255), extra)
+
+
+def companions():
+    """Companions and the egg icon, at 2x like the other sprites. Frames 1 and 2."""
+    save(egg_icon(), os.path.join(ITEMS, "egg.png"))
+    for name, art in (
+        ("hatchling", hatchling),
+        ("ptero", ptero),
+        ("trike", trike),
+        ("stego", stego),
+        ("raptor", raptor),
+        ("ankylo", ankylo),
+        ("golden", golden),
+        ("crystal", crystal),
+    ):
+        for frame in (0, 1):
+            save(art(frame), os.path.join(COMPANIONS, f"{name}-{frame + 1}.png"))
+
+
 def main():
     save_sides([bat(-1), bat(0), bat(1), bat(0)], "bat")
     save_sides([beetle(0), beetle(1), beetle(0), beetle(1)], "beetle")
@@ -415,6 +568,7 @@ def main():
     save(heart_icon((70, 60, 80, 255), (100, 90, 110, 255)), os.path.join(ITEMS, "hud-heart-empty.png"))
     bosses()
     hats()
+    companions()
     print("sprites written")
 
 

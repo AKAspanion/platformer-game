@@ -11,6 +11,8 @@
  *                            -> { rank, total, best, improved }  the daily challenge's leaderboard
  *   submitEndlessScore({ seed, level, score, seconds, ticket })
  *                            -> { rank, total, best, improved }  the endless mode's leaderboard
+ *   getProfiles({ uids })    -> { [uid]: { skin, hat, companion, seenDay? } }
+ *                                           up to 30 players' leaderboard looks
  *   recordWorldPlay({ worldId, kind }) -> { counted }   a play or finish, once per account per day
  *   toggleWorldLike({ worldId })       -> { liked, likes }
  *   pickWorldOfWeek                    scheduled, Mondays 00:00 UTC
@@ -19,8 +21,8 @@
  *                            -> { on, devices }  turns the daily reminder on or off for a device
  *   sendReminders            scheduled hourly; sends the 18:00 local reminder
  *   deleteAccount()          -> { worlds }  deletes the caller; their worlds become "Anonymous",
- *                                           their daily scores, endless entry, save and
- *                                           reminders are deleted
+ *                                           their daily scores, endless entry, save,
+ *                                           leaderboard profile and reminders are deleted
  *
  * All are callable functions: the Firebase SDK in the game sends the
  * player's ID token, so request.auth is the verified user (or null).
@@ -62,6 +64,8 @@ import { worldLink } from "./shared/worlds/community.js";
 import { handleSubmitDaily, outranks } from "./src/daily.js";
 import { handleSetReminders, handleSendReminders } from "./src/reminders.js";
 import { handleSubmitEndless } from "./src/endless.js";
+import { handleGetProfiles } from "./src/profiles.js";
+import { PROFILE_FIELDS } from "./shared/profiles/rules.js";
 import { handleStartRun } from "./src/runs.js";
 import { compareRuns } from "./shared/modes/endless-rules.js";
 import { createDesigner, Anthropic } from "./src/designer.js";
@@ -285,6 +289,22 @@ export const submitEndlessScore = callable({ timeoutSeconds: 20 }, (request) =>
   handleSubmitEndless(request, { board, tickets, limiter }),
 );
 
+// players/{uid}: each player's leaderboard look, written by its own account
+// (firestore.rules) and read only here, so no client ever sees a document's
+// create or update time. Only the profile fields are read, and only data()
+// leaves this adapter.
+const playerProfiles = {
+  async getAll(uids) {
+    const refs = uids.map((uid) => db.collection("players").doc(uid));
+    const snaps = await db.getAll(...refs, { fieldMask: PROFILE_FIELDS });
+    return snaps.filter((snap) => snap.exists).map((snap) => ({ uid: snap.id, data: snap.data() }));
+  },
+};
+
+export const getProfiles = callable({ timeoutSeconds: 15 }, (request) =>
+  handleGetProfiles(request, { profiles: playerProfiles }),
+);
+
 /** Deletes every document `query` matches, 400 per batch. */
 async function deleteAll(query) {
   for (;;) {
@@ -317,6 +337,9 @@ const accounts = {
   },
   async deleteSave(uid) {
     await db.collection("saves").doc(uid).delete();
+  },
+  async deleteProfile(uid) {
+    await db.collection("players").doc(uid).delete();
   },
   async deleteReminders(uid) {
     await db.collection("pushSubs").doc(uid).delete();

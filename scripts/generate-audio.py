@@ -185,6 +185,30 @@ def sfx_list():
     s["powerup"] = seq(*[tone(0.07, f, kind="square", vol=0.3, duty=0.25) for f in (523, 659, 784, 1047, 1319)])
     s["heart"] = seq(tone(0.12, 659, kind="triangle", vol=0.6), tone(0.25, 988, kind="triangle", vol=0.6))
     s["shield-block"] = mix(tone(0.4, 1568, kind="sine", vol=0.5, curve=3), tone(0.35, 2093, kind="sine", vol=0.3, curve=3))
+
+    # combo: one blip rising a step at a time (combo-1 .. combo-8), a chime for a new multiplier
+    for step in range(1, 9):
+        f = 523 * 2 ** ((step - 1) * 2 / 12)  # a whole tone higher each step
+        s[f"combo-{step}"] = tone(0.09, f, f * 1.06, "square", 0.35, 0.25, curve=1.2)
+    s["combo-chime"] = seq(
+        tone(0.08, 1047, kind="triangle", vol=0.5, curve=0.8),
+        tone(0.08, 1319, kind="triangle", vol=0.5, curve=0.8),
+        tone(0.22, 1568, kind="triangle", vol=0.5, curve=2),
+    )
+
+    # the boss shield rising, and a fireball bouncing off it
+    s["shield-up"] = tone(0.4, 300, 1400, "triangle", 0.5, vibrato=0.03, vib_rate=25, curve=0.5, attack=0.05)
+    s["shield-clang"] = mix(
+        tone(0.25, 880, kind="square", vol=0.3, duty=0.125, curve=3),
+        tone(0.3, 1760, kind="sine", vol=0.35, curve=3),
+        noise(0.05, 0.4, 1),
+    )
+
+    # shooting walkers: one throw sound per kind
+    s["mud-throw"] = mix(tone(0.18, 200, 80, "sine", 0.7, curve=1.5), noise(0.1, 0.3, 4, lowpass=0.3))
+    s["glob-throw"] = tone(0.2, 240, 520, "sine", 0.7, vibrato=0.2, vib_rate=20, curve=1.2)
+    s["spit-throw"] = mix(tone(0.1, 900, 400, "sine", 0.6), noise(0.04, 0.3, 1, lowpass=0.7))
+    s["pebble-throw"] = mix(tone(0.07, 1300, 700, "square", 0.3, 0.25), noise(0.05, 0.35, 2, lowpass=0.5))
     return s
 
 

@@ -18,7 +18,7 @@ playing within seconds, then point them at community worlds once they know the g
 - "Ghosts exist only on campaign levels, boss levels included; not in the daily challenge, endless, community worlds, Starfall Peaks or boss rush."
 - "Ghosts are kept on this device only and are not part of cloud save."
 - "A ghost records the dino's position 15 times a second. A run longer than 4 minutes keeps no ghost."
-- "Settings has a switch "Show ghost", on by default. Off hides ghosts but still keeps new ones."
+- "Settings has a switch "Show ghost", off by default. Off hides ghosts but still keeps new ones." (Changed in phase 6 at the developer's request: it was on by default.)
 - "Reset progress also erases every ghost."
 
 ## 2. First open

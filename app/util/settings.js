@@ -6,9 +6,11 @@ import { getData, setData } from "./index";
  */
 const DEFAULTS = {
   vibration: true,
-  ghost: true, // show the kept ghost of the fastest run on campaign levels
+  shake: true, // the screen shakes when the dino loses a heart
+  ghost: false, // show the kept ghost of the fastest run on campaign levels
   analytics: true, // anonymous usage stats (Google Analytics); see PRIVACY.md
   controlSize: "auto", // auto | s | m | l
+  controlOpacity: "medium", // low | medium | high: how see-through the touch buttons are
   worldApiUrl: "", // prompt-to-world server (see server/README.md)
 };
 
@@ -52,6 +54,7 @@ const PATTERNS = {
   armor: [10, 30, 10],
   powerup: [15, 40, 15],
   shield: [40],
+  "combo-up": [12, 30, 12],
 };
 
 export const vibrate = (event) => {

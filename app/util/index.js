@@ -264,45 +264,50 @@ export const populateLinks = () => {
   });
 };
 
-export const populateHelp = () => {
-  const helpItems = [
-    {
-      name: "Mobile",
-      content: [
-        {
-          items: [
-            { className: "btn left-btn btn-tut", text: "to run left" },
-            { className: "btn right-btn btn-tut", text: "to run right", notap: true },
-          ],
-        },
-        {
-          items: [{ className: "btn fire-btn btn-tut flex-item", text: "to spit fire", dot: true }],
-        },
-        {
-          items: [{ className: "btn jump-btn btn-tut", text: "to jump" }],
-        },
-      ],
-    },
-    {
-      name: "Desktop",
-      content: [
-        {
-          items: [
-            { className: "btn left-key-btn btn-tut key-btn", text: "to run left" },
-            { className: "btn right-key-btn btn-tut key-btn", text: "to run right", notap: true },
-          ],
-        },
-        {
-          items: [
-            { className: "btn fire-key-btn btn-tut flex-item key-btn", text: "to spit fire" },
-          ],
-        },
-        {
-          items: [{ className: "btn jump-key-btn btn-tut key-btn", text: "to jump" }],
-        },
-      ],
-    },
-  ];
+const HELP_SECTIONS = [
+  {
+    name: "Mobile",
+    content: [
+      {
+        items: [
+          { className: "btn left-btn btn-tut", text: "to run left" },
+          { className: "btn right-btn btn-tut", text: "to run right", notap: true },
+        ],
+      },
+      {
+        items: [{ className: "btn fire-btn btn-tut flex-item", text: "to spit fire", dot: true }],
+      },
+      {
+        items: [{ className: "btn jump-btn btn-tut", text: "to jump" }],
+      },
+    ],
+  },
+  {
+    name: "Desktop",
+    content: [
+      {
+        items: [
+          { className: "btn left-key-btn btn-tut key-btn", text: "to run left" },
+          { className: "btn right-key-btn btn-tut key-btn", text: "to run right", notap: true },
+        ],
+      },
+      {
+        items: [{ className: "btn fire-key-btn btn-tut flex-item key-btn", text: "to spit fire" }],
+      },
+      {
+        items: [{ className: "btn jump-key-btn btn-tut key-btn", text: "to jump" }],
+      },
+    ],
+  },
+];
+
+/** The Help sections to show: touch controls on a touch device, keys everywhere else. */
+export function helpItemsFor(touch) {
+  return HELP_SECTIONS.filter((s) => s.name === (touch ? "Mobile" : "Desktop"));
+}
+
+export const populateHelp = (touch = false) => {
+  const helpItems = helpItemsFor(touch);
 
   const helpWrapper = document.getElementById("helpWrapper");
   helpWrapper.className += "modal-content-wrapper";

@@ -3,6 +3,7 @@ export default class TileSet {
   constructor(tileSize, columns, world = 1, skin = null) {
     const worldKey = `world-${world}`;
     this.loaded = false;
+    this.failed = false; // a file did not download
     this.columns = columns;
     this.tileSize = tileSize;
 
@@ -42,10 +43,16 @@ export default class TileSet {
       }
     };
 
+    // a failed file still counts as in (the level starts), but the set is not kept
+    const onImgError = () => {
+      this.failed = true;
+      onImgLoad();
+    };
+
     for (let index = 1; index <= meta[world].objectLen; index++) {
       const image = new Image();
       image.onload = onImgLoad;
-      image.onerror = onImgLoad;
+      image.onerror = onImgError;
       image.src = `./assets/sprites/${worldKey}/objects/${index}.png`;
 
       this.objectImages.push(image);
@@ -54,7 +61,7 @@ export default class TileSet {
     for (let index = 1; index <= meta[world].tileLen; index++) {
       const image = new Image();
       image.onload = onImgLoad;
-      image.onerror = onImgLoad;
+      image.onerror = onImgError;
       image.src = `./assets/sprites/${worldKey}/tiles/${index}.png`;
 
       this.images.push(image);
@@ -62,6 +69,22 @@ export default class TileSet {
 
     this.tileBackground.src = `./assets/sprites/${worldKey}/bg.png`;
     this.tileBackground.onload = onImgLoad;
-    this.tileBackground.onerror = onImgLoad;
+    this.tileBackground.onerror = onImgError;
   }
+}
+
+const cache = new Map(); // world -> its tile set
+const skinned = new WeakMap(); // generated skin -> its tile set
+
+/** The tile set for a world (or a generated skin), made once and reused unless a download failed. */
+export function tileSetFor(tileSize, columns, world, skin = null) {
+  if (skin) {
+    if (!skinned.has(skin)) skinned.set(skin, new TileSet(tileSize, columns, world, skin));
+    return skinned.get(skin);
+  }
+  const key = `${world}:${tileSize}:${columns}`;
+  // a set that settled with a failed download is dropped: the next ask fetches again
+  if (cache.get(key)?.failed && cache.get(key).loaded) cache.delete(key);
+  if (!cache.has(key)) cache.set(key, new TileSet(tileSize, columns, world));
+  return cache.get(key);
 }

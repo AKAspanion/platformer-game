@@ -1,5 +1,6 @@
 import Object from "./object";
 import Animator from "./animator";
+import { requestImage } from "./preload";
 
 /**
  * Water pits. `liquid` (optional, from a generated world's skin) is
@@ -9,26 +10,18 @@ import Animator from "./animator";
 export default class Water {
   constructor(waterObjects = [], tileSize, liquid = null) {
     this.items = [];
-    this.loaded = false;
     this.frameSets = {};
 
+    this.assetCount = 0;
+    this.loadCount = 0;
     if (liquid) {
-      this.assetCount = this.loadCount = 1;
-      this.loaded = true;
       this.frameSets.water = liquid.surface;
       this.frameSets.body = liquid.body;
     } else {
-      this.assetCount = 17;
-      this.loadCount = 0;
+      // requested once per session: a second level counts nothing in flight
       this.frameSets.water = [];
       for (let index = 1; index <= 17; index++) {
-        const image = new Image();
-        image.onload = image.onerror = () => {
-          this.loadCount += 1;
-          if (this.loadCount === 17) this.loaded = true;
-        };
-        image.src = `./assets/sprites/water/image ${index}.webp`;
-        this.frameSets.water.push(image);
+        this.frameSets.water.push(requestImage(`./assets/sprites/water/image ${index}.webp`, this));
       }
     }
 
@@ -42,6 +35,10 @@ export default class Water {
         this.frameSets.body && top > topOf[left] ? this.frameSets.body : this.frameSets.water;
       this.items.push(new WaterObject(left * tileSize, top * tileSize, frames, tileSize));
     }
+  }
+
+  get loaded() {
+    return this.loadCount >= this.assetCount;
   }
 
   update() {

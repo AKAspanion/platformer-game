@@ -6,21 +6,31 @@ import { loadFirebase } from "./index";
  * writable only by its own account (see firestore.rules). Errors propagate;
  * cloud save swallows them.
  */
-export const firestoreSaves = {
-  async get(uid) {
-    const fb = await loadFirebase();
-    const { doc, getDoc } = fb.storeApi;
-    const snap = await getDoc(doc(fb.db, "saves", uid));
-    return snap.exists() ? snap.data() : null;
-  },
 
-  async set(uid, save) {
+/**
+ * The one way cloud save writes: a read-merge-write of `saves/{uid}` in a
+ * transaction, so no write is built on a save another device has since
+ * replaced. `step(save | null)` gives the save to write, or null to write
+ * nothing; Firestore runs it again on the newer save when another write lands
+ * first, so it must not change anything itself. Resolves with what the last
+ * step gave. Offline it rejects, like any read.
+ */
+export async function updateSave(storeApi, db, uid, step) {
+  const { doc, runTransaction } = storeApi;
+  const ref = doc(db, "saves", uid);
+  return runTransaction(db, async (transaction) => {
+    const snap = await transaction.get(ref);
+    const save = step(snap.exists() ? snap.data() : null);
+    if (!save) return null;
+    const written = { v: save.v, updatedAt: save.updatedAt, data: save.data };
+    transaction.set(ref, written);
+    return written;
+  });
+}
+
+export const firestoreSaves = {
+  async update(uid, step) {
     const fb = await loadFirebase();
-    const { doc, setDoc } = fb.storeApi;
-    await setDoc(doc(fb.db, "saves", uid), {
-      v: save.v,
-      updatedAt: save.updatedAt,
-      data: save.data,
-    });
+    return updateSave(fb.storeApi, fb.db, uid, step);
   },
 };

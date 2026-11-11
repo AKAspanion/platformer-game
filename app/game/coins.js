@@ -1,38 +1,18 @@
 import Object from "./object";
 import Animator from "./animator";
+import { requestImage } from "./preload";
 export default class items {
   constructor(objects = [], tileSize, collectedCoins) {
     this.items = [];
-    this.loaded = false;
 
-    const keys = [{ id: "", count: 16 }];
-
-    this.frameSets = {};
-
-    this.assetCount = 16;
+    // the frames are requested once per session: a second level counts nothing
+    // in flight, so it reports loaded straight away
+    this.assetCount = 0;
     this.loadCount = 0;
-    keys.forEach(({ count }) => {
-      for (let index = 1; index <= count; index++) {
-        const image = new Image();
-        image.onload = image.onerror = () => {
-          this.loadCount += 1;
-
-          if (count === this.loadCount) {
-            this.loaded = true;
-          }
-        };
-        image.src = `./assets/sprites/coin/image ${index}.webp`;
-
-        const addImage = (k, image) => {
-          if (!this.frameSets[k]) {
-            this.frameSets[k] = [];
-          }
-          this.frameSets[k].push(image);
-        };
-
-        addImage("coin", image);
-      }
-    });
+    this.frameSets = { coin: [] };
+    for (let index = 1; index <= 16; index++) {
+      this.frameSets.coin.push(requestImage(`./assets/sprites/coin/image ${index}.webp`, this));
+    }
 
     // ids are stored as "id1,id2,"; match whole ids, not substrings
     const collected = new Set(collectedCoins.split(","));
@@ -45,6 +25,10 @@ export default class items {
         );
       }
     }
+  }
+
+  get loaded() {
+    return this.loadCount >= this.assetCount;
   }
 
   remove(coin) {
