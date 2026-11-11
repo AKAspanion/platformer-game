@@ -12,9 +12,17 @@ export const COMPANION_SIZE = { width: 32, height: 28 };
 /** A trail of the dino's positions; `at()` is where the companion stands, `delay` ticks back. */
 export function createFollower(delay = FOLLOW_TICKS) {
   let trail = [];
+  let epoch = 0;
   return {
-    /** The dino's position this tick: call once per tick. */
-    push(point) {
+    /**
+     * The dino's position this tick: call once per tick. A changed `at` (the world counts a
+     * respawn) means the dino was put back somewhere: the trail starts again there.
+     */
+    push(point, at = 0) {
+      if (at !== epoch) {
+        epoch = at;
+        trail = [];
+      }
       trail.push({ x: point.x, y: point.y, direction: point.direction });
       if (trail.length > delay + 2) trail.shift();
     },
@@ -30,6 +38,7 @@ export function createFollower(delay = FOLLOW_TICKS) {
     /** A level starts or the dino respawns: forget the trail. */
     reset() {
       trail = [];
+      epoch = 0;
     },
   };
 }

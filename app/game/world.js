@@ -258,6 +258,7 @@ export default class World {
     this.spawn = { x: this.player.x, y: this.player.y };
     this.lastSafe = null;
     this.safeTicks = 0;
+    this.respawns = 0; // pit falls that put the dino back on safe ground (the companion follows)
   }
 
   reset() {
@@ -575,6 +576,7 @@ export default class World {
       }
     }
     const to = this.lastSafe || this.spawn;
+    this.respawns += 1;
     this.effects.dust(player.getCenterX(), Math.min(player.getBottom(), this.height - 4), 8);
     player.x = player.xOld = to.x;
     player.y = player.yOld = to.y;

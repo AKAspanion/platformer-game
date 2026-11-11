@@ -269,6 +269,29 @@ test("a follower with one position stands there; reset forgets the trail", () =>
   assert.equal(follower.at(), null);
 });
 
+test("a respawn (a new epoch) makes the companion start at the dino, not trail from where it was", () => {
+  const follower = createFollower();
+  for (let x = 0; x < 30; x++) follower.push({ x, y: 5, direction: 1 }, 0);
+  assert.equal(follower.at().x, 19, "walking behind");
+  follower.push({ x: 200, y: 40, direction: 1 }, 1); // the dino came back at x 200 after a pit
+  assert.deepEqual(follower.at(), { x: 200, y: 40, direction: 1, moving: false });
+  follower.push({ x: 201, y: 40, direction: 1 }, 1);
+  assert.equal(follower.at().x, 200, "then it follows again from there");
+});
+
+test("a pit fall that costs a heart counts a respawn", () => {
+  const world = makeWorld(arena());
+  assert.equal(world.respawns, 0);
+  world.player.hearts = 2;
+  world.player.invulnerable = 0;
+  world.fallInPit(() => {});
+  assert.equal(world.respawns, 1);
+  world.player.invulnerable = 0;
+  world.player.hearts = 1;
+  world.fallInPit(() => {}); // the last heart: the dino dies, no respawn
+  assert.equal(world.respawns, 1);
+});
+
 test("a follower stands still once the dino has", () => {
   const follower = createFollower(2);
   [0, 1, 2, 3, 3, 3, 3, 3].forEach((x) => follower.push({ x, y: 0, direction: 1 }));

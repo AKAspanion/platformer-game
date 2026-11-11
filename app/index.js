@@ -974,7 +974,10 @@ window.addEventListener("load", function () {
       }
       game.update();
       if (loaded) {
-        follower.push({ x: player.x, y: player.y, direction: player.direction });
+        follower.push(
+          { x: player.x, y: player.y, direction: player.direction },
+          game.world.respawns,
+        );
       }
       if (session && session.kind === "daily" && loaded && !game.over) {
         daily.ticks += 1;
