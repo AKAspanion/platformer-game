@@ -8,6 +8,8 @@ import { requestImage } from "./preload";
  */
 const WIDTH = 11;
 const HEIGHT = 14;
+/** The egg's icon: also what the next level preloads when its area has an egg. */
+export const EGG_IMAGE = "./assets/sprites/items/egg.png";
 
 export default class Egg extends Object {
   constructor({ id, left, top }, tileSize = 16) {
@@ -24,7 +26,7 @@ export default class Egg extends Object {
     // counted by the loading bar only while the icon is still in flight
     this.assetCount = 0;
     this.loadCount = 0;
-    this.image = requestImage("./assets/sprites/items/egg.png", this);
+    this.image = requestImage(EGG_IMAGE, this);
   }
 
   get loaded() {

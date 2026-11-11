@@ -65,6 +65,10 @@ import { createOnboarding } from "./onboarding/onboarding";
 import { createCampaign, starsFor, targetTime, starCount, STAR } from "./campaign";
 import { createWallet } from "./progress/wallet";
 import { createStats } from "./progress/stats";
+import { featsFrom } from "./rewards/feed";
+import { createNest, hatchLabel, chestEggId, DUPLICATE_COINS } from "./rewards/eggs";
+import { createQuests, metEnemies, unlockedModes, CHEST_KEYS, CHEST_COINS } from "./rewards/quests";
+import { createFollower, companionFrames } from "./game/companion";
 import { createEarnings } from "./progress/earn";
 import { readLocal, writeLocal, resetLocal } from "./progress/save";
 import { createCloudSave } from "./progress/cloud";
@@ -76,7 +80,7 @@ import {
   bossRushOpen,
   bossesBeaten,
 } from "./progress/unlocks";
-import { CATALOG, FREE, itemOf } from "./shop/catalog";
+import { CATALOG, FREE, itemOf, isHatchOnly } from "./shop/catalog";
 import { ACHIEVEMENTS } from "./achievements/catalog";
 import { newlyEarned, progressToward } from "./achievements/check";
 import { createSecretSession } from "./modes/secret";
@@ -217,6 +221,15 @@ window.addEventListener("load", function () {
   let campaign = createCampaign();
   const wallet = createWallet();
   const stats = createStats();
+  const nest = createNest();
+  const quests = createQuests(undefined, undefined, () => {
+    const saved = readLocal().campaign;
+    return { unlocked: unlockedModes(saved), metEnemies: metEnemies(saved) };
+  });
+  const eggsFoundNow = new Set(); // found this session: gone even when the save can't be written
+  const follower = createFollower();
+  let wornCompanion = "none"; // the companion drawn in this level
+  let bossBounced = false; // a fireball bounced off a boss shield in this level
   const earnings = createEarnings();
   const isCampaignLevel = (id) => !session && LEVELS.some((l) => l.id === id);
 
@@ -321,6 +334,68 @@ window.addEventListener("load", function () {
   const progressChanged = () => {
     checkAchievements();
     cloud.changed();
+  };
+
+  // ------------------------------------------------------ eggs and quests
+
+  /** The quest mode of what is being played; Starfall Peaks counts as community. */
+  const questMode = () => {
+    const kind = session ? session.kind : "story";
+    return ["story", "daily", "endless", "bossrush"].includes(kind) ? kind : "community";
+  };
+
+  const queueToast = (html) => {
+    achievementQueue.push(html);
+    pumpAchievements();
+  };
+
+  /** One thing the player did: advances the day's quests, pays and toasts what it finished. */
+  const recordFeat = (feat) => {
+    const { finished, chest } = quests.record(feat, questMode());
+    finished.forEach(({ pick, rewardId }) => {
+      wallet.reward(rewardId, pick.coins);
+      queueToast(`<b>✅ ${esc(pick.text)} · +${coinText(pick.coins)}</b>`);
+      track("quest_complete", { quest: pick.id });
+    });
+    if (chest) {
+      wallet.reward(chest.rewardId, CHEST_COINS);
+      nest.find(chestEggId(chest.eggWeek), "chest");
+      queueToast(`<b>🎁 Weekly chest · +${coinText(CHEST_COINS)} and an egg</b>`);
+      track("chest_open", {});
+    }
+    return finished.length > 0;
+  };
+
+  /** This frame's events, the world's feats and coins: stats, eggs and quests. */
+  const feedRewards = (events, coinsGained) => {
+    const { world } = game;
+    const out = featsFrom(events, world.feats.splice(0), coinsGained);
+    let changed = false;
+    if (out.shieldBounced) bossBounced = true;
+    if (events.includes("boss")) {
+      if (!bossBounced) stats.markShieldlessBoss();
+      out.feats.push({ type: "boss" });
+      changed = true;
+    }
+    if (events.includes("combo-up")) out.feats.push({ type: "combo", value: world.combo.count });
+    if (out.burned) {
+      stats.addBurned(out.burned);
+      changed = true;
+    }
+    out.eggs.forEach((id) => {
+      eggsFoundNow.add(id);
+      nest.find(id, id.startsWith("d") ? "daily" : "story");
+      track("egg_found", { source: id.startsWith("d") ? "daily" : "story" });
+      queueToast("<b>🥚 Egg found! It hatches in 24 hours.</b>");
+      changed = true;
+    });
+    out.feats.forEach((feat) => {
+      if (recordFeat(feat)) changed = true;
+    });
+    if (changed) {
+      renderBalance();
+      progressChanged();
+    }
   };
 
   // analytics: the mode being played and how long the player has been in this area
@@ -649,9 +724,13 @@ window.addEventListener("load", function () {
     }, 1400);
   });
 
+  // an egg found before (or this session) isn't placed again
+  game.world.eggFound = (id) => eggsFoundNow.has(id) || nest.has(id);
+
   /** A level is over: its best combo is reported once if it reached 5. */
   const reportCombo = () => {
     const { combo } = game.world;
+    stats.bestCombo(combo.best);
     if (combo.best >= 5) track("combo_best", { mode: modeName(), combo: combo.best });
     combo.resetLevel();
   };
@@ -693,6 +772,7 @@ window.addEventListener("load", function () {
     if (session.kind === "bossrush") {
       const seconds = rush.seconds();
       const fastest = stats.bossRushTime(seconds);
+      recordFeat({ type: "bossrush-finished" });
       track("boss_rush_complete", { seconds });
       panelScore = `Time ${clock(seconds)} · Score ${score}`;
       panelBest = `Best ${clock(fastest)}`;
@@ -734,6 +814,16 @@ window.addEventListener("load", function () {
     hurtInLevel = false;
     heartsSeen = game.world.player.hearts;
     applyWornLook();
+    bossBounced = false;
+    follower.reset();
+    wornCompanion = wallet.worn().companion || "none";
+    companionFrames(wornCompanion); // asks again for a sprite that failed to load
+    if (session && session.kind === "endless") {
+      const reached = session.level(areaId);
+      stats.endlessDeepest(reached);
+      recordFeat({ type: "endless-level", level: reached });
+      progressChanged();
+    }
     recorder.reset();
     keptGhost = isCampaignLevel(areaId) ? ghostStore.get(areaId) : null;
     ghostOn = settings.get("ghost") !== false;
@@ -782,6 +872,7 @@ window.addEventListener("load", function () {
     const loadValue = loadPercent();
 
     const { player, portal } = game.world;
+    let coinsGained = 0;
 
     if (loadValue < 100) {
       setProgressValue(loadValue == 99 ? 100 : loadValue);
@@ -819,6 +910,10 @@ window.addEventListener("load", function () {
 
     if (portal) {
       reportCombo();
+      if (portal.direction > 0) {
+        recordFeat({ type: "level", flawless: !hurtInLevel });
+        progressChanged();
+      }
       if (session && session.kind === "daily" && portal.direction > 0) daily.levelDone();
       if (session && portal.direction > 0) {
         track("level_complete", {
@@ -869,6 +964,9 @@ window.addEventListener("load", function () {
         }
       }
       game.update();
+      if (loaded) {
+        follower.push({ x: player.x, y: player.y, direction: player.direction });
+      }
       if (session && session.kind === "daily" && loaded && !game.over) {
         daily.ticks += 1;
         daily.watchHearts();
@@ -881,6 +979,7 @@ window.addEventListener("load", function () {
         heartsSeen = hearts;
         // every coin and kill counts at once; dying or quitting never takes them back
         const gained = earnings.tick(game.world);
+        coinsGained = gained.coins;
         if (gained.coins) wallet.earn(gained.coins);
         if (gained.kills) stats.addKills(gained.kills);
         if (gained.coins || gained.kills) {
@@ -894,6 +993,7 @@ window.addEventListener("load", function () {
 
     // shell feedback for what happened this tick
     const { events } = game.world;
+    if (events.length || game.world.feats.length || coinsGained) feedRewards(events, coinsGained);
     while (events.length) vibrate(events.shift());
   };
 
@@ -914,6 +1014,43 @@ window.addEventListener("load", function () {
     ctx.globalAlpha = GHOST_ALPHA;
     ctx.translate(at.x + player.width * 0.5, at.y + player.height);
     ctx.drawImage(frame, -6 + xOffset, -35, 60, 40);
+    ctx.restore();
+  };
+
+  /** The level's hidden egg: bobbing, with a soft glow. */
+  const drawEgg = (ctx, egg) => {
+    const image = egg.image;
+    if (!image || !image.complete || !image.naturalWidth) return;
+    const cx = egg.getCenterX();
+    const cy = egg.getCenterY();
+    const glow = ctx.createRadialGradient(cx, cy, 1, cx, cy, egg.glow + 3);
+    glow.addColorStop(0, "rgba(255, 244, 180, 0.55)");
+    glow.addColorStop(1, "rgba(255, 244, 180, 0)");
+    ctx.fillStyle = glow;
+    ctx.fillRect(cx - 14, cy - 14, 28, 28);
+    ctx.drawImage(image, egg.x, egg.y, egg.width, egg.height);
+  };
+
+  const COMPANION_WIDTH = 24;
+  const COMPANION_HEIGHT = 21;
+  /** The worn companion: where the dino stood 10 ticks ago, behind it, facing the way it ran. Only drawn. */
+  const drawCompanion = (ctx, player) => {
+    if (wornCompanion === "none") return;
+    const at = follower.at();
+    const frames = companionFrames(wornCompanion);
+    if (!at || !frames.length) return;
+    const frame = frames[at.moving ? Math.floor(game.world.areaTicks / 6) % 2 : 0];
+    if (!frame || !frame.complete || !frame.naturalWidth) return;
+    ctx.save();
+    ctx.translate(at.x + player.width / 2 - at.direction * 10, at.y + player.height);
+    if (at.direction < 0) ctx.scale(-1, 1);
+    ctx.drawImage(
+      frame,
+      -COMPANION_WIDTH / 2,
+      -COMPANION_HEIGHT,
+      COMPANION_WIDTH,
+      COMPANION_HEIGHT,
+    );
     ctx.restore();
   };
 
@@ -1430,6 +1567,8 @@ window.addEventListener("load", function () {
       ctx.drawImage(icons[item.type], item.x, item.y, item.width, item.height);
     }
 
+    if (game.world.egg) drawEgg(ctx, game.world.egg);
+
     for (let index = 0; index < fireballs.items.length; index++) {
       const f = fireballs.items[index];
       screen.drawObject(f.animator.frameValue, f.x, f.y, f.width, f.height);
@@ -1452,6 +1591,7 @@ window.addEventListener("load", function () {
     if (game.world.boss) drawBoss(ctx, game.world.boss);
 
     drawGhost(ctx, player);
+    drawCompanion(ctx, player);
     drawPlayer(ctx, player, game.world.isPlayerDead);
     if (game.world.bossArea) drawGates(ctx);
 
@@ -1481,6 +1621,8 @@ window.addEventListener("load", function () {
       },
       wallet,
       stats,
+      nest,
+      quests,
       cloud,
       unlockAll: () => {
         campaign.unlockAll(LEVELS.map((l) => l.id));
@@ -1523,6 +1665,7 @@ window.addEventListener("load", function () {
 
   const startStory = (level = LEVELS[0]) => {
     session = null;
+    quests.played("story");
     track("mode_start", { mode: "story" });
     loadWorld(level.id, level.left, level.top);
   };
@@ -1530,6 +1673,7 @@ window.addEventListener("load", function () {
   const startDaily = () => {
     session = createDailySession();
     daily.start();
+    quests.played("daily");
     track("mode_start", { mode: "daily" });
     loadWorld(session.startId, session.left, session.top);
   };
@@ -1537,6 +1681,7 @@ window.addEventListener("load", function () {
   const startEndless = () => {
     session = createEndlessSession();
     endless.ticks = 0;
+    quests.played("endless");
     track("mode_start", { mode: "endless" });
     loadWorld(session.startId, session.left, session.top);
   };
@@ -1544,6 +1689,7 @@ window.addEventListener("load", function () {
   const startSecret = () => {
     session = createSecretSession();
     show(portalScreen, false);
+    quests.played("community");
     track("mode_start", { mode: "secret" });
     track("secret_world_start", {});
     loadWorld(session.startId, session.left, session.top);
@@ -1553,6 +1699,7 @@ window.addEventListener("load", function () {
     session = createBossRushSession();
     rush.ticks = 0;
     show(portalScreen, false);
+    quests.played("bossrush");
     track("mode_start", { mode: "bossrush" });
     track("boss_rush_start", {});
     loadWorld(session.startId, session.left, session.top);
@@ -1567,6 +1714,7 @@ window.addEventListener("load", function () {
       return;
     }
     show(createScreen, false);
+    quests.played("community");
     track("mode_start", { mode: "custom" });
     played.mark(world.id);
     social.recordPlay(world.id, "play");
@@ -1611,6 +1759,7 @@ window.addEventListener("load", function () {
     show(pauseScreen, false);
     refreshHome();
     show(homeScreen, true);
+    hatchNext();
     flushPending();
   };
 
@@ -1623,8 +1772,114 @@ window.addEventListener("load", function () {
     create: () => openCreator(),
   };
 
+  const NEST_ROWS = 3; // rows the Nest card shows before "+n more"
+
+  /** The Nest card: one row per unhatched egg, or a hint to go find some. */
+  const renderNest = () => {
+    const list = $("nestList");
+    list.innerHTML = "";
+    const eggs = nest.list();
+    if (!eggs.length) {
+      const hint = document.createElement("div");
+      hint.className = "card-note";
+      hint.textContent = "Find eggs in story levels and the daily challenge.";
+      list.appendChild(hint);
+      return;
+    }
+    const now = Date.now();
+    eggs.slice(0, NEST_ROWS).forEach((egg) => {
+      const row = document.createElement("div");
+      row.className = `nest-row${egg.ready ? " ready" : ""}`;
+      row.dataset.id = egg.id;
+      const icon = document.createElement("span");
+      icon.className = "nest-egg";
+      icon.setAttribute("aria-hidden", "true");
+      icon.textContent = "🥚";
+      const label = document.createElement("span");
+      label.textContent = hatchLabel(egg, now);
+      row.append(icon, label);
+      list.appendChild(row);
+    });
+    if (eggs.length > NEST_ROWS) {
+      const more = document.createElement("div");
+      more.className = "card-note";
+      more.textContent = `+${eggs.length - NEST_ROWS} more`;
+      list.appendChild(more);
+    }
+  };
+
+  /** The Quests card: today's three quests with their progress, and the chest's keys. */
+  const renderQuests = () => {
+    const list = $("questList");
+    list.innerHTML = "";
+    quests.today().forEach((quest) => {
+      const row = document.createElement("div");
+      row.className = `quest-row${quest.done ? " done" : ""}`;
+      const text = document.createElement("span");
+      text.className = "quest-text";
+      text.textContent = quest.text;
+      const bar = document.createElement("span");
+      bar.className = "quest-bar";
+      const fill = document.createElement("span");
+      fill.className = "quest-fill";
+      fill.style.width = `${Math.round((quest.have / quest.target) * 100)}%`;
+      bar.appendChild(fill);
+      const count = document.createElement("span");
+      count.className = "quest-count";
+      count.textContent = quest.done ? "Done" : `${quest.have} / ${quest.target}`;
+      const coins = document.createElement("span");
+      coins.className = "quest-coins";
+      coins.innerHTML = coinText(quest.coins);
+      row.append(text, bar, count, coins);
+      list.appendChild(row);
+    });
+    $("questKeys").textContent = `🔑 ${quests.keys()} / ${CHEST_KEYS}`;
+  };
+
+  // ---------------------------------------------------- the hatch card
+
+  const hatchScreen = $("hatchScreen");
+  let hatching = null; // { companion } while the card is up
+
+  /** Hatches the oldest due egg and shows its card; the next one follows when it closes. */
+  const hatchNext = () => {
+    if (hatching || !isVisible($("homeScreen"))) return;
+    const egg = nest.due()[0];
+    if (!egg) return;
+    const result = nest.hatch(egg.id, wallet);
+    if (!result) return;
+    const item = itemOf("companion", result.companion);
+    const name = item ? item.name : "a new friend";
+    hatching = { companion: result.companion };
+    track("egg_hatched", { companion: result.companion, duplicate: result.duplicate });
+    $("hatchTitle").textContent = `Your egg hatched! Meet ${name}.`;
+    $("hatchImage").src = `./assets/sprites/companions/${result.companion}-1.png`;
+    $("hatchImage").alt = name;
+    const note = $("hatchNote");
+    note.innerHTML = result.duplicate
+      ? `You already have ${esc(name)} · +${coinText(DUPLICATE_COINS)}`
+      : "";
+    note.hidden = !result.duplicate;
+    $("hatchWearBtn").hidden = result.duplicate && wallet.worn().companion === result.companion;
+    renderBalance();
+    progressChanged();
+    refreshHome();
+    show(hatchScreen, true);
+  };
+  const closeHatch = (wear) => {
+    if (wear && hatching && wallet.wear("companion", hatching.companion)) progressChanged();
+    hatching = null;
+    show(hatchScreen, false);
+    refreshHome();
+    hatchNext();
+  };
+  $("hatchWearBtn").onclick = () => closeHatch(true);
+  $("hatchLaterBtn").onclick = () => closeHatch(false);
+
   const refreshHome = () => {
     renderBalance();
+    renderNest();
+    renderQuests();
     const premium = isPremium();
     document.querySelectorAll(".mode-card.premium").forEach((card) => {
       card.classList.toggle("locked", !premium);
@@ -2049,11 +2304,15 @@ window.addEventListener("load", function () {
       `fireball:${shopPick.fireball}`,
       FIREBALL_PALETTES[shopPick.fireball],
     );
+    const pals = shopPick.companion !== "none" ? companionFrames(shopPick.companion) : [];
+    const palFrame = pals[Math.floor(preview.index / 4) % 2];
     ctx.save();
     // the dino's visible body spans x -17..15 and y -33..1 (game units), the tallest
-    // hat reaches y -41 and the flame ends near x 31: all inside 240x140 with a margin
-    ctx.translate(100, 125);
+    // hat reaches y -41 and the flame ends near x 31: all inside 240x140 with a margin;
+    // with a companion beside it, the pair moves right to make room
+    ctx.translate(pals.length ? 130 : 100, 125);
     ctx.scale(2.8, 2.8);
+    if (palFrame && spriteReady(palFrame)) ctx.drawImage(palFrame, -44, -21, 24, 21);
     if (dino) ctx.drawImage(dino, -18, -35, 60, 40);
     const hat = hatImage(shopPick.hat);
     if (hat && hat.naturalWidth) drawHat(ctx, hat, 1, dino);
@@ -2088,6 +2347,7 @@ window.addEventListener("load", function () {
       const state = document.createElement("span");
       state.className = "shop-item-state";
       if (isWorn || owned) state.textContent = isWorn ? "Worn" : "Owned";
+      else if (isHatchOnly(shopSlot, item.id)) state.textContent = "From an egg";
       else state.innerHTML = coinText(item.price);
       button.append(name, state);
       button.onclick = () => {
@@ -2105,6 +2365,7 @@ window.addEventListener("load", function () {
       const balance = wallet.balance();
       if (worn[shopSlot] === picked.id) label = "Worn";
       else if (wallet.owns(shopSlot, picked.id)) ((label = "Wear"), (can = true));
+      else if (isHatchOnly(shopSlot, picked.id)) label = "From an egg";
       else if (balance >= picked.price) ((label = `Buy · ${coinText(picked.price)}`), (can = true));
       else label = `Need ${coinText(picked.price - balance)} more`;
     }
@@ -2198,7 +2459,11 @@ window.addEventListener("load", function () {
         side.append(reward, date);
       } else {
         const toward = progressToward(id, progress, LEVELS);
-        if (toward) side.textContent = `${num(toward.have)} / ${num(toward.need)}`;
+        if (toward) {
+          side.textContent = `${num(toward.have)} / ${num(toward.need)}${
+            toward.unit ? ` ${toward.unit}` : ""
+          }`;
+        }
       }
       row.append(icon, text, side);
       list.appendChild(row);
@@ -3514,6 +3779,7 @@ window.addEventListener("load", function () {
   refreshHome();
   // progress already on the device may have earned something (no Firebase needed)
   checkAchievements();
+  hatchNext(); // an egg that came due while the game was closed
 
   // a run that couldn't be sent goes out with the first input (Firebase stays unloaded until then)
   const flushOnInput = () => {

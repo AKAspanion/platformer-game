@@ -3,6 +3,8 @@ import { FINISH, generateEndlessLevel, generateSequence } from "../pcg/generator
 import { buildWorld } from "../gen";
 import { LEVELS_PER_WORLD } from "../worlds/spec";
 import { DAILY_LEVELS, dailyLevels } from "../daily/rules";
+import { dailyEggId, dailyEggLevel } from "../rewards/eggs";
+import { eggSpot } from "../rewards/egg-spot";
 
 /**
  * Game modes built on the level generator:
@@ -35,7 +37,12 @@ const START = { left: 24, top: 9 * 16 - 20 };
 export function createDailySession(date = new Date()) {
   const seed = dailySeed(date);
   clearRange(RANGES.daily);
-  register(generateSequence({ idBase: RANGES.daily, seed, levels: dailyLevels(seed) }));
+  const levels = generateSequence({ idBase: RANGES.daily, seed, levels: dailyLevels(seed) });
+  // one of the day's levels holds the day's egg (the world skips it once it was found)
+  const holder = levels[dailyEggLevel(seed)];
+  const spot = holder && eggSpot(holder, seed);
+  if (spot) holder.egg = { id: dailyEggId(seed), ...spot };
+  register(levels);
   return {
     kind: "daily",
     key: String(seed),

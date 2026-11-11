@@ -2107,3 +2107,168 @@ canvas {
     min-height: 44px;
   }
 }
+
+/* ------------------------------------------------ quests, nest and the hatch card */
+
+.home-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  width: min(720px, 100%);
+  margin: 12px 0;
+}
+.home-card {
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 14px;
+}
+.card-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+  color: var(--gold);
+  font-size: 15px;
+  text-transform: uppercase;
+}
+.quest-keys {
+  color: var(--cream);
+  font-size: 13px;
+  text-transform: none;
+}
+.quest-list,
+.nest-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.quest-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 2px;
+}
+.quest-text {
+  grid-column: 1 / -1;
+  font-size: 13px;
+  line-height: 1.2;
+}
+.quest-bar {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.16);
+}
+.quest-fill {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--gold);
+}
+.quest-row.done .quest-fill {
+  background: #6fcf6f;
+}
+.quest-row.done .quest-text {
+  opacity: 0.7;
+}
+.quest-count,
+.quest-coins {
+  font-size: 12px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.quest-coins {
+  color: var(--gold);
+}
+.nest-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.nest-row.ready {
+  color: var(--gold);
+}
+.card-note {
+  font-size: 12px;
+  opacity: 0.75;
+}
+.hatch-image {
+  width: 96px;
+  height: 84px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+#hatchScreen {
+  z-index: 13;
+}
+#hatchTitle {
+  font-size: clamp(20px, 4vmin, 30px);
+}
+
+@media (max-width: 560px) {
+  .home-cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* A landscape phone: the cards stand in a column beside the title, play and modes. */
+@media (max-height: 499px) and (min-width: 560px) {
+  .home-screen {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(210px, 38%);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    column-gap: 12px;
+    align-items: stretch;
+    justify-items: center;
+  }
+  .home-hero {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .home-main {
+    grid-column: 1;
+    grid-row: 2;
+    align-self: center;
+    width: 100%;
+  }
+  .home-footer {
+    grid-column: 1;
+    grid-row: 3;
+  }
+  .home-cards {
+    grid-column: 2;
+    grid-row: 1 / 4;
+    grid-template-columns: minmax(0, 1fr);
+    align-content: center;
+    gap: 6px;
+    width: 100%;
+    margin: 0;
+    overflow-y: auto;
+  }
+  .mode-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .home-card {
+    padding: 6px 10px;
+  }
+  .card-title {
+    margin-bottom: 3px;
+    font-size: 13px;
+  }
+  .quest-list,
+  .nest-list {
+    gap: 3px;
+  }
+  .quest-text {
+    font-size: 12px;
+  }
+  .nest-row {
+    font-size: 12px;
+  }
+}

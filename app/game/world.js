@@ -5,7 +5,7 @@ import Object from "./object";
 import Portal from "./portal";
 import Enemies, { enemyTypes, enemyImages } from "./enemies";
 import PowerUps from "./powerups";
-import Egg from "./egg";
+import Egg, { EGG_IMAGE } from "./egg";
 import Collider from "./collider";
 import Effects from "./effects";
 import Combo from "./combo";
@@ -83,6 +83,7 @@ export const assetsOf = (area) => {
     ...enemyImages([...types, ...minions]),
     ...(boss ? bossImages(boss) : []),
     ...(seed ? SEED_IMAGES : []),
+    ...(area.egg ? [EGG_IMAGE] : []),
   ];
   const tracks = [area.theme, boss && `boss-${boss}`].filter(Boolean);
   return { images, audio: tracks.map((track) => audioSrc(track, "mp3")) };
