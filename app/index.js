@@ -80,6 +80,7 @@ import { ACHIEVEMENTS } from "./achievements/catalog";
 import { newlyEarned, progressToward } from "./achievements/check";
 import { createSecretSession } from "./modes/secret";
 import { createBossRushSession, bossLevels } from "./modes/bossrush";
+import { SPIT_COLORS } from "./game/projectile-look";
 import { drawShieldGlow, glowFlickers } from "./game/shield-fx";
 
 import areas from "./areas";
@@ -1084,15 +1085,18 @@ window.addEventListener("load", function () {
         return;
       }
       case "spit": {
-        // a fast streak of acid with a trail
+        // a fast streak of sand with a trail
         const dir = Math.sign(p.vx) || 1;
-        ctx.fillStyle = "rgba(216, 240, 122, 0.4)";
+        ctx.save();
+        ctx.globalAlpha = 0.4;
+        ctx.fillStyle = SPIT_COLORS.trail;
         ctx.fillRect(dir > 0 ? cx - 9 : cx + 1, cy - 1, 8, 2);
-        ctx.fillStyle = "#d8f07a";
+        ctx.restore();
+        ctx.fillStyle = SPIT_COLORS.body;
         ctx.beginPath();
         ctx.arc(cx, cy, 3, 0, Math.PI * 2);
         ctx.fill();
-        ctx.fillStyle = "#f4ffb0";
+        ctx.fillStyle = SPIT_COLORS.glint;
         ctx.fillRect(cx - 1, cy - 1, 1.5, 1.5);
         return;
       }
