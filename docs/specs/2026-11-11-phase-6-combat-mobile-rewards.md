@@ -194,8 +194,10 @@ the wallet, they are trusted to the client.
 
 ### 4.1 Player profile
 
-- "Each player with an account has a public profile document `players/{uid}`: `{ skin, hat, companion, seenDay }`."
-- "A player writes only their own profile. Firestore rules allow only those four fields, only item IDs that exist, and `seenDay` only as today's or yesterday's UTC day number from the server's time (`request.time`), so a device clock a day off still counts."
+- "Each player with an account has a profile document `players/{uid}`: `{ skin, hat, companion, seenDay }`."
+- "A player writes only their own profile. Firestore rules allow only those four fields, only item IDs that exist, and `seenDay` only as yesterday's, today's or tomorrow's UTC day number from the server's time (`request.time`), so a device clock a day off either way still counts."
+- "Nobody reads `players/{uid}` directly: the rules allow no client read or list. Boards get profiles from a Cloud Function `getProfiles` that takes at most 30 uids and returns only `skin`, `hat`, `companion` and `seenDay` for each, never a document's create or update time." (Changed during the build: Firestore exposes every document's create and update times to the microsecond, which would publish the time of day a player played, and an open list would let anyone page through every profile.)
+- "A write the rules refuse never blocks the next one: when a profile write is refused, the next write leaves `seenDay` out."
 - "The profile is written when the player's worn items change, and when the game opens on a day not yet recorded. A player without an account has no profile."
 - "Deleting an account deletes its profile."
 
@@ -203,14 +205,14 @@ the wallet, they are trusted to the client.
 
 - "Each row on the daily and endless boards shows the player's dino in their skin and hat, with their companion."
 - "A player with no profile shows the classic dino."
-- Avatars are drawn once per combination and kept for the session. The board reads profiles in batches of 30 (two queries for the top 50, plus the pinned row).
+- Avatars are drawn once per combination and kept for the session. The board asks `getProfiles` in batches of 30 (two calls for the top 50, plus the pinned row). A failed or offline call caches nothing, so the next board open asks again.
 - If profiles fail to load, the board still shows, with classic dinos.
 
 ### 4.3 Last online
 
 - "Each row shows when the player was last online: "Today", "Yesterday", "3d ago" (up to 6 days), "1w ago" (7 to 13 days) or "2w+ ago"."
 - "Only the day is stored, never a time."
-- "Settings has a switch "Show when I was last online", on by default. Turning it off deletes `seenDay` from the profile, and no `seenDay` is written until it is on again. Worn items still update the avatar. A row with no `seenDay` shows no status."
+- "Settings has a switch "Show when I was last online", on by default. It belongs to the account and syncs through cloud save, so turning it off on one device turns it off on all of them. Turning it off deletes `seenDay` from the profile, and no device writes `seenDay` until it is on again. Worn items still update the avatar. A row with no `seenDay` shows no status."
 - `PRIVACY.md` says what the profile holds, that it is public, and how to hide last online.
 
 ## 5. Analytics
@@ -238,4 +240,4 @@ Each track's plan writes the tests its changes need, in `tests/` with `node:test
 - A: the shield rises at 3 hits in 2 seconds and not at 2, ignores hits while up and keeps its cooldown; walkers shoot only in the 52–120 px band at difficulty 2 and up; combo steps, multipliers and resets; the new score ceiling accepts a perfect x4 run and refuses one point more.
 - B: the platform rule over every theme and many seeds, plus the Sunny Coral Reef record; Help picks one set of controls; the next area's assets are requested once its level has loaded.
 - C: each new achievement's check; hatch timing at 23h59 and 24h; the duplicate payout; quests change at local midnight and the mode quest picks the least-played unlocked mode; chest keys reset on Monday; cloud-save merges of eggs, companions, quests and keys.
-- D: Firestore rules tests for the profile (own doc only, known IDs only, `seenDay` only today or yesterday); last-online labels for each day range; account deletion removes the profile.
+- D: Firestore rules tests for the profile (own doc only, known IDs only, `seenDay` only yesterday, today or tomorrow, no client read or list); `getProfiles` returns only the four fields; last-online labels for each day range; account deletion removes the profile.
