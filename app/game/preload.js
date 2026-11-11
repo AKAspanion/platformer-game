@@ -24,8 +24,13 @@ const imageEntry = (src) => {
   if (!entry) {
     const image = new Image();
     entry = { image, done: false, waiters: [] };
-    // a failed image counts as in, like the loaders always did
-    image.onload = image.onerror = () => settle(entry);
+    image.onload = () => settle(entry);
+    // a failed image counts as in for the level waiting on it, but is not kept:
+    // the next request for it downloads it again
+    image.onerror = () => {
+      settle(entry);
+      if (images.get(src) === entry) images.delete(src);
+    };
     image.src = src;
     images.set(src, entry);
   }
