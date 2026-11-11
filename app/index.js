@@ -271,6 +271,7 @@ window.addEventListener("load", function () {
     });
     renderBalance();
     pumpAchievements();
+    cloud.changed(); // the unlocks and their coins go to the account too
   };
 
   /** Call after any change to the wallet, stats, achievements, campaign, records or streak. */
@@ -1779,7 +1780,8 @@ window.addEventListener("load", function () {
     const user = auth.currentUser;
     if (user && user.uid !== cloudUid) {
       cloudUid = user.uid;
-      cloud.start(user.uid);
+      // the account's save may bring stars or a streak that earn something
+      cloud.start(user.uid).then(checkAchievements);
     } else if (!user && cloudUid) {
       cloudUid = null;
       cloud.stop();
@@ -2691,6 +2693,8 @@ window.addEventListener("load", function () {
   });
 
   refreshHome();
+  // progress already on the device may have earned something (no Firebase needed)
+  checkAchievements();
 
   // a run that couldn't be sent goes out with the first input (Firebase stays unloaded until then)
   const flushOnInput = () => {
