@@ -142,7 +142,9 @@ test("ids are unique within each level", () => {
 test("generated levels are up to date and pass the reachability check", () => {
   const results = generator.buildAll();
   for (const [id, { data }] of Object.entries(results)) {
-    assert.deepEqual(areas[id], data, `area-${id}.json is stale: run pnpm levels`);
+    // the egg is added to a story area's file by scripts/place-eggs.js
+    const { egg, ...area } = areas[id];
+    assert.deepEqual(area, data, `area-${id}.json is stale: run pnpm levels`);
   }
 });
 

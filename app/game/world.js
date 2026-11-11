@@ -5,6 +5,7 @@ import Object from "./object";
 import Portal from "./portal";
 import Enemies, { enemyTypes, enemyImages } from "./enemies";
 import PowerUps from "./powerups";
+import Egg from "./egg";
 import Collider from "./collider";
 import Effects from "./effects";
 import Combo from "./combo";
@@ -87,6 +88,8 @@ export const assetsOf = (area) => {
   return { images, audio: tracks.map((track) => audioSrc(track, "mp3")) };
 };
 
+const FEATS_KEPT = 50;
+
 export default class World {
   constructor(friction = 0.87, gravity = 2) {
     this.friction = friction;
@@ -115,6 +118,12 @@ export default class World {
     this.combo = new Combo();
     // game events for the shell (vibration, HUD): drained by the caller each frame
     this.events = [];
+    // what the player did, for the shell's quests and eggs: { type: "kill", enemy } and
+    // { type: "egg", id }. Drained each frame, at most FEATS_KEPT kept.
+    this.feats = [];
+    // set by the shell: an egg already found isn't placed again
+    this.eggFound = () => false;
+    this.egg = null;
 
     this.audioController = new AudioController();
     // music downloads count towards the loading bar too
@@ -199,6 +208,9 @@ export default class World {
 
     this.powerups = new PowerUps(data.powerups, this.tileSize, this.collectedPowerups);
 
+    // the level's hidden egg, unless it was found before
+    this.egg = data.egg && !this.eggFound(data.egg.id) ? new Egg(data.egg, this.tileSize) : null;
+
     // level 6 of each world: a boss, unless already beaten in this run
     this.boss = null;
     this.bossState = null;
@@ -255,6 +267,7 @@ export default class World {
     this.collectedCoins = "";
     this.collectedPowerups = "";
     this.events = [];
+    this.feats = [];
     this.combo.resetLevel();
 
     this.player.reset();
@@ -293,6 +306,12 @@ export default class World {
   emit(type) {
     this.events.push(type);
     if (this.events.length > 20) this.events.shift();
+  }
+
+  /** Something the shell counts (a kill by enemy type, an egg found); the oldest go first. */
+  addFeat(feat) {
+    this.feats.push(feat);
+    if (this.feats.length > FEATS_KEPT) this.feats.splice(0, this.feats.length - FEATS_KEPT);
   }
 
   playJumpSound() {
@@ -471,6 +490,7 @@ export default class World {
 
     this.killedEnemies += `${enemy.id},`;
     this.totalEnemies += 1;
+    this.addFeat({ type: "kill", enemy: enemy.type });
     this.bonus += enemy.score - 100;
     const points = this.comboScore(enemy.score);
 
@@ -794,6 +814,7 @@ export default class World {
       this.fireballs,
       this.powerups,
       this.projectiles,
+      ...(this.egg ? [this.egg] : []),
     ];
   }
 
@@ -896,6 +917,16 @@ export default class World {
       if (!this.isPlayerDead && this.checkCollision(player, item, 3, 3)) {
         this.powerups.remove(item);
         this.applyPowerup(item);
+      }
+    }
+
+    // the egg: found by touch, it gives no score and no coins
+    if (this.egg) {
+      this.egg.update();
+      if (!this.isPlayerDead && this.checkCollision(player, this.egg, 3, 3)) {
+        this.effects.coinSparkle(this.egg.getCenterX(), this.egg.getCenterY());
+        this.addFeat({ type: "egg", id: this.egg.id });
+        this.egg = null;
       }
     }
 
