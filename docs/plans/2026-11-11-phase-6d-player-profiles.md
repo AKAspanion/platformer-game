@@ -10,6 +10,10 @@
 
 **Spec:** `docs/specs/2026-11-11-phase-6-combat-mobile-rewards.md` (§4, Track D)
 
+## Changed after the build
+
+The final and security reviews changed spec §4 (see the run ledger's Provisional lines): profiles are read only through a `getProfiles` Cloud Function and the rules allow no client read or list; the last-online switch syncs with the account; `seenDay` may be yesterday, today or tomorrow. The quotes below follow the updated spec; the tasks were built to the earlier wording and the fix wave brought them in line.
+
 ## Global Constraints
 
 - The branch is `feat/player-profiles`, cut from `feat/rewards` (Track C), which adds the `companion` slot to `app/shop/catalog.js`. Once Track C merges, rebase onto `master` before opening the PR.
@@ -81,7 +85,7 @@ export function lastSeenLabel(seenDay: number | null, today: number): string;
 
 **Spec:**
 
-- §4.1: "Each player with an account has a public profile document `players/{uid}`: `{ skin, hat, companion, seenDay }`."
+- §4.1: "Each player with an account has a profile document `players/{uid}`: `{ skin, hat, companion, seenDay }`."
 - §4.3: "Each row shows when the player was last online: "Today", "Yesterday", "3d ago" (up to 6 days), "1w ago" (7 to 13 days) or "2w+ ago"."
 - §4.3: "Only the day is stored, never a time."
 - §4.2: "A player with no profile shows the classic dino."
@@ -156,7 +160,7 @@ The rules hold the three ID lists as literal lists. They can't import the catalo
 
 **Spec:**
 
-- §4.1: "A player writes only their own profile. Firestore rules allow only those four fields, only item IDs that exist, and `seenDay` only as today's or yesterday's UTC day number from the server's time (`request.time`), so a device clock a day off still counts."
+- §4.1: "A player writes only their own profile. Firestore rules allow only those four fields, only item IDs that exist, and `seenDay` only as yesterday's, today's or tomorrow's UTC day number from the server's time (`request.time`), so a device clock a day off either way still counts."
 - §4.3: "Only the day is stored, never a time."
 
 **Tags:** security
@@ -255,7 +259,7 @@ The "last written" record is kept in localStorage under `profile` as `{ uid, pay
 **Spec:**
 
 - §4.1: "The profile is written when the player's worn items change, and when the game opens on a day not yet recorded. A player without an account has no profile."
-- §4.3: "Settings has a switch "Show when I was last online", on by default. Turning it off deletes `seenDay` from the profile, and no `seenDay` is written until it is on again. Worn items still update the avatar. A row with no `seenDay` shows no status."
+- §4.3: "Settings has a switch "Show when I was last online", on by default. It belongs to the account and syncs through cloud save, so turning it off on one device turns it off on all of them. Turning it off deletes `seenDay` from the profile, and no device writes `seenDay` until it is on again. Worn items still update the avatar. A row with no `seenDay` shows no status."
 - §4.1: "A player writes only their own profile."
 
 **Tags:** security, failure-paths
@@ -341,7 +345,7 @@ export function avatarCanvas(profile: { skin, hat, companion } | null): HTMLCanv
 
 - §4.2: "Each row on the daily and endless boards shows the player's dino in their skin and hat, with their companion."
 - §4.2: "A player with no profile shows the classic dino."
-- §4.2: Avatars are drawn once per combination and kept for the session. The board reads profiles in batches of 30 (two queries for the top 50, plus the pinned row).
+- §4.2: Avatars are drawn once per combination and kept for the session. The board asks `getProfiles` in batches of 30 (two calls for the top 50, plus the pinned row). A failed or offline call caches nothing, so the next board open asks again.
 - §4.2: If profiles fail to load, the board still shows, with classic dinos.
 - §4.3: "Each row shows when the player was last online: "Today", "Yesterday", "3d ago" (up to 6 days), "1w ago" (7 to 13 days) or "2w+ ago"."
 - §4.3: "A row with no `seenDay` shows no status."
