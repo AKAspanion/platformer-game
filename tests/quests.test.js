@@ -526,3 +526,85 @@ test("fewer than 12 keys: no chest", () => {
     false,
   );
 });
+
+/** A day D with three picks, some progress and some keys, and a clock that moves. */
+function backFixture(date, weekDone = ["qa", "qb"]) {
+  const day = localDay(date);
+  const picks = [
+    pick("defeat", 0, 8, "kill", "Defeat 8 enemies"),
+    pick("coins", 1, 150, "coin", "Collect 150 coins"),
+    pick("burn", 2, 8, "burn", "Burn 8 enemy projectiles"),
+  ];
+  const storage = memoryStorage({ quests: stateWith(day, picks, [3, 20, 1], { weekDone }) });
+  let clock = date;
+  const quests = createQuests(
+    storage,
+    () => clock,
+    () => ctx(),
+  );
+  return { day, picks, storage, quests, setClock: (d) => (clock = d) };
+}
+
+test("a clock set back keeps today's picks and progress, and they are still there when it returns", () => {
+  const { day, picks, storage, quests, setClock } = backFixture(at(2026, 11, 11));
+  const before = storage.data.quests;
+  setClock(at(2026, 11, 10));
+  const shown = quests.today();
+  assert.deepEqual(
+    shown.map((q) => [q.id, q.have]),
+    picks.map((q, i) => [q.id, [3, 20, 1][i]]),
+  );
+  assert.equal(storage.data.quests, before, "nothing is rewritten");
+  quests.played("story"); // state keeps its own day
+  assert.equal(JSON.parse(storage.data.quests).day, day);
+  setClock(at(2026, 11, 11));
+  assert.deepEqual(
+    quests.today().map((q) => [q.id, q.have]),
+    picks.map((q, i) => [q.id, [3, 20, 1][i]]),
+  );
+  assert.equal(JSON.parse(storage.data.quests).day, day);
+});
+
+test("going back across a Monday keeps the week's keys", () => {
+  const monday = at(2026, 11, 9); // a Monday
+  const { quests, storage, setClock } = backFixture(monday, ["qa", "qb", "qc"]);
+  setClock(at(2026, 11, 8)); // the Sunday before
+  assert.equal(quests.keys(), 3);
+  assert.deepEqual(JSON.parse(storage.data.quests).weekDone, ["qa", "qb", "qc"]);
+  assert.equal(JSON.parse(storage.data.quests).week, weekStart(localDay(monday)));
+  setClock(at(2026, 11, 9));
+  assert.equal(quests.keys(), 3);
+});
+
+test("progress made while the clock is back counts toward the stored day", () => {
+  const { quests, setClock } = backFixture(at(2026, 11, 11));
+  setClock(at(2026, 11, 10));
+  quests.record({ type: "kill", enemy: "pig" }, "story");
+  assert.equal(quests.today()[0].have, 4);
+});
+
+test("a later date still starts a fresh day, and a later Monday resets the keys", () => {
+  const { day, quests, storage, setClock } = backFixture(at(2026, 11, 11), ["qa", "qb"]);
+  setClock(at(2026, 11, 12));
+  assert.ok(quests.today().every((q) => q.have === 0));
+  assert.equal(JSON.parse(storage.data.quests).day, day + 1);
+  assert.equal(quests.keys(), 2, "same week");
+  setClock(at(2026, 11, 16)); // the next Monday
+  assert.equal(quests.keys(), 0);
+});
+
+test("a merge never moves the day backwards", () => {
+  const day = localDay(at(2026, 11, 11));
+  const picks = [pick("defeat", 0, 8, "kill", "Defeat 8 enemies")];
+  const newer = JSON.parse(stateWith(day, picks, [3]));
+  const older = JSON.parse(stateWith(day - 1, picks, [8]));
+  [
+    mergeProgress({ quests: newer }, { quests: older }),
+    mergeProgress({ quests: older }, { quests: newer }),
+  ]
+    .map((m) => m.quests)
+    .forEach((merged) => {
+      assert.equal(merged.day, day);
+      assert.deepEqual(merged.progress, [3]);
+    });
+});

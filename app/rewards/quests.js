@@ -249,10 +249,14 @@ export function createQuests(
     persisted = JSON.stringify(store.read()) === JSON.stringify(normalizeQuests(state));
   };
 
-  /** The state for today: new picks on the first call of a local day, new keys on a new week. */
+  /**
+   * The state for today: new picks on the first call of a local day, new keys on a new week.
+   * A date earlier than the stored day (a clock set back, travel west) changes nothing: the stored
+   * quests and keys stay as they are until a later date comes.
+   */
   function current() {
     const state = load();
-    const day = localDay(now());
+    const day = Math.max(localDay(now()), state.day);
     const week = weekStart(day);
     let changed = false;
     if (state.day !== day || state.picks.length !== QUEST_COINS.length) {
@@ -267,7 +271,7 @@ export function createQuests(
       state.day = day;
       changed = true;
     }
-    if (state.week !== week) {
+    if (week > state.week) {
       state.week = week;
       state.weekDone = [];
       changed = true;
