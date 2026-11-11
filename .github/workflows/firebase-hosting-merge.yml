@@ -72,9 +72,13 @@ jobs:
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DINOS_ADVENTURE }}
 
+      # npx, not `pnpm dlx`: inside this repo pnpm dlx applies the workspace
+      # overrides (pnpm-workspace.yaml) to firebase-tools too, which put
+      # minimatch 11 under its glob 10, so Hosting found 0 files in dist and
+      # released an empty site while the run stayed green.
       - name: Deploy
         run: >
-          pnpm dlx firebase-tools@15
+          npx --yes firebase-tools@15
           deploy --project dinos-adventure
           --only hosting,functions,firestore:rules,firestore:indexes
           --non-interactive --force
@@ -82,3 +86,15 @@ jobs:
 
       - name: Callable functions are public
         run: node scripts/check-functions-public.js
+
+      # a deploy that uploads nothing still "succeeds": fail if the game is gone
+      - name: The site serves the game
+        run: |
+          for file in / /bundle.js /manifest.json; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "https://dinos-adventure.web.app$file")
+            echo "$file $code"
+            if [ "$code" != "200" ]; then
+              echo "::error::https://dinos-adventure.web.app$file returned $code after the deploy"
+              exit 1
+            fi
+          done
