@@ -26,6 +26,9 @@ export const firebaseConfig = {
   // Google Analytics's ID (Firebase console > Project settings > Your apps). Empty until
   // Analytics is enabled on the project: nothing is sent while it is empty.
   measurementId: "G-8CE4091V3T",
+  // The web push key (Firebase console > Project settings > Cloud Messaging > Web Push
+  // certificates). Web reminders are off while it is empty.
+  vapidKey: "",
 };
 
 /** Where the world creator's functions run (next to the Firestore database). */

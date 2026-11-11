@@ -24,6 +24,8 @@ rules_version = '2';
 //
 // config/featured: the world of the week, anyone reads, functions write.
 //
+// pushSubs/{uid}: an account's reminder devices and time zone, functions only.
+//
 // limits/{uid}: per-user rate limit counters, functions only.
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -73,6 +75,11 @@ service cloud.firestore {
     // thumbs/{worldId}: base64 PNGs served by worldPage, functions only.
     match /thumbs/{worldId} {
       allow write: if false;
+    }
+
+    // pushSubs/{uid}: device tokens, written and read by the functions only.
+    match /pushSubs/{uid} {
+      allow read, write: if false;
     }
 
     match /config/{doc} {
