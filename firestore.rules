@@ -31,6 +31,15 @@ rules_version = '2';
 // pushSubs/{uid}: an account's reminder devices and time zone, functions only.
 //
 // limits/{uid}: per-user rate limit counters, functions only.
+//
+// players/{uid}: a player's public looks and, optionally, the UTC day they were
+// last online. Anyone reads them (the board shows them), 30 at a time at most.
+// Only that account writes its own, anonymous accounts included, and a write
+// carries exactly skin, hat and companion, each an item ID the shop has (the
+// lists match app/shop/catalog.js, checked by tests/profiles-rules-file.test.js),
+// and optionally seenDay: an int, today's or yesterday's UTC day number by the
+// server's clock. Never a name or a time. Nobody deletes it from a client: the
+// deleteAccount function does.
 service cloud.firestore {
   match /databases/{database}/documents {
     match /worlds/{worldId} {
@@ -95,6 +104,25 @@ service cloud.firestore {
     match /config/{doc} {
       allow get: if true;
       allow write: if false;
+    }
+
+    match /players/{uid} {
+      // today's UTC day number by the server's clock, or yesterday's
+      function isSeenDay(day) {
+        let today = int(request.time.toMillis() / 86400000);
+        return day is int && (day == today || day == today - 1);
+      }
+
+      allow get: if true;
+      allow list: if request.query.limit <= 30;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['skin', 'hat', 'companion', 'seenDay'])
+        && request.resource.data.keys().hasAll(['skin', 'hat', 'companion'])
+        && request.resource.data.skin in ['classic', 'mint', 'sunset', 'midnight', 'ghost', 'gold']
+        && request.resource.data.hat in ['none', 'cap', 'party', 'viking', 'wizard', 'crown']
+        && request.resource.data.companion in ['none', 'hatchling', 'ptero', 'trike', 'stego', 'raptor', 'ankylo', 'golden', 'crystal']
+        && (!('seenDay' in request.resource.data) || isSeenDay(request.resource.data.seenDay));
+      allow delete: if false;
     }
 
     match /{document=**} {
