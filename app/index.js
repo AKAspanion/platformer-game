@@ -80,6 +80,7 @@ import { ACHIEVEMENTS } from "./achievements/catalog";
 import { newlyEarned, progressToward } from "./achievements/check";
 import { createSecretSession } from "./modes/secret";
 import { createBossRushSession, bossLevels } from "./modes/bossrush";
+import { drawShieldGlow, glowFlickers } from "./game/shield-fx";
 
 import areas from "./areas";
 
@@ -989,21 +990,21 @@ window.addEventListener("load", function () {
     ctx.translate(feetX, feetY);
     ctx.rotate(boss.tilt);
     ctx.scale(boss.scaleX, boss.scaleY);
-    // glowing before the shield rises: flickers between the sprite and a bright tint
-    const glowing = boss.shield === "glow" && boss.shieldTimer % 4 < 2;
-    if (glowing) ctx.filter = "brightness(2.2) saturate(0.6)";
     ctx.drawImage(boss.animator.frameValue, -rect.width / 2, -rect.height, rect.width, rect.height);
-    ctx.restore();
-    if (boss.shield === "glow") {
-      ctx.save();
-      ctx.globalAlpha = 0.35 * (1 - boss.shieldTimer / 15);
-      ctx.strokeStyle = "#bfe8ff";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(feetX, centreY, Math.max(boss.width, boss.height) * 0.75, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.restore();
+    // glowing before the shield rises: the sprite flickers brighter (drawn again, added on top)
+    if (glowFlickers(boss)) {
+      ctx.globalCompositeOperation = "lighter";
+      ctx.globalAlpha *= 0.7;
+      ctx.drawImage(
+        boss.animator.frameValue,
+        -rect.width / 2,
+        -rect.height,
+        rect.width,
+        rect.height,
+      );
     }
+    ctx.restore();
+    drawShieldGlow(ctx, boss, feetX, centreY);
   };
 
   const drawProjectile = (ctx, p) => {
