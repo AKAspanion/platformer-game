@@ -23,7 +23,10 @@ import { getFirestore } from "firebase-admin/firestore";
 import { ApiError, handleDesign, handlePublish, overLimit } from "./src/handlers.js";
 import { createDesigner, Anthropic } from "./src/designer.js";
 
-setGlobalOptions({ region: "asia-south1", maxInstances: 10 });
+// invoker "public": anyone may reach the functions (the game calls them from the
+// browser); each one checks request.auth itself. Stated explicitly so every
+// deploy applies it, not only the one that first creates a function.
+setGlobalOptions({ region: "asia-south1", maxInstances: 10, invoker: "public" });
 
 initializeApp();
 const db = getFirestore();
