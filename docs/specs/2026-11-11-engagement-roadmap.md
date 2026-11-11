@@ -12,13 +12,14 @@ coming back each day, but it sits behind the premium flag, and premium can't be 
 
 Each phase gets its own plan in `docs/plans/` and ships on its own branch.
 
-| Phase | Ships                                                                                        | Plan                                     |
-| ----- | -------------------------------------------------------------------------------------------- | ---------------------------------------- |
-| 1     | Analytics, free daily challenge, global daily leaderboard, streaks, share card              | `2026-11-11-phase-1-daily-loop.md`       |
-| 2     | Cloud save, coin shop (cosmetics), star unlocks (secret world, boss rush), achievements      | `2026-11-11-phase-2-progress-rewards.md` (spec: `docs/specs/2026-11-11-phase-2-progress-rewards.md`) |
-| 3     | Community worlds: play counts, likes, trending, featured world, world links, remix, creator notes | `2026-11-11-phase-3-community-worlds.md` (spec: `docs/specs/2026-11-11-phase-3-community-worlds.md`) |
-| 4     | Opt-in reminders: web push and iOS push for the daily and for streaks                       | `2026-11-11-phase-4-reminders.md` (spec: `docs/specs/2026-11-11-phase-4-reminders.md`) |
-| 5     | Ghost runs of your best time, first-session onboarding                                       | `2026-11-11-phase-5-polish.md` (spec: `docs/specs/2026-11-11-phase-5-polish.md`) |
+| Phase | Ships                                                                                                            | Plan                                                                                                 |
+| ----- | ---------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| 1     | Analytics, free daily challenge, global daily leaderboard, streaks, share card                                   | `2026-11-11-phase-1-daily-loop.md`                                                                   |
+| 2     | Cloud save, coin shop (cosmetics), star unlocks (secret world, boss rush), achievements                          | `2026-11-11-phase-2-progress-rewards.md` (spec: `docs/specs/2026-11-11-phase-2-progress-rewards.md`) |
+| 3     | Community worlds: play counts, likes, trending, featured world, world links, remix, creator notes                | `2026-11-11-phase-3-community-worlds.md` (spec: `docs/specs/2026-11-11-phase-3-community-worlds.md`) |
+| 4     | Opt-in reminders: web push and iOS push for the daily and for streaks                                            | `2026-11-11-phase-4-reminders.md` (spec: `docs/specs/2026-11-11-phase-4-reminders.md`)               |
+| 5     | Ghost runs of your best time, first-session onboarding                                                           | `2026-11-11-phase-5-polish.md` (spec: `docs/specs/2026-11-11-phase-5-polish.md`)                     |
+| 6     | Boss shield, shooting walkers, combo meter; mobile controls and menus; achievements, eggs, quests; board avatars | one plan per track (spec: `docs/specs/2026-11-11-phase-6-combat-mobile-rewards.md`)                  |
 
 ## 2. Phase 1: the daily loop
 
