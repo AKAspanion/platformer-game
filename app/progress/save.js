@@ -428,7 +428,11 @@ function mergeNest(a, b) {
   const byId = new Map();
   [...a.eggs, ...b.eggs].forEach((egg) => {
     const have = byId.get(egg.id);
-    if (!have || egg.foundAt < have.foundAt || (egg.foundAt === have.foundAt && cmp(egg, have) < 0)) {
+    if (
+      !have ||
+      egg.foundAt < have.foundAt ||
+      (egg.foundAt === have.foundAt && cmp(egg, have) < 0)
+    ) {
       byId.set(egg.id, egg);
     }
   });

@@ -51,7 +51,8 @@ function speedy(p, levels) {
 }
 
 const burned = (p) => sum(p.stats.burned);
-const companions = (p) => COMPANION_IDS.filter((id) => p.wallet.owned.includes(`companion:${id}`)).length;
+const companions = (p) =>
+  COMPANION_IDS.filter((id) => p.wallet.owned.includes(`companion:${id}`)).length;
 const rewardsMatching = (p, pattern) =>
   Object.keys(p.wallet.rewards).filter((id) => pattern.test(id)).length;
 const questsDone = (p) => rewardsMatching(p, /^q\d+[abc]$/);
