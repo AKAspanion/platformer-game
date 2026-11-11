@@ -3,8 +3,8 @@ import { isFinalRefusal } from "../daily/pending.js";
 
 /**
  * The best endless run that couldn't be sent (offline, server error), kept in
- * localStorage under "endless_pending" as { seed, level, score, seconds }
- * until the next home screen sends it.
+ * localStorage under "endless_pending" as { seed, level, score, seconds, ticket }
+ * until the next home screen sends it (with its ticket, app/modes/run-ticket.js).
  */
 
 const STORAGE_KEY = "endless_pending";
@@ -24,9 +24,11 @@ const isRun = (run) =>
   Number.isInteger(run.level) &&
   run.level >= MIN_LEVEL &&
   Number.isFinite(run.score) &&
-  Number.isFinite(run.seconds);
+  Number.isFinite(run.seconds) &&
+  (run.ticket === undefined || typeof run.ticket === "string");
 
-const clean = ({ seed, level, score, seconds }) => ({ seed, level, score, seconds });
+const clean = ({ seed, level, score, seconds, ticket }) =>
+  ticket === undefined ? { seed, level, score, seconds } : { seed, level, score, seconds, ticket };
 
 export function createEndlessPending(storage = defaultStorage()) {
   // Without any storage the run lives in memory for the session.

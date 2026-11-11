@@ -23,7 +23,10 @@ const MAX_TOKEN = 4096;
 const BRIDGE_TIMEOUT = 15000;
 
 const validToken = (token) =>
-  typeof token === "string" && token.length > 0 && token.length <= MAX_TOKEN && token !== "ERROR GET TOKEN";
+  typeof token === "string" &&
+  token.length > 0 &&
+  token.length <= MAX_TOKEN &&
+  token !== "ERROR GET TOKEN";
 
 export function createReminders(env) {
   const log = env.log || (() => {});
@@ -183,7 +186,8 @@ function bridge(name, ms = BRIDGE_TIMEOUT) {
 
 const iosBridge = {
   available: () => !!handler("push-token") && !!handler("push-permission-request"),
-  requestPermission: async () => ((await bridge("push-permission-request")) === "granted" ? "granted" : "denied"),
+  requestPermission: async () =>
+    (await bridge("push-permission-request")) === "granted" ? "granted" : "denied",
   async permission() {
     // the state check is optional: an app that doesn't answer just isn't "blocked"
     if (!handler("push-permission-state")) return "notDetermined";
@@ -219,5 +223,6 @@ export const reminders = createReminders({
     }
   },
   storage: localStorage,
-  log: (step, error) => console.warn("reminders:", step, (error && error.code) || (error && error.name) || "error"),
+  log: (step, error) =>
+    console.warn("reminders:", step, (error && error.code) || (error && error.name) || "error"),
 });

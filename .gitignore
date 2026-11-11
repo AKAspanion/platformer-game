@@ -3,10 +3,19 @@ build
 node_modules
 .DS_Store
 
+# local settings and secrets (.env.example is the template)
+/.env
+/.env.*
+!/.env.example
+
 *.aab
 *.apk
 *.keystore
+*.jks
+*.idsig
 signing-key-info.txt
+service-account*.json
+*-service-account.json
 firebase-debug.log
 firestore-debug.log
 ui-debug.log
@@ -14,3 +23,14 @@ ui-debug.log
 .firebase/
 functions/.secret.local
 functions/.env.local
+
+# Android build cache
+packages/android/source/.gradle/
+packages/android/source/build/
+packages/android/source/app/build/
+packages/android/source/local.properties
+
+# editor and tool state
+.idea/
+.vscode/
+*.swp

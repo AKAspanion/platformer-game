@@ -25,7 +25,10 @@ test("constants", () => {
 });
 
 test("localTime gives the local date seed and hour", () => {
-  assert.deepEqual(localTime(at("2026-11-11T12:30:00Z"), "Asia/Kolkata"), { seed: 20261111, hour: 18 });
+  assert.deepEqual(localTime(at("2026-11-11T12:30:00Z"), "Asia/Kolkata"), {
+    seed: 20261111,
+    hour: 18,
+  });
   assert.deepEqual(localTime(at("2026-11-11T12:30:00Z"), "America/Los_Angeles"), {
     seed: 20261111,
     hour: 4,
@@ -90,7 +93,11 @@ test("a streak across a month end counts the last day as yesterday", () => {
 });
 
 test("a malformed streak falls back to the daily reminder", () => {
-  for (const streak of [{}, { days: "x", freezes: 0, last: 20261110 }, { days: 5, freezes: 0, last: 99999999 }]) {
+  for (const streak of [
+    {},
+    { days: "x", freezes: 0, last: 20261110 },
+    { days: 5, freezes: 0, last: 99999999 },
+  ]) {
     assert.equal(reminderFor(streak, 20261111).kind, "daily");
   }
 });
@@ -100,7 +107,10 @@ test("isDue at 18:00 local once a day", () => {
   assert.equal(isDue({ timeZone: "Asia/Kolkata", lastSentDay: null }, noon), true);
   assert.equal(isDue({ timeZone: "Asia/Kolkata", lastSentDay: 20261111 }, noon), false);
   assert.equal(isDue({ timeZone: "Asia/Kolkata", lastSentDay: 20261110 }, noon), true);
-  assert.equal(isDue({ timeZone: "Asia/Kolkata", lastSentDay: null }, at("2026-11-11T13:30:00Z")), false);
+  assert.equal(
+    isDue({ timeZone: "Asia/Kolkata", lastSentDay: null }, at("2026-11-11T13:30:00Z")),
+    false,
+  );
   assert.equal(isDue({ timeZone: "Mars/Olympus", lastSentDay: null }, noon), false);
 });
 
@@ -117,7 +127,11 @@ test("the shared copy matches app/reminders/rules.js and loads in Node", () => {
   );
   const load = spawnSync(
     "node",
-    ["--input-type=module", "-e", `import(${JSON.stringify(shared)}).then((m) => console.log(typeof m.isDue))`],
+    [
+      "--input-type=module",
+      "-e",
+      `import(${JSON.stringify(shared)}).then((m) => console.log(typeof m.isDue))`,
+    ],
     { cwd: root, encoding: "utf8" },
   );
   assert.equal(load.stdout.trim(), "function", load.stderr);
@@ -126,4 +140,13 @@ test("the shared copy matches app/reminders/rules.js and loads in Node", () => {
 test("firestore.rules closes pushSubs to clients", () => {
   const rules = fs.readFileSync(path.join(root, "firestore.rules"), "utf8");
   assert.match(rules, /match \/pushSubs\/\{uid\} \{\s*allow read, write: if false;\s*\}/);
+});
+
+test("validTimeZone refuses long or unknown names without keeping them", () => {
+  assert.equal(validTimeZone("x".repeat(65)), false);
+  assert.equal(validTimeZone(`Asia/${"K".repeat(200000)}`), false);
+  assert.equal(validTimeZone("Not/AZone"), false);
+  // a refused name is asked again, not answered from a cache
+  assert.equal(validTimeZone("Not/AZone"), false);
+  assert.equal(validTimeZone("America/Argentina/ComodRivadavia"), true);
 });

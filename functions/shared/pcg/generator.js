@@ -18,7 +18,6 @@ export const TILE = 16;
 // Player physics (see app/game/player.js): max jump ~2.7 tiles up, ~3.3 tiles across.
 const MAX_STEP_UP = 2;
 const MAX_STEP_DOWN = 3;
-const MAX_GAP = 3; // empty columns that can be jumped at equal height
 // Flat, hazard-free columns at each edge so a player running through a portal
 // does not land straight in a pit or an enemy.
 const SAFE_EDGE = 4;

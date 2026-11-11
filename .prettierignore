@@ -1,3 +1,7 @@
 temp
 dist
 pnpm-lock.yaml
+functions/pnpm-lock.yaml
+packages
+.claude
+demo.gif

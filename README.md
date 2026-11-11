@@ -35,10 +35,16 @@ Needs Node.js 26 (`.nvmrc`) and [pnpm](https://pnpm.io) (the version in `package
 
 ```bash
 pnpm install
+cp .env.example .env   # then fill in the Firebase web app values
 pnpm serve
 ```
 
-Game will launch at `http://localhost:2108/`
+Game will launch at `http://localhost:2108/`. The Firebase web config lives in `.env`
+(git-ignored; `.env.example` lists every value). Without it the game still builds and plays
+offline; sign-in, shared worlds and leaderboards are then unavailable.
+
+Before pushing, `pnpm check` runs what CI runs: lint, format check, tests, the functions'
+shared-code check and a production build. `pnpm audit:all` audits both dependency trees.
 
 ## Controls
 
@@ -83,7 +89,7 @@ arena gates shut when the fight starts and lift when the boss falls. Beating the
 boss finishes the campaign.
 
 **Unlocking:** the level select only opens a level once you have walked into it in the
-campaign. Play continues from the last level you reached. On localhost (or with `?debug`) every
+campaign. Play continues from the last level you reached. On localhost (or with `?debug` on a PR preview channel) every
 level is open for testing; Settings has a developer switch to turn that off, and only real
 progress is saved.
 
@@ -170,8 +176,20 @@ one origin. `?emulators=0` switches back to the real project. Put a key in
 ### Deploying
 
 Pushes to `master` run CI and deploy Hosting, Functions and the Firestore rules and
-indexes (`.github/workflows/firebase-hosting-merge.yml`); pull requests get CI and a
-Hosting preview channel. By hand: `firebase deploy`.
+indexes (`.github/workflows/firebase-hosting-merge.yml`), then check the callable
+functions are still public; pull requests get CI and a Hosting preview channel. By hand:
+`pnpm build && firebase deploy` (with `.env` in place).
+
+| Workflow                            | When                     | What                                                            |
+| ----------------------------------- | ------------------------ | --------------------------------------------------------------- |
+| `ci.yml`                            | every PR, before deploys | lint, Prettier, tests, functions check, `pnpm audit`, build     |
+| `firebase-hosting-pull-request.yml` | every PR from this repo  | Hosting preview channel (7 days)                                |
+| `firebase-hosting-merge.yml`        | push to `master`         | CI, then deploy Hosting, Functions, Firestore rules and indexes |
+| `security.yml`                      | PRs, `master`, weekly    | CodeQL, gitleaks secret scan, dependency review on PRs          |
+| `.github/dependabot.yml`            | weekly                   | grouped updates for the game, the functions and the Actions     |
+
+Repository secrets the deploys need: `FIREBASE_SERVICE_ACCOUNT_DINOS_ADVENTURE` (deploy
+service account) and `APP_ENV` (the whole `.env` file: `gh secret set APP_ENV < .env`).
 
 ## Sprites
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = "dino-v25";
+const CACHE_NAME = "dino-v26";
 
 // Daily reminders (web push through Firebase Cloud Messaging).
 // The service worker can't import modules: this repeats the daily copy from
@@ -54,30 +54,46 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+// Network first, cache as the offline fallback. Only the game's own GET files
+// are cached: Firebase's reserved /__/ paths (sign-in handler URLs carry OAuth
+// state), other origins (Firestore, Google APIs) and POSTs go straight to the
+// network. Every page address (/?world=…, /?from=reminder) is one cached page,
+// so an offline open never pairs an old page with a newer bundle.
+const PAGE_KEY = "./";
+
+const GAME_PAGES = ["/", "/index.html"];
+
+const cacheable = (request) => {
+  if (request.method !== "GET") return false;
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin || url.pathname.startsWith("/__/")) return false;
+  // other pages (the /w/<id> world links) are served fresh, never as the game
+  return request.mode !== "navigate" || GAME_PAGES.includes(url.pathname);
+};
+
 self.addEventListener("fetch", (event) => {
+  const { request } = event;
+  if (!cacheable(request)) return;
+  const page = request.mode === "navigate";
+  const key = page ? new Request(PAGE_KEY) : request;
   event.respondWith(
-    fetch(event.request)
+    fetch(request)
       .then((response) => {
-        try {
-          if (!response || response.status !== 200 || response.type !== "basic") {
-            return response;
-          }
-
-          const resClone = response.clone();
-
-          caches
-            .open(CACHE_NAME)
-            .then((cache) => {
-              cache.put(event.request, resClone);
-            })
-            .catch((error) => {
-              console.log("SW: error caching", error);
-            });
-        } catch (error) {
-        } finally {
-          return response;
+        if (response && response.status === 200 && response.type === "basic") {
+          const copy = response.clone();
+          event.waitUntil(
+            caches
+              .open(CACHE_NAME)
+              .then((cache) => cache.put(key, copy))
+              .catch(() => {}),
+          );
         }
+        return response;
       })
-      .catch(() => caches.match(event.request)),
+      .catch(() =>
+        caches
+          .match(key, page ? { ignoreSearch: true } : undefined)
+          .then((cached) => cached || Response.error()),
+      ),
   );
 });

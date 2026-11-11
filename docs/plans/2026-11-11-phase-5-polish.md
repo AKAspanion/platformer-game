@@ -36,10 +36,12 @@ None (`run.checkpoints: none`). The run goes through all three tasks and stops b
 ### Task 1: Ghost recording, storage and playback
 
 **Files:**
+
 - Create: `app/ghosts/ghost.js`
 - Test: `tests/ghosts.test.js`
 
 **Interfaces:**
+
 - Consumes: existing `LEVELS` from `app/util/index.js`; the player's animation names from `app/game/player.js` (`frameSets` keys such as `idleRight`, `runLeft`, `riseRight`, `fallLeft`, `hurtRight`).
 - Produces (used by Task 3):
 
@@ -71,6 +73,7 @@ export function ghostAt(ghost: Ghost, tick: number): Sample | null;
 ```
 
 **Spec:**
+
 - §1: "A finish saves a new ghost only when it is the level's first finish on this device, or faster than the ghost already kept."
 - §1: "The ghost starts when the level starts and moves exactly as the kept run did, by the level's clock. When the kept run reached the exit, the ghost disappears."
 - §1: "A ghost records the dino's position 15 times a second. A run longer than 4 minutes keeps no ghost."
@@ -82,6 +85,7 @@ export function ghostAt(ghost: Ghost, tick: number): Sample | null;
 **Knowledge:** none (this project has no knowledge base)
 
 **Acceptance:**
+
 - Given a recorder fed ticks 0–9, when `finish(1, 0.33)` runs, then the ghost has 5 samples (ticks 0, 2, 4, 6, 8).
 - Given a run of 240 seconds, then `finish` keeps it; 241 seconds, then null; nothing sampled, then null.
 - Given a ghost, when `encodeGhost` then `decodeGhost` run, then positions match to within 1 pixel, and `anim`, `frame`, `levelId` and `seconds` match exactly.
@@ -124,10 +128,12 @@ git commit -m "feat(ghosts): record, store and replay a level's fastest run"
 ### Task 2: Onboarding rules
 
 **Files:**
+
 - Create: `app/onboarding/onboarding.js`
 - Test: `tests/onboarding.test.js`
 
 **Interfaces:**
+
 - Consumes: existing campaign state shape `{ reached, last, stars, best }` (`app/campaign/index.js`), existing `LEVELS`.
 - Produces (used by Task 3):
 
@@ -152,6 +158,7 @@ export function createOnboarding(storage?: Storage): {
 ```
 
 **Spec:**
+
 - §2: "The very first time the game opens on a device with no campaign progress (nothing reached beyond Grassland 1 and no stars), it skips the home screen once and starts Grassland 1 as soon as loading finishes."
 - §2: "During that first run, a controls hint shows at the top of the screen: on a keyboard "← → move · ↑ or Space jump · Enter fire", on a touch screen "Use the buttons to move, jump and fire"."
 - §2: "The hint fades out once the player has moved and jumped, or after 15 seconds, whichever comes first, and never shows again."
@@ -164,6 +171,7 @@ export function createOnboarding(storage?: Storage): {
 **Knowledge:** none (this project has no knowledge base)
 
 **Acceptance:**
+
 - Given campaign {reached [1], stars {}} and a fresh store, when `takeFirstOpen` runs, then true; the second call, false; after a reload with the same storage, false.
 - Given campaign {reached [1, 2], stars {}} or {reached [1], stars {1: 1}} (progress, for example pulled from cloud save), then false, and it stays false later.
 - Given `hintText(false)`, then "← → move · ↑ or Space jump · Enter fire"; `hintText(true)`, then "Use the buttons to move, jump and fire".
@@ -202,6 +210,7 @@ git commit -m "feat(onboarding): first open, controls hint and world 1 offer rul
 ### Task 3: Ghosts and onboarding in the game
 
 **Files:**
+
 - Modify: `app/index.js`
 - Modify: `app/index.html`
 - Modify: `app/index.css`
@@ -209,22 +218,24 @@ git commit -m "feat(onboarding): first open, controls hint and world 1 offer rul
 - Test: `tests/ghost-settings.test.js`
 
 **Interfaces:**
+
 - Consumes: `createRecorder`, `createGhostStore`, `ghostAt`, `GHOST_ALPHA` (Task 1); `createOnboarding`, `HINT_TIMEOUT` (Task 2); existing `finishLevel`, `setupWorld`, `update`, `render`, `drawPlayer`, `isCampaignLevel`, `startStory`, the loading screen hand-off in `update`, the Reset progress handler, `selectTab`/`openCreator`, `settings`, `track`.
 - Produces: the screens below; `settings.get("ghost")` defaults to true.
 
 Screens and states:
 
-| Screen | State | Shows |
-|---|---|---|
-| Campaign level | ghost kept, Show ghost on | the classic dino at 35% opacity behind the player, replaying the kept run |
-| Campaign level | no ghost, or Show ghost off | no ghost |
-| Other modes | any | no ghost |
-| First open | after loading | Grassland 1 starts with no home screen; hint at the top in keyboard or touch copy |
-| First open | moved and jumped, or 15 s | hint fades out |
-| After beating Grassland 6, first time | — | card "You beat World 1!", "Play worlds made by other players, or make your own.", "Play community worlds", "Make my own", "Later" |
-| Settings | — | switch "Show ghost", on by default |
+| Screen                                | State                       | Shows                                                                                                                             |
+| ------------------------------------- | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Campaign level                        | ghost kept, Show ghost on   | the classic dino at 35% opacity behind the player, replaying the kept run                                                         |
+| Campaign level                        | no ghost, or Show ghost off | no ghost                                                                                                                          |
+| Other modes                           | any                         | no ghost                                                                                                                          |
+| First open                            | after loading               | Grassland 1 starts with no home screen; hint at the top in keyboard or touch copy                                                 |
+| First open                            | moved and jumped, or 15 s   | hint fades out                                                                                                                    |
+| After beating Grassland 6, first time | —                           | card "You beat World 1!", "Play worlds made by other players, or make your own.", "Play community worlds", "Make my own", "Later" |
+| Settings                              | —                           | switch "Show ghost", on by default                                                                                                |
 
 **Spec:**
+
 - §1: "Each campaign level keeps a ghost of the player's fastest finish on this device: a see-through copy of the dino replaying that run."
 - §1: "The ghost is drawn at 35% opacity, behind the player, in the classic look (no skin, no hat), facing and animating as the run did."
 - §1: "After a death or a restart, the ghost follows the level's clock, so it restarts with the level."
@@ -240,6 +251,7 @@ Screens and states:
 **Knowledge:** none (this project has no knowledge base)
 
 **Acceptance:**
+
 - Given a fresh settings store, when `settings.get("ghost")` runs, then true; after `settings.set("ghost", false)`, false.
 - Given Grassland 1 finished in 38 s with no ghost kept, when the level ends, then a ghost is saved and `ghost_saved {level_id: 1, seconds: 38}` is tracked; replaying it, the ghost moves along the kept path at 35% opacity behind the dino, in the classic look even with a skin and hat worn.
 - Given a slower finish, then the kept ghost stays and nothing is tracked.
