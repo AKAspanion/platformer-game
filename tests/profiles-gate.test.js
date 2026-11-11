@@ -92,6 +92,11 @@ function deviceWith(remote) {
     async set(uid, save) {
       remote[uid] = save;
     },
+    async update(uid, step) {
+      const save = step(await saveBackend.get(uid));
+      if (save) await saveBackend.set(uid, save);
+      return save;
+    },
   };
   const writes = [];
   const profiles = createProfiles({
@@ -188,8 +193,11 @@ test("an after-merge step that throws is logged, and cloud save still sends the 
   writeLocal({ ...emptyProgress(), highScore: 40 }, storage);
   const cloud = createCloudSave({
     backend: {
-      get: async (uid) => remote[uid] || null,
-      set: async (uid, save) => (remote[uid] = save),
+      async update(uid, step) {
+        const save = step(remote[uid] || null);
+        if (save) remote[uid] = save;
+        return save;
+      },
     },
     local: { read: () => readLocal(storage), write: (p) => writeLocal(p, storage) },
     timers: { setTimeout: () => 0, clearTimeout() {} },

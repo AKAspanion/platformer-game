@@ -18,6 +18,7 @@ import {
 } from "../app/progress/save";
 import { createCloudSave } from "../app/progress/cloud";
 import { createProfiles } from "../app/profiles";
+import { createProfileGate } from "../app/profiles/gate";
 import { DAY_MS, dayNumber } from "../app/profiles/rules";
 
 function memoryStorage() {
@@ -104,21 +105,29 @@ const DAY = 20000;
 function account() {
   const saves = {};
   const profileDoc = { value: null };
-  return {
-    profileDoc,
-    profileWrites: [],
-    saveBackend: {
-      async get(uid) {
-        return Object.hasOwn(saves, uid) ? saves[uid] : null;
-      },
-      async set(uid, save) {
-        saves[uid] = JSON.parse(JSON.stringify(save));
-      },
+  const saveBackend = {
+    async get(uid) {
+      return Object.hasOwn(saves, uid) ? saves[uid] : null;
+    },
+    async set(uid, save) {
+      saves[uid] = JSON.parse(JSON.stringify(save));
+    },
+    /** As a Firestore transaction: read, then write what the step gives. */
+    async update(uid, step) {
+      const save = step(await saveBackend.get(uid));
+      if (save) await saveBackend.set(uid, save);
+      return save;
     },
   };
+  return { profileDoc, profileWrites: [], saveBackend };
 }
 
-/** One device: its own storage, cloud save, switch and profile writer, on a shared clock. */
+/**
+ * One device: its own storage, cloud save, switch and profile writer, on a
+ * shared clock, wired as app/index.js wires them: the profile is written by
+ * the gate after each merge of the account's save (onMerge), and a change
+ * (worn items, the switch, progress) sends the save at once.
+ */
 function device(acc, clock) {
   const storage = memoryStorage();
   const now = () => clock.ms;
@@ -135,24 +144,46 @@ function device(acc, clock) {
     },
   };
   let profiles = createProfiles({ backend: profileBackend, storage, now });
-  let cloud = createCloudSave({ backend: acc.saveBackend, local, timers, now });
-  const writeProfile = () =>
-    profiles.sync(UID, readLocal(storage).wallet.worn, { showLastSeen: lastSeen.on() });
+  let profileWrite = Promise.resolve();
+  const gate = createProfileGate({
+    sync: (uid, worn, options) => profiles.sync(uid, worn, options),
+    read: () => ({ worn: readLocal(storage).wallet.worn, showLastSeen: lastSeen.on() }),
+  });
+  const newCloud = () =>
+    createCloudSave({
+      backend: acc.saveBackend,
+      local,
+      timers,
+      now,
+      onMerge: (uid) => {
+        profileWrite = Promise.resolve(gate.merged(uid));
+      },
+    });
+  let cloud = newCloud();
+  const sendNow = async () => {
+    cloud.changed();
+    await cloud.flush();
+    await profileWrite;
+  };
   return {
     lastSeen,
-    /** A new session: the page loads, cloud save starts and merges, then the profile is written. */
+    /** A new session: the page loads, cloud save starts and merges, and the profile follows. */
     async open() {
       profiles = createProfiles({ backend: profileBackend, storage, now });
-      cloud = createCloudSave({ backend: acc.saveBackend, local, timers, now });
+      cloud = newCloud();
+      gate.start(UID);
       await cloud.start(UID);
-      await writeProfile();
+      await profileWrite;
     },
-    /** The Settings switch, as the game wires it: save it, send the save, write the profile. */
+    /** The Settings switch. */
     async flip(on) {
       lastSeen.set(on);
-      cloud.changed();
-      await cloud.flush();
-      await writeProfile();
+      await sendNow();
+    },
+    /** Plays on in the same session: progress changes and is sent. */
+    async play(changes) {
+      writeLocal({ ...readLocal(storage), ...changes }, storage);
+      await sendNow();
     },
   };
 }
@@ -211,6 +242,74 @@ test("with the switch off, a device's first write each session clears a seenDay 
   const writes = acc.profileWrites.length;
   await a.flip(false);
   assert.equal(acc.profileWrites.length, writes);
+});
+
+test("a device whose session predates the switch-off never turns it back on (spec §4.3)", async () => {
+  const acc = account();
+  const clock = { ms: DAY * DAY_MS + 1000 };
+  const a = device(acc, clock);
+  const b = device(acc, clock);
+  const noSeenDay = (writes) => writes.every((p) => !Object.hasOwn(p, "seenDay"));
+
+  // t1: B's session starts with the switch on and writes today's seenDay
+  await b.open();
+  assert.equal(acc.profileDoc.value.seenDay, DAY);
+
+  // t2: A turns it off
+  clock.ms += 1000;
+  const t2 = clock.ms;
+  await a.open();
+  await a.flip(false);
+  const offFrom = acc.profileWrites.length;
+
+  // B, still in its t1 session, plays and pushes its progress
+  clock.ms += 1000;
+  await b.play({ highScore: 50 });
+  const save = await acc.saveBackend.get(UID);
+  assert.deepEqual(save.data.lastSeen, switchAt(false, t2), "the account stays off");
+  assert.equal(save.data.highScore, 50, "B's progress still reaches the account");
+  assert.equal(b.lastSeen.on(), false, "B takes the account's switch");
+  assert.equal(Object.hasOwn(acc.profileDoc.value, "seenDay"), false);
+
+  // B's next session, and a fresh device C, write no seenDay
+  clock.ms += 1000;
+  await b.open();
+  const c = device(acc, clock);
+  await c.open();
+  assert.equal(c.lastSeen.on(), false);
+  assert.ok(acc.profileWrites.length > offFrom, "the profile was still written");
+  assert.ok(noSeenDay(acc.profileWrites.slice(offFrom)));
+  assert.deepEqual((await acc.saveBackend.get(UID)).data.lastSeen, switchAt(false, t2));
+
+  // t3: B turns it on: that newer change wins
+  clock.ms += 1000;
+  const t3 = clock.ms;
+  await b.flip(true);
+  assert.deepEqual((await acc.saveBackend.get(UID)).data.lastSeen, switchAt(true, t3));
+  assert.equal(acc.profileDoc.value.seenDay, dayNumber(t3));
+});
+
+test("a change always outranks the switch it replaced, even from a clock that is behind", () => {
+  const storage = memoryStorage();
+  writeLocal(withProgress({ lastSeen: switchAt(true, 5000) }), storage);
+  const lastSeen = createLastSeen(storage, () => 1000); // this device's clock is behind
+  assert.equal(lastSeen.set(false), true);
+  assert.deepEqual(readLocal(storage).lastSeen, switchAt(false, 5001));
+  assert.deepEqual(
+    mergeProgress(readLocal(storage), withProgress({ lastSeen: switchAt(true, 5000) })).lastSeen,
+    switchAt(false, 5001),
+  );
+});
+
+test("the game sends the save on a worn or switch change, and the profile follows its merge", () => {
+  const index = fs.readFileSync("app/index.js", "utf8");
+  const at = index.indexOf("const syncProfile = ");
+  const wiring = index.slice(at, at + 120);
+  assert.match(
+    wiring,
+    /^const syncProfile = \(\) => \{\s*cloud\.changed\(\);\s*cloud\.flush\(\);\s*\};/,
+  );
+  assert.doesNotMatch(index, /profileGate\.changed\(/);
 });
 
 test("the cloud save carries the switch to the account", async () => {

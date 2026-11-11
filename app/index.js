@@ -291,14 +291,18 @@ window.addEventListener("load", function () {
     $("shopBalance").innerHTML = coinText(wallet.balance());
   };
 
-  // The player's look (and last-online day) follows the account: written once cloud save has
-  // merged the account's save, then after wearing an item and when the switch changes. No
-  // account, no profile, and nothing loads. Never shows an error.
+  // The player's look (and last-online day) follows the account: written each time cloud save
+  // has merged the account's save (onMerge), so never with a switch another device has since
+  // turned off. Wearing an item or flipping the switch sends the save now, and the profile
+  // follows that merge. No account, no profile, and nothing loads. Never shows an error.
   const profileGate = createProfileGate({
     sync: profiles.sync,
     read: () => ({ worn: wallet.worn(), showLastSeen: lastSeen.on() }),
   });
-  const syncProfile = () => profileGate.changed();
+  const syncProfile = () => {
+    cloud.changed();
+    cloud.flush();
+  };
 
   // The account's save is merged in, then kept in step; it never shows an error.
   const cloud = createCloudSave({
@@ -2125,11 +2129,8 @@ window.addEventListener("load", function () {
   setAnalytics.onchange = () => setAnalyticsEnabled(setAnalytics.checked);
   setShake.onchange = () => settings.set("shake", setShake.checked);
   setLastSeen.onchange = () => {
-    // the account's setting: send the save now so the other devices get it on their next merge
-    if (lastSeen.set(setLastSeen.checked)) {
-      cloud.changed();
-      cloud.flush();
-    }
+    // the account's setting: the save goes now, so the other devices take it at their next merge
+    lastSeen.set(setLastSeen.checked);
     syncProfile();
   };
   setGhost.onchange = () => {

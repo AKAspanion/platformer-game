@@ -5,8 +5,10 @@
  * account's, not a fresh or stale device's defaults.
  *
  *   start(uid)   cloud save starts for uid: hold writes until its save merges
- *   merged(uid)  cloud save merged uid's save (cloud.js onMerge): write now
- *   changed()    worn items or the switch changed: write, if merged
+ *   merged(uid)  cloud save merged uid's save (cloud.js onMerge, after its
+ *                start and each push): write now
+ *   changed()    write now, if merged (the game instead sends the save on a
+ *                worn or switch change, so its write follows a fresh merge)
  *   stop()       signed out: write nothing
  *
  * `read()` gives { worn, showLastSeen } from the device, at the moment of the

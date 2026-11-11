@@ -4,12 +4,18 @@
  * nothing from either side is lost, and it never shows an error: a save that
  * can't be sent stays on the device and the next change or start sends it.
  *
+ * Every write is one read-merge-write of the account's save (backend.update,
+ * a transaction): a push from a device whose session predates another
+ * device's change merges that change in, and takes it, rather than sending
+ * its stale copy over it. A reset replaces the account's progress but still
+ * merges the last-online switch, a setting a reset never turns back on.
+ *
  * Callers create it only for a player who already has an account; this module
  * never creates one and loads nothing itself (the backend loads Firebase).
  *
- * onMerge(uid), optional, runs after each pull that merged the account's save
- * into this device (or found none), never after a failed pull or for an
- * account that has since been replaced: the profile waits for it.
+ * onMerge(uid), optional, runs after each read-merge-write that went through
+ * (the start, each push, a reset), never after a failed one or for an account
+ * that has since been replaced: the profile is written from what it merged.
  */
 import { mergeProgress, emptyProgress, saveBytes, MAX_SAVE_BYTES, SAVE_VERSION } from "./save";
 
@@ -26,8 +32,8 @@ export function createCloudSave({ backend, local, timers, now = Date.now, onMerg
   };
   let uid = null;
   let run = 0; // bumped by start and stop so a stale async step gives up
-  let pulled = false; // the account's save has been merged in this run
   let dirty = false; // something here isn't in the account's save yet
+  let edits = 0; // bumped by each change, so one made mid-exchange stays pending
   let timer = null;
   let chain = Promise.resolve();
 
@@ -36,38 +42,46 @@ export function createCloudSave({ backend, local, timers, now = Date.now, onMerg
     timer = null;
   };
 
-  // Sends `progress` stamped now. A save over the size limit is not sent and
-  // not retried: the game keeps playing from the device copy. False when a
-  // send failed and should be retried.
-  async function send(mine, progress) {
-    if (saveBytes(progress) > MAX_SAVE_BYTES) return true;
-    try {
-      await backend.set(mine, { v: SAVE_VERSION, updatedAt: now(), data: progress });
-      return true;
-    } catch (error) {
-      return false;
-    }
+  // This device's progress with the account's save `theirs` (null: none yet)
+  // merged in, and whether the account lacks any of it. Replacing (a reset)
+  // keeps this device's progress, but the later switch of the two.
+  function mergedWith(device, theirs, replacing) {
+    if (!theirs) return { merged: device, send: true };
+    const both = mergeProgress(device, theirs);
+    if (replacing) return { merged: { ...device, lastSeen: both.lastSeen }, send: true };
+    return { merged: both, send: fingerprint(both) !== fingerprint(theirs) };
   }
 
-  // Pull, merge, write local if it gained anything, push if the account lacks something.
-  async function sync() {
+  // One read-merge-write of the account's save, then the merge comes back to
+  // this device. A save over the size limit is not sent and not retried: the
+  // game keeps playing from the device copy. A failure leaves it pending.
+  async function exchange(replacing) {
     const mine = uid;
     const id = run;
+    const edit = edits;
     if (mine === null) return;
     dirty = true;
-    let remote;
+    let merged = null; // what the step that committed merged
     try {
-      remote = await backend.get(mine);
+      await backend.update(mine, (remote) => {
+        if (id !== run) return null; // stopped or restarted: write nothing
+        const device = local.read();
+        const theirs = remote && remote.data ? remote.data : null;
+        const step = mergedWith(device, theirs, replacing);
+        merged = step.merged;
+        if (!step.send) return null;
+        const data = { ...merged, updatedAt: now() };
+        if (saveBytes(data) > MAX_SAVE_BYTES) return null;
+        return { v: SAVE_VERSION, updatedAt: now(), data };
+      });
     } catch (error) {
-      return; // stays dirty: a later start or change retries
+      return; // stays dirty: a later start, change or flush retries
     }
-    if (id !== run) return;
+    if (id !== run || merged === null) return;
     const device = local.read();
-    const theirs = remote && remote.data ? remote.data : null;
-    const merged = theirs ? mergeProgress(device, theirs) : device;
-    if (fingerprint(merged) !== fingerprint(device)) local.write(merged);
-    pulled = true;
-    dirty = false;
+    const next = mergeProgress(device, merged);
+    if (fingerprint(next) !== fingerprint(device)) local.write(next);
+    if (edits === edit) dirty = false;
     if (onMerge) {
       try {
         onMerge(mine);
@@ -75,35 +89,17 @@ export function createCloudSave({ backend, local, timers, now = Date.now, onMerg
         console.warn("Cloud save: after-merge step failed:", error && error.name);
       }
     }
-    if (theirs && fingerprint(merged) === fingerprint(theirs)) return;
-    if (!(await send(mine, { ...merged, updatedAt: now() })) && id === run) dirty = true;
   }
 
-  async function push() {
-    const mine = uid;
-    const id = run;
-    if (mine === null) return;
-    if (!pulled) return sync(); // never overwrite an account save we haven't merged
-    dirty = false;
-    if (!(await send(mine, { ...local.read(), updatedAt: now() })) && id === run) dirty = true;
-  }
+  const sync = () => exchange(false);
 
-  // Replaces the account's save with this device's (reset) progress, without
-  // merging the old one back. If the send fails the account is not known to
-  // match, so the next push pulls and merges first, where the later reset wins.
-  async function replace() {
-    const mine = uid;
-    const id = run;
-    if (mine === null) return;
+  // Replaces the account's progress with this device's (reset) progress,
+  // without merging the old progress back; if it fails, the next push merges,
+  // where the later reset wins.
+  const replace = () => {
     cancelTimer();
-    dirty = true;
-    if (await send(mine, { ...local.read(), updatedAt: now() })) {
-      if (id === run) {
-        pulled = true;
-        dirty = false;
-      }
-    }
-  }
+    return exchange(true);
+  };
 
   // Jobs run one at a time so a slow one can't land after a newer one.
   const queue = (job) => {
@@ -115,17 +111,17 @@ export function createCloudSave({ backend, local, timers, now = Date.now, onMerg
     start(account) {
       cancelTimer();
       uid = account;
-      pulled = false;
       run += 1;
       return queue(sync);
     },
     changed() {
       if (uid === null) return;
       dirty = true;
+      edits += 1;
       cancelTimer();
       timer = clock.setTimeout(() => {
         timer = null;
-        queue(push);
+        queue(sync);
       }, SAVE_DELAY);
     },
     reset() {
@@ -134,12 +130,11 @@ export function createCloudSave({ backend, local, timers, now = Date.now, onMerg
     flush() {
       if (uid === null || !dirty) return chain;
       cancelTimer();
-      return queue(push);
+      return queue(sync);
     },
     stop() {
       cancelTimer();
       uid = null;
-      pulled = false;
       dirty = false;
       run += 1;
     },

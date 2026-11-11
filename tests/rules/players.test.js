@@ -24,8 +24,10 @@ import {
   getDocs,
   Timestamp,
   setLogLevel,
+  runTransaction,
 } from "firebase/firestore";
 import { dayNumber, PROFILE_BATCH } from "../../app/profiles/rules";
+import { updateSave } from "../../app/firebase/saves";
 
 const PROJECT = "demo-dino";
 let env;
@@ -277,6 +279,54 @@ test("saves/u1 stays private to u1", async () => {
   await seed("saves/u1", { v: 1, updatedAt: 1, data: {} });
   await assertFails(getDoc(doc(as("u2"), "saves/u1")));
   await assertSucceeds(getDoc(doc(as("u1"), "saves/u1")));
+});
+
+// cloud save's one write path: a read-merge-write of saves/{uid} in a transaction
+const storeApi = { doc, runTransaction };
+const saveOf = (lastSeen, extra = {}) => ({ v: 1, updatedAt: 1, data: { lastSeen, ...extra } });
+
+test("the owner's save update reads the account's save and writes what the step gives", async () => {
+  await seed("saves/u1", saveOf({ on: false, changedAt: 200 }, { highScore: 3 }));
+  const db = as("u1");
+  const seen = [];
+  const written = await updateSave(storeApi, db, "u1", (remote) => {
+    seen.push(remote);
+    return { v: 1, updatedAt: 9, data: { ...remote.data, highScore: 50 }, extra: "dropped" };
+  });
+  assert.deepEqual(seen.at(-1), saveOf({ on: false, changedAt: 200 }, { highScore: 3 }));
+  const expected = {
+    v: 1,
+    updatedAt: 9,
+    data: { lastSeen: { on: false, changedAt: 200 }, highScore: 50 },
+  };
+  assert.deepEqual(written, expected);
+  assert.deepEqual((await getDoc(doc(db, "saves/u1"))).data(), expected);
+});
+
+test("a save update with no save yet gives the step null, and a null step writes nothing", async () => {
+  const db = as("u1");
+  const seen = [];
+  assert.equal(
+    await updateSave(storeApi, db, "u1", (remote) => {
+      seen.push(remote);
+      return null;
+    }),
+    null,
+  );
+  assert.deepEqual(seen, [null]);
+  assert.equal((await getDoc(doc(db, "saves/u1"))).exists(), false);
+});
+
+test("another account's save update is denied and changes nothing", async () => {
+  await seed("saves/u1", saveOf({ on: false, changedAt: 200 }));
+  await assertFails(
+    updateSave(storeApi, as("u2"), "u1", () => saveOf({ on: true, changedAt: 900 })),
+  );
+  let kept;
+  await env.withSecurityRulesDisabled(async (context) => {
+    kept = (await getDoc(doc(context.firestore(), "saves/u1"))).data();
+  });
+  assert.deepEqual(kept, saveOf({ on: false, changedAt: 200 }));
 });
 
 test("a write to an unmatched path is denied", async () => {
