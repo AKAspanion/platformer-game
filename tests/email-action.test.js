@@ -97,6 +97,8 @@ test("the build ships the game's own 404 and account email pages", () => {
   const urls = [...page.matchAll(/(?:href|src)="([^"]+)"/g)].map((m) => m[1]);
   assert.ok(urls.length > 0);
   for (const url of urls) assert.match(url, /^(\/|https:\/\/)/, url);
-  // what a player sees never mentions Firebase (comments aside)
-  assert.ok(!/firebase/i.test(page.replace(/<!--[\s\S]*?-->/g, "")));
+  // what a player sees (the body; the file's notes sit above it) never mentions Firebase
+  const body = page.slice(page.indexOf("<body>"));
+  assert.ok(body.includes("Wrong turn"));
+  assert.ok(!/firebase/i.test(body));
 });
