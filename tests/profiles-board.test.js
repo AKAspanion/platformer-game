@@ -1,6 +1,7 @@
 import "./env";
 import test from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import { avatarKey, createAvatars, rowLooks, loadProfiles } from "../app/profiles/avatar";
 import { cleanProfile, PROFILE_BATCH } from "../app/profiles/rules";
 import { createProfiles } from "../app/profiles";
@@ -145,4 +146,19 @@ test("a sprite that loads late redraws the cached drawing and its copies", () =>
   ready = true;
   redraw();
   assert.ok(blits.length > before);
+});
+
+test("the board's look painting catches and logs its own errors", () => {
+  const index = fs.readFileSync("app/index.js", "utf8");
+  assert.match(
+    index,
+    /paintLooks\(load, shown\)\.catch\(\(error\) =>\s*console\.warn\("Profiles failed:", error && error\.name\)/,
+  );
+  assert.equal(index.match(/paintLooks\(load, shown\);/g), null, "no fire-and-forget call");
+});
+
+test("the profiles backend says how profiles are really read", () => {
+  const client = fs.readFileSync("app/firebase/profiles.js", "utf8");
+  assert.doesNotMatch(client, /readable by anyone signed in/);
+  assert.match(client, /read only through the getProfiles function/);
 });

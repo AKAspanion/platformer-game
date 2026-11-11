@@ -3741,7 +3741,10 @@ window.addEventListener("load", function () {
         });
       }
       shown.forEach(({ el }) => board.list.appendChild(el));
-      paintLooks(load, shown);
+      // never blocks the board: a drawing that throws leaves the classic dinos, and a log line
+      paintLooks(load, shown).catch((error) =>
+        console.warn("Profiles failed:", error && error.name),
+      );
     } catch (error) {
       if (load !== board.load) return;
       console.warn("Leaderboard failed:", friendlyError(error));
