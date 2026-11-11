@@ -44,7 +44,8 @@ export async function handleSubmitEndless(
     const stored = await board.get(auth.uid);
     const better = !stored || compareRuns(run, stored) < 0;
     if (better) {
-      // uid, name and time come from the server, never from the request
+      // uid and name come from the server, never from the request; no time is
+      // stored, so a board entry can't carry one (spec 4.4)
       await board.set(auth.uid, {
         uid: auth.uid,
         name: boardName(auth),
@@ -52,7 +53,6 @@ export async function handleSubmitEndless(
         score,
         seconds,
         seed,
-        updatedAt: now(),
       });
     }
     return {
