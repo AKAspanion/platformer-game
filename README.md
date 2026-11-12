@@ -153,6 +153,10 @@ build flag or saved value, and nothing is remembered offline.
 Testing works the same way: against the emulators (`pnpm emulators`), add the document in
 the Emulator UI's Firestore tab; on a PR preview (live functions), add it in the console.
 
+[docs/firebase-console.md](docs/firebase-console.md) covers everything else you can do from the
+Firebase console: verifying, blocking and deleting accounts, leaderboards, shared worlds and the
+world of the week.
+
 ### How created worlds work
 
 The AI (Claude, in the `designWorld` Cloud Function) only writes a small **world spec**
