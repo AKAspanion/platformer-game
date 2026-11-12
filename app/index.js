@@ -27,13 +27,7 @@ import {
 import { settings, vibrate } from "./util/settings";
 import { COMBO_WINDOW } from "./game/combo";
 import { track, armAnalytics, setAnalyticsEnabled, appOpenParams } from "./analytics";
-import {
-  isPremium,
-  setPremium,
-  readPremiumFromUrl,
-  canToggleLocally,
-  watchAccountPremium,
-} from "./util/premium";
+import { isPremium, canToggleLocally, watchAccountPremium } from "./util/premium";
 import { firestoreEntitlements } from "./firebase/entitlements";
 import {
   FINISH,
@@ -119,7 +113,6 @@ import { drawShieldGlow, glowFlickers } from "./game/shield-fx";
 
 import areas from "./areas";
 
-readPremiumFromUrl();
 preLoadAndFetch();
 populateLinks();
 const isTouchesEnabled = "ontouchstart" in document.documentElement;
@@ -2188,7 +2181,6 @@ window.addEventListener("load", function () {
   const setLastSeen = $("setLastSeen");
   const setControls = $("setControls");
   const setOpacity = $("setOpacity");
-  const setPremiumDev = $("setPremiumDev");
 
   const refreshSettings = () => {
     setMusic.checked = !settings.musicMuted;
@@ -2208,8 +2200,6 @@ window.addEventListener("load", function () {
     const premium = isPremium();
     $("premiumStatus").textContent = premium ? "Active ★" : "Locked";
     $("premiumBtn").style.display = premium ? "none" : "inline-block";
-    $("premiumDevRow").style.display = canToggleLocally() ? "flex" : "none";
-    setPremiumDev.checked = premium;
     $("unlockDevRow").style.display = canToggleLocally() ? "flex" : "none";
     $("setUnlockDev").checked = devUnlock();
     // an anonymous player (daily leaderboard) is signed out here
@@ -2317,11 +2307,6 @@ window.addEventListener("load", function () {
     if (auth.signedIn) await auth.signOut().catch(() => {});
     else openLogin(() => refreshSettings(), "settings");
     refreshSettings();
-  };
-  setPremiumDev.onchange = () => {
-    setPremium(setPremiumDev.checked);
-    refreshSettings();
-    refreshHome();
   };
   $("premiumBtn").onclick = () => openPremium();
   $("setUnlockDev").onchange = () => settings.set("devUnlockAll", $("setUnlockDev").checked);
@@ -2695,20 +2680,9 @@ window.addEventListener("load", function () {
 
   // --------------------------------------------------------------- premium
 
-  const openPremium = () => {
-    const local = canToggleLocally();
-    $("premiumNote").textContent = local
-      ? "Testing locally: this unlocks Premium on this device."
-      : "Coming soon on Google Play.";
-    $("premiumUnlockBtn").style.display = local ? "block" : "none";
-    show(premiumScreen, true);
-  };
+  // Premium comes only from the account's entitlements doc (app/util/premium.js)
+  const openPremium = () => show(premiumScreen, true);
   $("premiumCloseBtn").onclick = () => show(premiumScreen, false);
-  $("premiumUnlockBtn").onclick = () => {
-    setPremium(true);
-    show(premiumScreen, false);
-    refreshHome();
-  };
 
   // ------------------------------------------------------------- sign-in
 

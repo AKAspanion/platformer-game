@@ -156,10 +156,9 @@ const callable = (options, handler) =>
 
 // entitlements/{uid} = { premium: true }: set by hand in the Firebase console (README),
 // later by a verified store purchase. Clients read only their own (firestore.rules).
-// Against the emulators every account is Premium, so the game's local switch is enough.
+// Premium is the boolean true only; against the emulators, add the doc in the Emulator UI.
 const entitlements = {
   async premium(uid) {
-    if (process.env.FUNCTIONS_EMULATOR === "true") return true;
     const snap = await db.collection("entitlements").doc(uid).get();
     return snap.exists && snap.get("premium") === true;
   },
