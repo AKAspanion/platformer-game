@@ -1,8 +1,8 @@
 /**
  * The board's rows fit the leaderboard on a landscape phone. The game is
  * landscape-only, so the narrowest real case is 568 x 320: the modal screen's
- * 16 px margins, the short-screen modal padding (12 px) and the podium column
- * (at least 200 px, then an 18 px gap) leave the list the rest. Each row is its
+ * 16 px margins and the short-screen modal padding (12 px) leave the list the
+ * rest of the width. Each row is its
  * own grid, so its fixed columns, gaps and padding plus the widest score must
  * leave the name at least 80 px, which then truncates with an ellipsis.
  */
@@ -13,7 +13,7 @@ import fs from "node:fs";
 const css = fs.readFileSync("app/index.css", "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
 
 const SCREEN = 568;
-const LIST = SCREEN - 2 * 16 - 2 * 12 - 200 - 18 - 2 * 2; // the list's inner width
+const LIST = SCREEN - 2 * 16 - 2 * 12 - 2 * 2; // the list's inner width
 const SCORE = 84; // the widest score pill measured, "★ 1234567" at 16 px
 const NAME_MIN = 80;
 
@@ -51,20 +51,17 @@ test(`a row's name keeps at least ${NAME_MIN} px in a ${LIST} px list`, () => {
   assert.ok(room >= NAME_MIN, `${room} px left for the name`);
 });
 
-test("the podium column and the list split the modal as the row math assumes", () => {
-  // the first .lb-body rule, before the narrow-screen one stacks them
+test("the list takes the modal's whole width: no column beside it", () => {
   const body = /\.lb-body \{([^}]*)\}/.exec(css)[1];
-  assert.match(body, /grid-template-columns: minmax\(200px, [\d.]+fr\) minmax\(0, [\d.]+fr\);/);
-  assert.match(body, /gap: 18px;/);
+  assert.match(body, /flex-direction: column;/);
+  assert.doesNotMatch(body, /grid-template-columns/);
 });
 
 test("a long name truncates with an ellipsis; the other cells never wrap", () => {
-  for (const cell of [".lb-name", ".lb-step-name"]) {
-    const name = rule(cell);
-    assert.equal(name.overflow, "hidden");
-    assert.equal(name["text-overflow"], "ellipsis");
-    assert.equal(name["white-space"], "nowrap");
-  }
+  const name = rule(".lb-name");
+  assert.equal(name.overflow, "hidden");
+  assert.equal(name["text-overflow"], "ellipsis");
+  assert.equal(name["white-space"], "nowrap");
   assert.equal(rule(".lb-seen")["white-space"], "nowrap");
-  assert.equal(rule(".lb-score,\n.lb-step-score")["white-space"], "nowrap");
+  assert.equal(rule(".lb-score")["white-space"], "nowrap");
 });

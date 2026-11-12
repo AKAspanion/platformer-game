@@ -52,7 +52,7 @@ import { endlessBoard } from "./modes/endless-board";
 import { createEndlessPending } from "./modes/endless-pending";
 import { createRunTickets } from "./modes/run-ticket";
 import { totalBoard } from "./leaderboard/total-board";
-import { totalView, shortScore } from "./leaderboard/view";
+import { totalView } from "./leaderboard/view";
 import { firestoreEndless } from "./firebase/endless";
 import { MIN_LEVEL } from "./modes/endless-rules";
 import { firebaseAuthBackend } from "./firebase/auth";
@@ -3813,15 +3813,12 @@ window.addEventListener("load", function () {
   const board = {
     status: $("leaderboardStatus"),
     list: $("leaderboardList"),
-    podium: $("leaderboardPodium"),
     mine: $("leaderboardMine"),
     retry: $("leaderboardRetryBtn"),
     load: 0,
   };
 
-  // css px, inside each face's frame (index.css .lb-step-face and .lb-avatar)
-  const PODIUM_AVATAR = window.innerHeight < 500 ? 40 : 48;
-  const ROW_AVATAR = 36;
+  const ROW_AVATAR = 36; // css px, inside each face's frame (index.css .lb-avatar)
 
   /** A text cell; names come from other players: text only, never HTML. */
   const cell = (cls, text = "") => {
@@ -3868,26 +3865,6 @@ window.addEventListener("load", function () {
     return row;
   };
 
-  /** The top three on their steps, second / first / third; an empty step waits for a player. */
-  const drawPodium = (podium) => {
-    board.podium.replaceChildren(
-      ...[1, 0, 2].map((i) => {
-        const entry = podium[i];
-        const step = document.createElement("div");
-        step.className = `lb-step place${i + 1}${entry ? "" : " empty"}`;
-        step.append(
-          faceCell("lb-step-face", entry && entry.uid, PODIUM_AVATAR),
-          cell("lb-step-name", entry ? entry.name : "—"),
-          scoreCell("lb-step-score", entry ? shortScore(entry.score) : 0),
-        );
-        const block = cell("lb-step-block");
-        block.appendChild(cell("lb-step-rank", String(i + 1)));
-        step.appendChild(block);
-        return step;
-      }),
-    );
-  };
-
   /** Dinos and last-online on everything showing: one read for the whole board, never blocking it. */
   const paintLooks = async (load) => {
     const holders = [...leaderboardScreen.querySelectorAll("[data-uid]")];
@@ -3919,7 +3896,6 @@ window.addEventListener("load", function () {
     const load = ++board.load;
     board.list.replaceChildren();
     board.mine.replaceChildren();
-    drawPodium([null, null, null]);
     board.retry.style.display = "none";
     board.status.textContent = "Loading leaderboard…";
     try {
@@ -3927,7 +3903,6 @@ window.addEventListener("load", function () {
       const view = totalView(await totalBoard.load(), uid);
       if (load !== board.load) return;
       board.status.textContent = view.status;
-      drawPodium(view.podium);
       board.list.append(...view.rows.map(({ entry, me }) => boardRow(entry, { me })));
       board.mine.appendChild(boardRow(view.mine.entry, { me: true, pinned: true }));
       // never blocks the board: a drawing that throws leaves the classic dinos, and a log line

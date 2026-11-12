@@ -1648,7 +1648,7 @@ a.btn {
 .lb-header {
   position: relative;
   justify-content: center;
-  padding-bottom: 18px; /* room for the ribbon's tails */
+  padding-bottom: 14px; /* room for the ribbon's tails */
 }
 .lb-header .close-btn {
   position: absolute;
@@ -1670,10 +1670,10 @@ a.btn {
      above them, 0.24em below at line-height 1), so more padding on top
      centres the letters themselves in the banner. */
   padding: 0.3em 0.8em 0.13em;
-  border-radius: 10px;
+  border-radius: 8px;
   color: white;
   line-height: 1;
-  font-size: clamp(22px, 4.4vmin, 32px);
+  font-size: clamp(18px, 3.4vmin, 24px);
   background: linear-gradient(#ff7a74, var(--red));
   box-shadow:
     inset 0 2px 0 rgba(255, 255, 255, 0.25),
@@ -1685,132 +1685,50 @@ a.btn {
   content: "";
   position: absolute;
   z-index: -1;
-  top: 10px;
-  bottom: -10px;
-  width: 46px;
+  top: 7px;
+  bottom: -7px;
+  width: 36px;
 }
 .lb-ribbon::before {
-  left: -28px;
-  background: linear-gradient(to right, var(--tail) 28px, var(--fold) 28px);
-  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 12px 50%);
+  left: -22px;
+  background: linear-gradient(to right, var(--tail) 22px, var(--fold) 22px);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 9px 50%);
 }
 .lb-ribbon::after {
-  right: -28px;
-  background: linear-gradient(to left, var(--tail) 28px, var(--fold) 28px);
-  clip-path: polygon(0 0, 100% 0, calc(100% - 12px) 50%, 100% 100%, 0 100%);
+  right: -22px;
+  background: linear-gradient(to left, var(--tail) 22px, var(--fold) 22px);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 9px) 50%, 100% 100%, 0 100%);
 }
 .lb-body {
-  display: grid;
-  grid-template-columns: minmax(200px, 0.8fr) minmax(0, 1.3fr);
-  gap: 18px;
+  display: flex;
+  flex-direction: column;
   width: 100%;
   min-height: 0;
   flex: 1;
 }
-.lb-side {
+.lb-foot {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
-  min-height: 0;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 10px;
 }
 .lb-explain {
   font-size: 13px;
   line-height: 1.3;
-  text-align: center;
   opacity: 0.7;
 }
 .lb-play {
-  width: 100%;
-  max-width: 260px;
+  flex-shrink: 0;
+  min-width: 140px;
 }
-
-/* the podium: second, first, third, the first step tallest */
-.lb-podium {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  align-items: end;
-  gap: 6px;
-  width: 100%;
-}
-.lb-step {
-  --step: #d9e3f0;
-  --step-dark: #9fb2cc;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  min-width: 0;
-}
-.lb-step.place1 {
-  --step: #ffd84d;
-  --step-dark: #e0a920;
-}
-.lb-step.place3 {
-  --step: #f7b27a;
-  --step-dark: #d7803f;
-}
-.lb-step-face {
-  display: block;
-  width: 60px;
-  height: 60px;
-  padding: 3px;
-  border-radius: 14px;
-  background: white;
-  border: 3px solid var(--step-dark);
-  box-shadow: 0 3px 0 rgba(29, 26, 36, 0.15);
-}
-.lb-step.place1 .lb-step-face {
-  transform: scale(1.12);
-  margin-bottom: 6px;
-}
-.lb-step-face canvas,
 .lb-avatar canvas {
   display: block;
   border: 0; /* not the game canvas's frame */
 }
-.lb-step-name {
-  max-width: 100%;
-  font-size: 14px;
-  font-weight: bold;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.lb-step-block {
-  display: flex;
-  justify-content: center;
-  width: 100%;
-  height: 34px;
-  margin-top: 4px;
-  padding-top: 6px;
-  border-radius: 12px 12px 4px 4px;
-  background: linear-gradient(var(--step), var(--step-dark));
-  box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.45);
-}
-.lb-step.place1 .lb-step-block {
-  height: 56px;
-}
-.lb-step.place3 .lb-step-block {
-  height: 24px;
-}
-.lb-step-rank {
-  font-size: 20px;
-  line-height: 1;
-  color: white;
-  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
-}
-.lb-step.empty .lb-step-face {
-  opacity: 0.35;
-}
-.lb-step.empty .lb-step-score {
-  visibility: hidden;
-}
 
 /* the score pill: a gold star and the points */
-.lb-score,
-.lb-step-score {
+.lb-score {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -1821,23 +1739,12 @@ a.btn {
   font-variant-numeric: tabular-nums;
   box-shadow: inset 0 0 0 1px rgba(29, 26, 36, 0.08);
 }
-.lb-step-score {
-  max-width: 100%;
-  font-size: 13px;
-  padding: 1px 8px 1px 5px;
-}
 .lb-star {
   color: #f0b400;
   text-shadow: 0 1px 0 #b98400;
 }
 
 /* the list */
-.lb-main {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  min-width: 0;
-}
 .lb-status {
   padding: 12px 0;
   text-align: center;
@@ -1972,18 +1879,13 @@ a.btn {
   display: none;
 }
 
-/* a narrow (portrait) screen: the podium above the list */
+/* a narrow (portrait) screen: no room for the explanation beside Play */
 @media (max-width: 560px) {
-  .lb-body {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto minmax(0, 1fr);
-    gap: 10px;
-  }
-  .lb-side {
-    order: 0;
-  }
   .lb-explain {
     display: none;
+  }
+  .lb-play {
+    width: 100%;
   }
 }
 /* ----------------------------------------------------------- delete account */
@@ -2608,40 +2510,34 @@ a.btn {
     min-height: 44px;
     transform: translate(-50%, -50%);
   }
-  /* the leaderboard: a smaller podium so the list keeps its room */
+  /* the leaderboard: a compact header and footer so the list keeps its room */
   .lb-container {
     height: 100%;
   }
   .lb-header {
-    padding-bottom: 14px;
+    padding-bottom: 10px;
   }
   .lb-ribbon .modal-title {
-    font-size: 22px;
+    font-size: 17px;
   }
   .lb-ribbon::before,
   .lb-ribbon::after {
-    top: 8px;
-    bottom: -8px;
+    top: 6px;
+    bottom: -6px;
+    width: 30px;
   }
-  .lb-step-face {
-    width: 48px;
-    height: 48px;
-    padding: 2px;
-    border-width: 2px;
-    border-radius: 11px;
+  .lb-ribbon::before {
+    left: -18px;
+    background: linear-gradient(to right, var(--tail) 18px, var(--fold) 18px);
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 8px 50%);
   }
-  .lb-step-block {
-    height: 24px;
-    padding-top: 3px;
+  .lb-ribbon::after {
+    right: -18px;
+    background: linear-gradient(to left, var(--tail) 18px, var(--fold) 18px);
+    clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 50%, 100% 100%, 0 100%);
   }
-  .lb-step.place1 .lb-step-block {
-    height: 38px;
-  }
-  .lb-step.place3 .lb-step-block {
-    height: 16px;
-  }
-  .lb-step-rank {
-    font-size: 16px;
+  .lb-foot {
+    padding-top: 6px;
   }
   .lb-explain {
     font-size: 12px;

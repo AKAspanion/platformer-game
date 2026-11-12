@@ -1,13 +1,13 @@
 /**
  * The combined leaderboard in the game (app/leaderboard): one call loads it,
  * campaign levels are sent with their ticket and never a name, and the screen
- * shows the top three on the podium and the viewer's own row, always.
+ * shows every row in rank order and the viewer's own row, always.
  */
 import "./env";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createTotalBoard } from "../app/leaderboard/total-board";
-import { totalView, shortScore, TOTAL_EMPTY, NO_RANK, YOU } from "../app/leaderboard/view";
+import { totalView, TOTAL_EMPTY, NO_RANK, YOU } from "../app/leaderboard/view";
 import { TOP_LIMIT } from "../app/daily/leaderboard";
 
 const entry = (uid, score = 100) => ({ uid, name: `N ${uid}`, score });
@@ -41,14 +41,17 @@ test("totalBoard.submitCampaign sends the level, score, time and ticket, never a
   ]);
 });
 
-test("the podium holds the top three; empty steps wait", () => {
+test("the rows come in rank order; an empty board says so", () => {
   const view = totalView({ rows: ranked(["a", "b"]), mine: null }, "me");
   assert.deepEqual(
-    view.podium.map((e) => e && e.uid),
-    ["a", "b", null],
+    view.rows.map(({ entry }) => [entry.uid, entry.rank]),
+    [
+      ["a", 1],
+      ["b", 2],
+    ],
   );
   assert.equal(view.status, "");
-  assert.deepEqual(totalView({ rows: [], mine: null }, "me").status, TOTAL_EMPTY);
+  assert.equal(totalView({ rows: [], mine: null }, "me").status, TOTAL_EMPTY);
 });
 
 test("the viewer's own row is always pinned: on the board, below it, or not yet on it", () => {
@@ -69,11 +72,4 @@ test("the viewer's own row is always pinned: on the board, below it, or not yet 
     entry: { uid: "me", name: YOU, score: 0, rank: NO_RANK },
     ranked: false,
   });
-});
-
-test("a podium score stays short: whole below 100k, then k and M, never rounded up", () => {
-  assert.equal(shortScore(98765), "98765");
-  assert.equal(shortScore(123456), "123.4k");
-  assert.equal(shortScore(999999), "999.9k");
-  assert.equal(shortScore(1248000), "1.2M");
 });
