@@ -27,7 +27,14 @@ import {
 import { settings, vibrate } from "./util/settings";
 import { COMBO_WINDOW } from "./game/combo";
 import { track, armAnalytics, setAnalyticsEnabled, appOpenParams } from "./analytics";
-import { isPremium, setPremium, readPremiumFromUrl, canToggleLocally } from "./util/premium";
+import {
+  isPremium,
+  setPremium,
+  readPremiumFromUrl,
+  canToggleLocally,
+  watchAccountPremium,
+} from "./util/premium";
+import { firestoreEntitlements } from "./firebase/entitlements";
 import {
   FINISH,
   records,
@@ -2665,6 +2672,12 @@ window.addEventListener("load", function () {
     }
   };
   auth.onAuthStateChanged(syncCloud);
+  // Premium set on the account in the Firebase console (entitlements/{uid}) unlocks here too
+  watchAccountPremium(auth, firestoreEntitlements, () => {
+    refreshHome();
+    if (isVisible(settingsScreen)) refreshSettings();
+    if (isPremium()) show(premiumScreen, false);
+  });
   const armCloud = () => {
     ["pointerdown", "keydown"].forEach((name) => window.removeEventListener(name, armCloud));
     playerActed = true;

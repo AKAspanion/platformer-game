@@ -103,6 +103,13 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // entitlements/{uid} = { premium: true }: written only from the Firebase console
+    // (or a function); a player can read their own, to unlock Premium in the game.
+    match /entitlements/{uid} {
+      allow get: if request.auth != null && request.auth.uid == uid;
+      allow list, write: if false;
+    }
+
     // pushSubs/{uid}: device tokens, written and read by the functions only.
     match /pushSubs/{uid} {
       allow read, write: if false;

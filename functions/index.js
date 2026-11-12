@@ -154,6 +154,17 @@ const callable = (options, handler) =>
     }
   });
 
+// entitlements/{uid} = { premium: true }: set by hand in the Firebase console (README),
+// later by a verified store purchase. Clients read only their own (firestore.rules).
+// Against the emulators every account is Premium, so the game's local switch is enough.
+const entitlements = {
+  async premium(uid) {
+    if (process.env.FUNCTIONS_EMULATOR === "true") return true;
+    const snap = await db.collection("entitlements").doc(uid).get();
+    return snap.exists && snap.get("premium") === true;
+  },
+};
+
 let designer = null;
 
 export const designWorld = callable(
@@ -170,7 +181,7 @@ export const designWorld = callable(
       }
       return result;
     };
-    return handleDesign(request, { design, limiter });
+    return handleDesign(request, { design, limiter, entitlements });
   },
 );
 
@@ -407,6 +418,9 @@ const accounts = {
   },
   async deleteReminders(uid) {
     await db.collection("pushSubs").doc(uid).delete();
+  },
+  async deleteEntitlement(uid) {
+    await db.collection("entitlements").doc(uid).delete();
   },
   async deleteData(uid) {
     await db.collection("limits").doc(uid).delete();
