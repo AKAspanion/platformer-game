@@ -1,6 +1,6 @@
 # Lint, format, tests, dependency audit and a production build for every pull
-# request. The deploy workflow (firebase-hosting-merge.yml) runs this too
-# before it deploys.
+# request. The deploy workflow (firebase-hosting-merge.yml) runs this too, adding
+# the end-to-end tests, and deploys only when every job here passed.
 name: CI
 
 on:
@@ -69,3 +69,55 @@ jobs:
       # No .env here: the build plays offline, which is all the checks need.
       - name: Build
         run: pnpm build
+
+  # The game in real browsers: a production build against the Firebase
+  # emulators (demo project, no secrets), driven by Playwright (e2e/).
+  # Only before a deploy (or run by hand), never on pull requests: called from
+  # firebase-hosting-merge.yml, the event is the push to master.
+  e2e:
+    name: End-to-end (Playwright, Chromium + WebKit, emulators)
+    if: ${{ github.event_name != 'pull_request' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          cache-dependency-path: |
+            pnpm-lock.yaml
+            functions/pnpm-lock.yaml
+
+      - name: Install
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm --dir functions install --frozen-lockfile
+
+      # the Firestore emulator needs Java
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Browsers
+        run: pnpm exec playwright install --with-deps chromium webkit
+
+      # playwright.config.js starts the emulators and the game itself
+      - name: End-to-end tests
+        run: pnpm e2e
+
+      - name: Upload the report
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14

@@ -1,3 +1,4 @@
+const http = require("http");
 const path = require("path");
 const webpack = require("webpack");
 const CopyPlugin = require("copy-webpack-plugin");
@@ -16,6 +17,10 @@ if (missingFirebaseEnv.length) {
 }
 
 const projectId = firebaseEnv.FIREBASE_PROJECT_ID || "demo-project";
+
+// a fresh connection per proxied request: with Node's default keep-alive, a socket the
+// emulators already closed gets reused and the request fails as a 504 (e2e flake)
+const emulatorAgent = new http.Agent({ keepAlive: false });
 
 // a function so the build knows its mode (`--mode production` drops dev-only values)
 module.exports = (env, argv = {}) => ({
@@ -110,9 +115,13 @@ module.exports = (env, argv = {}) => ({
         context: ["/identitytoolkit.googleapis.com", "/securetoken.googleapis.com", "/emulator"],
         target: "http://127.0.0.1:9099",
       },
-      { context: ["/google.firestore.v1.Firestore"], target: "http://127.0.0.1:8085" },
+      // the Firestore SDK streams over WebChannel and sends some writes and reads as REST
+      {
+        context: ["/google.firestore.v1.Firestore", "/v1/projects"],
+        target: "http://127.0.0.1:8085",
+      },
       { context: [`/${projectId}`], target: "http://127.0.0.1:5001" },
-    ],
+    ].map((entry) => ({ ...entry, agent: emulatorAgent })),
     open: true,
     client: {
       overlay: {
