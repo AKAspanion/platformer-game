@@ -35,6 +35,8 @@ body {
   height: 100dvh;
   user-select: none;
   -webkit-user-select: none;
+  /* iPhone: no "Save Image" sheet on a long press (it cancels a held touch button) */
+  -webkit-touch-callout: none;
   touch-action: none;
   background-color: var(--ink);
   overflow: hidden;
@@ -70,6 +72,11 @@ code {
 canvas {
   border: 1px solid var(--ink);
   image-rendering: pixelated;
+  /* a thumb drifting off a touch button lands here: iOS treats a canvas as an image */
+  -webkit-touch-callout: none;
+}
+img {
+  -webkit-touch-callout: none;
 }
 
 /* ------------------------------------------------------------ touch controls */
@@ -99,6 +106,8 @@ canvas {
   height: var(--ctrl);
   color: #cccccc;
   user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
   border-radius: 100%;
   opacity: var(--ctrl-idle, 0.45);
   transition:
