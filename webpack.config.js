@@ -51,9 +51,7 @@ module.exports = (env, argv = {}) => ({
   },
   plugins: [
     new DashboardPlugin(),
-    // PREMIUM=1 unlocks premium by default (test builds).
     new webpack.DefinePlugin({
-      PREMIUM_DEFAULT: JSON.stringify(process.env.PREMIUM === "1"),
       // the Firebase web config from .env (app/firebase/config.js)
       __FIREBASE_ENV__: JSON.stringify(buildEnv(argv.mode || "development")),
     }),

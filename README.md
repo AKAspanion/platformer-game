@@ -123,10 +123,8 @@ and the space above is filled with tiers of floating platforms.
 
 ## Premium features
 
-Premium covers the features that use AI. Today that is Worlds, behind the premium flag
-(`app/util/premium.js`; unlock locally with `?premium=1` or the developer switch in
-Settings on localhost). On the live game, Premium belongs to an account: see
-[Giving a player Premium](#giving-a-player-premium).
+Premium covers the features that use AI. Today that is Worlds. Premium belongs to an
+account and comes only from Firestore: see [Giving a player Premium](#giving-a-player-premium).
 
 - **Worlds (create & share):** describe a world in words and the game builds all of it:
   6 levels (5 + a boss arena), its own pixel-art tiles, backdrop, decorations and liquid,
@@ -135,15 +133,14 @@ Settings on localhost). On the live game, Premium belongs to an account: see
   boss sounds. Every world is shared straight away with every player. This is the only
   mode that needs a sign-in (Google, or email and password).
 
-Build flag: `PREMIUM=1` (premium on by default, for test builds).
-
 ### Giving a player Premium
 
-Premium is the Firestore document `entitlements/{uid}` with the boolean field
-`premium: true`. Only the Firebase console (or a function) can write it; a player can read
-only their own (`firestore.rules`). The game reads it after sign-in, and the `designWorld`
-function checks it, so without it no one can design worlds on the live game, whatever
-their device says.
+A player has Premium **only** when their account's Firestore document `entitlements/{uid}`
+has the field `premium` of type **boolean** set to `true` (a string `"true"` doesn't count).
+Only the Firebase console (or a function) can write it; a player can read only their own
+(`firestore.rules`). The game reads it after sign-in (`app/util/premium.js`) and the
+`designWorld` function checks it. Nothing on the device turns Premium on: no URL, switch,
+build flag or saved value, and nothing is remembered offline.
 
 1. Firebase console → **Authentication** → **Users**: copy the player's **User UID**. They
    must be signed in with Google or email (an anonymous account can't design worlds).
@@ -153,10 +150,12 @@ their device says.
 3. The player has Premium the next time they open the game or sign in. To take it away,
    set `premium` to `false` or delete the document. Deleting the account deletes it too.
 
-The local switches (`?premium=1`, `PREMIUM=1`, the developer switch) only change what the
-game shows. Against the emulators (`pnpm emulators`) every account counts as Premium, so
-they are enough there; on a PR preview, which uses the live functions, a tester needs the
-document too.
+Testing works the same way: against the emulators (`pnpm emulators`), add the document in
+the Emulator UI's Firestore tab; on a PR preview (live functions), add it in the console.
+
+[docs/firebase-console.md](docs/firebase-console.md) covers everything else you can do from the
+Firebase console: verifying, blocking and deleting accounts, leaderboards, shared worlds and the
+world of the week.
 
 ### How created worlds work
 

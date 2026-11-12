@@ -31,7 +31,6 @@ module.exports = [
     files: ["app/**/*.js"],
     languageOptions: {
       globals: {
-        PREMIUM_DEFAULT: "readonly",
         __FIREBASE_ENV__: "readonly",
         // the loading bar's timer (inline script in app/index.html)
         loadInterval: "readonly",

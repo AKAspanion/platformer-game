@@ -43,7 +43,7 @@
 import { setGlobalOptions } from "firebase-functions";
 import { onCall, onRequest, HttpsError } from "firebase-functions/https";
 import { onSchedule } from "firebase-functions/scheduler";
-import { defineSecret, defineBoolean } from "firebase-functions/params";
+import { defineSecret } from "firebase-functions/params";
 import * as logger from "firebase-functions/logger";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore, FieldPath } from "firebase-admin/firestore";
@@ -91,10 +91,11 @@ initializeApp();
 const db = getFirestore();
 
 const ANTHROPIC_API_KEY = defineSecret("ANTHROPIC_API_KEY");
-const APP_CHECK_ENFORCE = defineBoolean("APP_CHECK_ENFORCE", {
-  default: false,
-  description: "Refuse callable requests without a valid App Check token",
-});
+// Refuse callable requests without a valid App Check token (functions/.env). A plain
+// boolean, not a defineBoolean param: onCall reads a param's .value() as each function
+// is defined, which the CLI warns about on every deploy (once per callable). Reading
+// the env var here gives the same value at the same moment, with no warning.
+const APP_CHECK_ENFORCE = process.env.APP_CHECK_ENFORCE === "true";
 const MODEL = process.env.WORLD_MODEL || "claude-haiku-5-5";
 
 const limiter = (uid, kind, max) =>
@@ -156,10 +157,9 @@ const callable = (options, handler) =>
 
 // entitlements/{uid} = { premium: true }: set by hand in the Firebase console (README),
 // later by a verified store purchase. Clients read only their own (firestore.rules).
-// Against the emulators every account is Premium, so the game's local switch is enough.
+// Premium is the boolean true only; against the emulators, add the doc in the Emulator UI.
 const entitlements = {
   async premium(uid) {
-    if (process.env.FUNCTIONS_EMULATOR === "true") return true;
     const snap = await db.collection("entitlements").doc(uid).get();
     return snap.exists && snap.get("premium") === true;
   },
@@ -167,11 +167,17 @@ const entitlements = {
 
 let designer = null;
 
+// The only function that calls the AI (Claude). Nothing AI-related runs until
+// handleDesign has checked the caller's account and Premium (entitlements/{uid}):
+// the Claude client is made inside `design`, which handleDesign calls only after.
+// tests/functions.test.js fails if another function takes the Anthropic key.
 export const designWorld = callable(
   { secrets: [ANTHROPIC_API_KEY], timeoutSeconds: 60, memory: "512MiB" },
   async (request) => {
-    if (!designer) designer = createDesigner({ apiKey: ANTHROPIC_API_KEY.value(), model: MODEL });
     const design = async (prompt) => {
+      if (!designer) {
+        designer = createDesigner({ apiKey: ANTHROPIC_API_KEY.value(), model: MODEL });
+      }
       const result = await designer(prompt);
       if (result.spec) {
         const { input_tokens: inTokens, output_tokens: outTokens } = result.usage || {};
