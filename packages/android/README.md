@@ -10,9 +10,18 @@ that opens <https://dino.spanion.in> full-screen in landscape.
   the app's notifications. Landscape (`sensorLandscape`), full-screen, splash colour `#1D1A24`.
 - The upload key, its password, the signed builds and the store graphics live outside the repo in
   `~/keys/dino/` (its `README.txt` lists each file). Never commit them.
-- `app/assetlinks.json` (served at `/.well-known/assetlinks.json`) must list the upload key's SHA-256 and,
-  after the first Play upload, Play's app-signing key SHA-256 (Play Console → Test and release →
-  App integrity). Without Play's key, store installs open with a browser URL bar.
+- `app/assetlinks.json` (served at `/.well-known/assetlinks.json`) lists every certificate the app
+  is signed with; one missing and that install opens with a browser URL bar:
+  - the upload key `B9:0B:AF:…:D8:29` (builds installed by hand with `adb`);
+  - Play's app-signing key `F8:53:5A:…:66:34` (store installs; also in Play Console → Test and
+    release → App integrity);
+  - Play's hybrid signer for Android 17+, RSA `45:34:A1:…:19:2D` and ML-DSA `87:47:DF:…:F7:A0`.
+    Play Console doesn't show these. Read them from a Play-installed APK: `adb shell pm path
+    in.spanion.dino.twa`, `adb pull` the `base.apk`, and run `python3 -I scripts/apk-signing-certs.py base.apk`, which lists every certificate in
+    its signing block (`apksigner verify --print-certs` shows only the RSA app-signing key). Never list Play's source
+    stamp `32:57:D5:…:BD:6D` (block `0x6dff800d`).
+
+  `tests/assetlinks.test.js` pins the list.
 
 ## Regenerate after changing `twa-manifest.json`
 
