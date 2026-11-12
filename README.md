@@ -205,13 +205,13 @@ indexes (`.github/workflows/firebase-hosting-merge.yml`), then check the callabl
 functions are still public; pull requests get CI and a Hosting preview channel. By hand:
 `pnpm build && firebase deploy` (with `.env` in place).
 
-| Workflow                            | When                     | What                                                             |
-| ----------------------------------- | ------------------------ | ---------------------------------------------------------------- |
-| `ci.yml`                            | every PR, before deploys | lint, Prettier, tests, functions check, `pnpm audit`, build, e2e |
-| `firebase-hosting-pull-request.yml` | every PR from this repo  | Hosting preview channel (7 days)                                 |
-| `firebase-hosting-merge.yml`        | push to `master`         | CI, then deploy Hosting, Functions, Firestore rules and indexes  |
-| `security.yml`                      | PRs, `master`, weekly    | CodeQL, gitleaks secret scan, dependency review on PRs           |
-| `.github/dependabot.yml`            | weekly                   | grouped updates for the game, the functions and the Actions      |
+| Workflow                            | When                     | What                                                                                 |
+| ----------------------------------- | ------------------------ | ------------------------------------------------------------------------------------ |
+| `ci.yml`                            | every PR, before deploys | lint, Prettier, tests, functions check, `pnpm audit`, build; e2e before deploys only |
+| `firebase-hosting-pull-request.yml` | every PR from this repo  | Hosting preview channel (7 days)                                                     |
+| `firebase-hosting-merge.yml`        | push to `master`         | CI, then deploy Hosting, Functions, Firestore rules and indexes                      |
+| `security.yml`                      | PRs, `master`, weekly    | CodeQL, gitleaks secret scan, dependency review on PRs                               |
+| `.github/dependabot.yml`            | weekly                   | grouped updates for the game, the functions and the Actions                          |
 
 Repository secrets the deploys need: `FIREBASE_SERVICE_ACCOUNT_DINOS_ADVENTURE` (deploy
 service account) and `APP_ENV` (the whole `.env` file: `gh secret set APP_ENV < .env`).
@@ -250,8 +250,8 @@ account from sign-up to verified, both leaderboards, and a community world read 
 Firestore and played. They run against a production build wired to the Firebase emulators
 under the `demo-dino` project, so they never touch the live project; `playwright.config.js`
 starts the emulators and the game itself. They need Java and, once, the browsers:
-`pnpm exec playwright install chromium webkit`. CI runs them on every pull request and
-before every deploy.
+`pnpm exec playwright install chromium webkit`. CI runs them before every deploy, not on
+pull requests: run them locally before merging a change they cover.
 
 Open the game with `?debug` (e.g. `http://localhost:2108/?debug`) to get `window.debugGame`
 in the console for poking at the running game.

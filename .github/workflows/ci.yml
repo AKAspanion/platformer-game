@@ -1,7 +1,6 @@
-# Lint, format, tests, dependency audit, a production build and the end-to-end
-# tests (Playwright, against the Firebase emulators) for every pull
-# request. The deploy workflow (firebase-hosting-merge.yml) runs this too, and
-# deploys only when every job here passed.
+# Lint, format, tests, dependency audit and a production build for every pull
+# request. The deploy workflow (firebase-hosting-merge.yml) runs this too, adding
+# the end-to-end tests, and deploys only when every job here passed.
 name: CI
 
 on:
@@ -73,8 +72,11 @@ jobs:
 
   # The game in real browsers: a production build against the Firebase
   # emulators (demo project, no secrets), driven by Playwright (e2e/).
+  # Only before a deploy (or run by hand), never on pull requests: called from
+  # firebase-hosting-merge.yml, the event is the push to master.
   e2e:
     name: End-to-end (Playwright, Chromium + WebKit, emulators)
+    if: ${{ github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
