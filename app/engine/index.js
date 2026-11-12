@@ -37,10 +37,9 @@ export default class GameEngine {
       this.updated = true;
     }
 
-    if (this.updated) {
-      this.updated = false;
-      this.render(this.timeStamp);
-    }
+    // Draw every screen refresh once the game has ticked, with how far it is into
+    // the next tick (0 to 1), so moving things can be drawn between ticks.
+    if (this.updated) this.render(Math.min(1, this.extraTime / this.timeStep));
   }
 
   start() {
