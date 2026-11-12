@@ -1,7 +1,7 @@
 /**
  * The online features against the Firebase emulators: an email account from
- * sign-up to verified, the daily leaderboard (anonymous sign-in and a callable
- * function), and a community world read from Firestore and played.
+ * sign-up to verified, the combined leaderboard (anonymous sign-in and a
+ * callable function), and a community world read from Firestore and played.
  *
  * Chromium and WebKit run these at the same time on the same emulators, so
  * each test makes its own data (a unique email) or writes the same thing twice.
@@ -54,15 +54,19 @@ test("an email account signs up, verifies and shows in Settings", async ({
   await expect(page.locator("#accountBtn")).toHaveText("Sign out");
 });
 
-test("the daily leaderboard loads from the functions", async ({ page, openGame }) => {
+test("the combined leaderboard loads from the functions", async ({ page, openGame }) => {
   await openGame();
   await page.getByRole("button", { name: "Leaderboards" }).click();
   await expect(page.locator("#leaderboardScreen")).toBeVisible();
-  // an empty board, not "Leaderboard didn't load."
-  await expect(page.locator("#leaderboardStatus")).toHaveText("No scores yet. Be the first!");
+  // an empty board (getTotalBoard answered), not "Leaderboard didn't load."
+  await expect(page.locator("#leaderboardStatus")).toHaveText(
+    "No scores yet. Finish a level to be the first!",
+  );
   await expect(page.locator("#leaderboardRetryBtn")).toBeHidden();
-  await page.getByRole("tab", { name: "Endless" }).click();
-  await expect(page.locator("#leaderboardStatus")).toHaveText("No scores yet. Be the first!");
+  // the viewer's own row is pinned under the list, unranked until they score
+  const mine = page.locator("#leaderboardMine .lb-row.me");
+  await expect(mine.locator(".lb-name")).toHaveText("You");
+  await expect(mine.locator(".lb-rank")).toHaveText("–");
 });
 
 test("a community world from Firestore is listed and plays", async ({ page, openGame }) => {
