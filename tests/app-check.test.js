@@ -51,6 +51,10 @@ test("release builds never carry the App Check debug token", () => {
 test("every callable goes through the App Check gate", () => {
   const source = fs.readFileSync(path.join(process.cwd(), "functions", "index.js"), "utf8");
   assert.match(source, /onCall\(\{ enforceAppCheck: APP_CHECK_ENFORCE, \.\.\.options \}/);
+  // a plain boolean from functions/.env: a defineBoolean param makes every deploy warn
+  // ".value() invoked during function deployment" once per callable
+  assert.match(source, /const APP_CHECK_ENFORCE = process\.env\.APP_CHECK_ENFORCE === "true";/);
+  assert.doesNotMatch(source, /defineBoolean\(/);
   assert.equal(/^export const \w+ = onCall\(/m.test(source), false, "no callable skips the gate");
   const env = fs.readFileSync(path.join(process.cwd(), "functions", ".env"), "utf8");
   assert.match(env, /^APP_CHECK_ENFORCE=(true|false)$/m);

@@ -422,3 +422,54 @@ test("designWorld reads Premium from the caller's entitlements doc, and deleting
     /deleteEntitlement\(uid\) \{\s*await db\.collection\("entitlements"\)\.doc\(uid\)\.delete\(\);/,
   );
 });
+
+test("the AI is only reachable through designWorld, behind the Premium check", () => {
+  const src = fs.readFileSync("functions/index.js", "utf8");
+  // one function takes the Anthropic key and makes the Claude client
+  assert.equal(src.match(/secrets: \[ANTHROPIC_API_KEY\]/g).length, 1);
+  assert.equal(src.match(/createDesigner\(/g).length, 1);
+  const fn = src.slice(
+    src.indexOf("export const designWorld"),
+    src.indexOf("export const publishWorld"),
+  );
+  assert.match(fn, /secrets: \[ANTHROPIC_API_KEY\]/);
+  // the client is made inside `design`, which only handleDesign calls, after its checks
+  const design = fn.indexOf("const design = async");
+  assert.ok(design >= 0 && design < fn.indexOf("createDesigner("));
+  assert.match(fn, /return handleDesign\(request, \{ design, limiter, entitlements \}\);/);
+  // no other module talks to Claude
+  for (const file of fs.readdirSync("functions/src")) {
+    if (file === "designer.js") continue;
+    const code = fs.readFileSync(`functions/src/${file}`, "utf8");
+    assert.doesNotMatch(code, /@anthropic-ai\/sdk|new Anthropic\(/, file);
+  }
+});
+
+test("designWorld: a failed Premium lookup refuses the call, it never falls through to the AI", async () => {
+  const calls = [];
+  const design = async () => calls.push("design") && { spec: { name: "W" } };
+  const limiter = async () => calls.push("limit") && false;
+  const entitlements = {
+    premium: async () => {
+      throw new Error("firestore down");
+    },
+  };
+  await assert.rejects(
+    handleDesign(
+      { auth: user("u1"), data: { prompt: "caves" } },
+      { design, limiter, entitlements },
+    ),
+    /firestore down/,
+  );
+  // a doc with premium: "true" (a string) or 1 isn't Premium either
+  for (const value of ["true", 1]) {
+    await assert.rejects(
+      handleDesign(
+        { auth: user("u1"), data: { prompt: "caves" } },
+        { design, limiter, entitlements: { premium: async () => value } },
+      ),
+      (e) => e.code === "permission-denied",
+    );
+  }
+  assert.deepEqual(calls, []);
+});
