@@ -5,3 +5,5 @@ functions/pnpm-lock.yaml
 packages
 .claude
 demo.gif
+test-results
+playwright-report

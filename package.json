@@ -20,6 +20,7 @@
     "functions:sync": "node scripts/sync-functions-shared.js",
     "emulators": "node scripts/sync-functions-shared.js && firebase emulators:start",
     "test:rules": "firebase emulators:exec --only firestore --project demo-dino \"node scripts/test-rules.js\"",
+    "e2e": "playwright test",
     "audit:all": "pnpm audit --audit-level moderate && pnpm --dir functions audit --audit-level moderate",
     "check": "pnpm lint && pnpm format:check && pnpm test && node scripts/sync-functions-shared.js --check && pnpm build"
   },
@@ -46,6 +47,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@firebase/rules-unit-testing": "^6.0.0",
+    "@playwright/test": "^1.65.0",
     "copy-webpack-plugin": "^14.0.0",
     "esbuild": "^0.28.2",
     "esbuild-loader": "^4.5.0",

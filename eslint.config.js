@@ -49,4 +49,9 @@ module.exports = [
     files: ["*.config.js", "scripts/**/*.js"],
     languageOptions: { sourceType: "commonjs", globals: { ...globals.node } },
   },
+  {
+    // Playwright tests: Node, plus the page's globals inside page.evaluate / addInitScript
+    files: ["e2e/**/*.js"],
+    languageOptions: { sourceType: "commonjs", globals: { ...globals.node, ...globals.browser } },
+  },
 ];

@@ -1,6 +1,6 @@
-# Every push to master: run CI, then deploy the game (Hosting), the world
-# creator's functions and the Firestore rules and indexes to dinos-adventure,
-# then check the callable functions are still public.
+# Every push to master: run CI (end-to-end tests included), then deploy the
+# game (Hosting), the world creator's functions and the Firestore rules and
+# indexes to dinos-adventure, then check the callable functions are still public.
 #
 # Needs these repository secrets:
 #   FIREBASE_SERVICE_ACCOUNT_DINOS_ADVENTURE  a service account key with deploy

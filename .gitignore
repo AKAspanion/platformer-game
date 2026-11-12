@@ -34,3 +34,8 @@ packages/android/local.properties
 .idea/
 .vscode/
 *.swp
+
+# Playwright (pnpm e2e)
+/test-results/
+/playwright-report/
+/blob-report/
