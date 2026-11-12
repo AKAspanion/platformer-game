@@ -65,6 +65,8 @@ test("firestore.rules: every rule that lets a client in is one of these", () => 
     "list: request.query.limit <= 100",
     // worldLikes, own only
     "get: request.auth != null && id.matches('.*_' + request.auth.uid)",
+    // entitlements, own only, read-only (set in the Firebase console)
+    "get: request.auth != null && request.auth.uid == uid",
     // config
     "get: true",
     // players, own writes only

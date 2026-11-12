@@ -8,6 +8,9 @@
  *   handleSearch({ auth, data: { query } }, { allWorlds, worldsByIds }) -> { worlds }
  *   handleDeleteAccount({ auth }, { accounts })                    -> { worlds }
  *
+ * handleDesign also takes `entitlements`: { premium(uid) -> boolean }, read from
+ * Firestore entitlements/{uid} (index.js). Designing worlds is the Premium feature.
+ *
  * `auth` is the callable's request.auth ({ uid, token }), null when signed out.
  * Errors are ApiError with a callable error code (index.js turns them into
  * HttpsError, which the game shows to the player).
@@ -56,8 +59,14 @@ const verified = (auth) => realAccount(auth, "create worlds");
 /** The name shown on a user's worlds: the token's display name, never the email. */
 export const authorName = (auth) => cleanText(auth && auth.token && auth.token.name, 20, "Someone");
 
-export async function handleDesign({ auth, data }, { design, limiter }) {
+export const NEEDS_PREMIUM = "Designing worlds needs Premium.";
+
+export async function handleDesign({ auth, data }, { design, limiter, entitlements }) {
   const user = verified(signedIn(auth));
+  // the game hides the creator without Premium; this is the check that counts
+  if (!(await entitlements.premium(user.uid))) {
+    throw new ApiError("permission-denied", NEEDS_PREMIUM);
+  }
   const prompt = String((data && data.prompt) || "")
     .trim()
     .slice(0, MAX_PROMPT);
@@ -142,6 +151,7 @@ export async function handleDeleteAccount({ auth }, { accounts }) {
   await accounts.deleteSave(user.uid);
   await accounts.deleteProfile(user.uid);
   await accounts.deleteReminders(user.uid);
+  await accounts.deleteEntitlement(user.uid);
   await accounts.deleteLikes(user.uid);
   await accounts.deleteSeen(user.uid);
   await accounts.deleteRuns(user.uid);

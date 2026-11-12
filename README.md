@@ -125,7 +125,8 @@ and the space above is filled with tiers of floating platforms.
 
 Premium covers the features that use AI. Today that is Worlds, behind the premium flag
 (`app/util/premium.js`; unlock locally with `?premium=1` or the developer switch in
-Settings on localhost):
+Settings on localhost). On the live game, Premium belongs to an account: see
+[Giving a player Premium](#giving-a-player-premium).
 
 - **Worlds (create & share):** describe a world in words and the game builds all of it:
   6 levels (5 + a boss arena), its own pixel-art tiles, backdrop, decorations and liquid,
@@ -135,6 +136,27 @@ Settings on localhost):
   mode that needs a sign-in (Google, or email and password).
 
 Build flag: `PREMIUM=1` (premium on by default, for test builds).
+
+### Giving a player Premium
+
+Premium is the Firestore document `entitlements/{uid}` with the boolean field
+`premium: true`. Only the Firebase console (or a function) can write it; a player can read
+only their own (`firestore.rules`). The game reads it after sign-in, and the `designWorld`
+function checks it, so without it no one can design worlds on the live game, whatever
+their device says.
+
+1. Firebase console → **Authentication** → **Users**: copy the player's **User UID**. They
+   must be signed in with Google or email (an anonymous account can't design worlds).
+2. **Firestore Database** → collection `entitlements` (**Start collection** the first time)
+   → **Add document**: **Document ID** = that UID, field `premium`, type **boolean**,
+   value `true` → **Save**.
+3. The player has Premium the next time they open the game or sign in. To take it away,
+   set `premium` to `false` or delete the document. Deleting the account deletes it too.
+
+The local switches (`?premium=1`, `PREMIUM=1`, the developer switch) only change what the
+game shows. Against the emulators (`pnpm emulators`) every account counts as Premium, so
+they are enough there; on a PR preview, which uses the live functions, a tester needs the
+document too.
 
 ### How created worlds work
 

@@ -28,6 +28,7 @@ We may ask you a question to check the account is yours. We delete it within 30 
 - Your leaderboard entries, daily and endless.
 - Your public leaderboard profile (your worn looks and the day you last played).
 - Your daily reminders: your devices' push tokens and your time zone.
+- Your Premium status.
 - Your likes on shared worlds, and the records the game keeps to check runs and limit how often things can be sent.
 
 ### What is kept

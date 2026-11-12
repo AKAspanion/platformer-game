@@ -12,6 +12,7 @@ import {
   authorName,
   LIMITS,
   MAX_RESULTS,
+  NEEDS_PREMIUM,
 } from "../functions/src/handlers.js";
 import { newWorld, specFromPrompt, matchWorlds, ANONYMOUS } from "../app/worlds/spec";
 
@@ -25,21 +26,57 @@ test("functions use the same world validation as the game", () => {
 
 const user = (uid = "u1", name = "Ana") => ({ uid, token: { name, email: "ana@example.com" } });
 const open = async () => false;
+// designing worlds is Premium: these accounts have it
+const premium = { premium: async () => true };
+
+test("designWorld: needs Premium, checked before the designer or the rate limit", async () => {
+  const calls = [];
+  const design = async () => calls.push("design") && { spec: { name: "W" } };
+  const limiter = async () => calls.push("limit") && false;
+  const asked = [];
+  const entitlements = { premium: async (uid) => asked.push(uid) && uid === "paid" };
+  await assert.rejects(
+    handleDesign(
+      { auth: user("u1"), data: { prompt: "caves" } },
+      { design, limiter, entitlements },
+    ),
+    (e) => e.code === "permission-denied" && e.message === NEEDS_PREMIUM,
+  );
+  assert.deepEqual(calls, []);
+  const out = await handleDesign(
+    { auth: user("paid"), data: { prompt: "caves" } },
+    { design, limiter, entitlements },
+  );
+  assert.equal(out.spec.name, "W");
+  assert.deepEqual(asked, ["u1", "paid"]);
+  // signed out and unverified accounts are turned away before anyone looks up Premium
+  await assert.rejects(
+    handleDesign({ auth: null, data: { prompt: "caves" } }, { design, limiter, entitlements }),
+    (e) => e.code === "unauthenticated",
+  );
+  assert.deepEqual(asked, ["u1", "paid"]);
+});
 
 test("designWorld: signed in, a real prompt, rate limited", async () => {
   const design = async (prompt) => ({ spec: { name: `World of ${prompt}` } });
   await assert.rejects(
-    handleDesign({ auth: null, data: { prompt: "caves" } }, { design, limiter: open }),
+    handleDesign(
+      { auth: null, data: { prompt: "caves" } },
+      { design, limiter: open, entitlements: premium },
+    ),
     (e) => e.code === "unauthenticated",
   );
   await assert.rejects(
-    handleDesign({ auth: user(), data: { prompt: " a " } }, { design, limiter: open }),
+    handleDesign(
+      { auth: user(), data: { prompt: " a " } },
+      { design, limiter: open, entitlements: premium },
+    ),
     (e) => e.code === "invalid-argument",
   );
   const long = "x".repeat(900);
   const out = await handleDesign(
     { auth: user(), data: { prompt: long } },
-    { design, limiter: open },
+    { design, limiter: open, entitlements: premium },
   );
   assert.equal(out.spec.name.length, "World of ".length + 400);
 
@@ -49,6 +86,7 @@ test("designWorld: signed in, a real prompt, rate limited", async () => {
       { auth: user(), data: { prompt: "caves" } },
       {
         design,
+        entitlements: premium,
         limiter: async (uid, kind, max) => {
           kinds.push([uid, kind, max]);
           return true;
@@ -62,7 +100,7 @@ test("designWorld: signed in, a real prompt, rate limited", async () => {
   await assert.rejects(
     handleDesign(
       { auth: user(), data: { prompt: "caves" } },
-      { design: async () => ({ refused: true }), limiter: open },
+      { design: async () => ({ refused: true }), limiter: open, entitlements: premium },
     ),
     (e) => e.code === "invalid-argument",
   );
@@ -144,7 +182,10 @@ test("email accounts verify their address before designing or sharing", async ()
     token: { name: "Eve", email_verified: verified, firebase: { sign_in_provider: "password" } },
   });
   await assert.rejects(
-    handleDesign({ auth: emailUser(false), data: { prompt: "caves" } }, { design, limiter: open }),
+    handleDesign(
+      { auth: emailUser(false), data: { prompt: "caves" } },
+      { design, limiter: open, entitlements: premium },
+    ),
     (e) => e.code === "permission-denied" && /Verify your email/.test(e.message),
   );
   const world = newWorld(specFromPrompt("caves"), { uid: "e1", displayName: "Eve" });
@@ -154,7 +195,7 @@ test("email accounts verify their address before designing or sharing", async ()
   );
   const out = await handleDesign(
     { auth: emailUser(true), data: { prompt: "caves" } },
-    { design, limiter: open },
+    { design, limiter: open, entitlements: premium },
   );
   assert.equal(out.spec.name, "Caves");
   const google = {
@@ -162,7 +203,10 @@ test("email accounts verify their address before designing or sharing", async ()
     token: { name: "Gus", email_verified: true, firebase: { sign_in_provider: "google.com" } },
   };
   assert.ok(
-    await handleDesign({ auth: google, data: { prompt: "caves" } }, { design, limiter: open }),
+    await handleDesign(
+      { auth: google, data: { prompt: "caves" } },
+      { design, limiter: open, entitlements: premium },
+    ),
   );
 });
 
@@ -235,6 +279,7 @@ test("deleteAccount: worlds become Anonymous, then data and account go", async (
     deleteSave: async (uid) => calls.push(["save", uid]),
     deleteProfile: async (uid) => calls.push(["profile", uid]),
     deleteReminders: async (uid) => calls.push(["reminders", uid]),
+    deleteEntitlement: async (uid) => calls.push(["entitlement", uid]),
     deleteLikes: async (uid) => calls.push(["likes", uid]),
     deleteSeen: async (uid) => calls.push(["seen", uid]),
     deleteRuns: async (uid) => calls.push(["runs", uid]),
@@ -255,6 +300,7 @@ test("deleteAccount: worlds become Anonymous, then data and account go", async (
     ["save", "u9"],
     ["profile", "u9"],
     ["reminders", "u9"],
+    ["entitlement", "u9"],
     ["likes", "u9"],
     ["seen", "u9"],
     ["runs", "u9"],
@@ -279,6 +325,7 @@ test("deleteAccount: a failing profile delete stops before the account goes", as
     "deleteEndless",
     "deleteSave",
     "deleteReminders",
+    "deleteEntitlement",
     "deleteData",
     "deleteUser",
   ]) {
@@ -312,7 +359,10 @@ test("anonymous players can't design or share worlds", async () => {
     return { spec: {} };
   };
   await assert.rejects(
-    handleDesign({ auth: anon, data: { prompt: "lava caves" } }, { design, limiter: open }),
+    handleDesign(
+      { auth: anon, data: { prompt: "lava caves" } },
+      { design, limiter: open, entitlements: premium },
+    ),
     (e) => e.code === "unauthenticated",
   );
   assert.equal(designed, 0, "never reaches the AI designer");
@@ -360,4 +410,15 @@ test("searchWorlds: matches the light index, then reads only the hits in full", 
   assert.equal(out.worlds[0].name, "Cave 78", "a gone world is skipped");
   assert.ok(Object.keys(out.worlds[0].spec).length > 1, "full worlds come back, not the index");
   assert.ok(asked.length <= MAX_RESULTS * 2, "never reads every world");
+});
+
+test("designWorld reads Premium from the caller's entitlements doc, and deleting the account removes it", () => {
+  const src = fs.readFileSync("functions/index.js", "utf8");
+  assert.match(src, /handleDesign\(request, \{ design, limiter, entitlements \}\)/);
+  assert.match(src, /db\.collection\("entitlements"\)\.doc\(uid\)\.get\(\)/);
+  assert.match(src, /snap\.get\("premium"\) === true/);
+  assert.match(
+    src,
+    /deleteEntitlement\(uid\) \{\s*await db\.collection\("entitlements"\)\.doc\(uid\)\.delete\(\);/,
+  );
 });
