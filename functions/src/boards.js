@@ -7,11 +7,14 @@
  *     -> { top: [{ uid, name, score, seconds }], me: { uid, name, score, seconds } | null }
  *   handleGetEndlessBoard({ auth }, { board, log })
  *     -> { top: [{ uid, name, level, score, seconds }], me: { ... } | null }
+ *   handleGetTotalBoard({ auth }, { totals, log })
+ *     -> { top: [{ uid, name, score }], me: { uid, name, score } | null }
  *
- * `scores` (Firestore: daily/{seed}/scores/{uid}) and `board` (endless/{uid}),
- * read with a field mask of DAILY_FIELDS / ENDLESS_FIELDS:
- *   scores.top(seed, count) / board.top(count) -> [{ uid, data }] best first
- *   scores.get(seed, uid)   / board.get(uid)   -> { uid, data } | null
+ * `scores` (Firestore: daily/{seed}/scores/{uid}), `board` (endless/{uid}) and
+ * `totals` (totals/{uid}), read with a field mask of DAILY_FIELDS /
+ * ENDLESS_FIELDS / TOTAL_FIELDS:
+ *   scores.top(seed, count) / board.top(count) / totals.top(count) -> [{ uid, data }] best first
+ *   scores.get(seed, uid)   / board.get(uid)   / totals.get(uid)   -> { uid, data } | null
  *
  * Clients never read the board documents themselves (firestore.rules):
  * Firestore gives every reader a document's create and update times, which
@@ -38,6 +41,8 @@ export const BOARD_TOP = 50;
 /** The stored fields a board reads (the uid is the document id). */
 export const DAILY_FIELDS = ["name", "score", "seconds"];
 export const ENDLESS_FIELDS = ["name", "level", "score", "seconds"];
+/** The combined board's fields: never its parts, which would show each day's score. */
+export const TOTAL_FIELDS = ["name", "score"];
 /** How long a board's top is kept before it is read again. */
 export const BOARD_CACHE_MS = 60000;
 
@@ -93,6 +98,17 @@ function endlessEntry(row) {
   const level = entry && row.data.level;
   if (!entry || !Number.isInteger(level) || level < 1) return null;
   return { uid: entry.uid, name: entry.name, level, score: entry.score, seconds: entry.seconds };
+}
+
+/** A stored totals entry as the board shows it, or null when it isn't one. */
+function totalEntry(row) {
+  const data = row && row.data;
+  if (!row || typeof row.uid !== "string" || !row.uid || !data || typeof data !== "object") {
+    return null;
+  }
+  const { name, score } = data;
+  if (typeof name !== "string" || !isScore(score)) return null;
+  return { uid: row.uid, name, score };
 }
 
 /**
@@ -154,6 +170,22 @@ export async function handleGetEndlessBoard({ auth }, { board, log, cache, now =
     log,
     cache,
     key: "endless",
+    nowMs: now(),
+  });
+}
+
+export async function handleGetTotalBoard({ auth }, { totals, log, cache, now = Date.now }) {
+  return readBoard({
+    uid: callerUid(auth),
+    kind: "total",
+    toEntry: totalEntry,
+    // ties keep the store's order (the document id), the same for every reader
+    better: (a, b) => a.score > b.score,
+    top: (count) => totals.top(count),
+    get: (uid) => totals.get(uid),
+    log,
+    cache,
+    key: "total",
     nowMs: now(),
   });
 }

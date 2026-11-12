@@ -160,21 +160,25 @@
     </div>
 
     <div id="leaderboardScreen" class="flex-item modal-screen">
-      <div class="flex-item modal-container modal-narrow lb-container">
-        <div class="flex-item modal-header">
-          <div class="modal-title">Leaderboards</div>
+      <div class="flex-item modal-container lb-container">
+        <div class="flex-item modal-header lb-header">
+          <div class="lb-ribbon"><span class="modal-title">Leaderboard</span></div>
           <div id="leaderboardCloseBtn" class="close-btn" role="button" aria-label="Close"></div>
         </div>
-        <div class="tabs lb-tabs" id="leaderboardTabs" role="tablist">
-          <button class="tab active" data-board="today" role="tab" aria-selected="true">
-            Daily
-          </button>
-          <button class="tab" data-board="endless" role="tab" aria-selected="false">Endless</button>
-        </div>
-        <div class="modal-content-wrapper lb-body">
-          <div id="leaderboardStatus" class="lb-status" role="status"></div>
-          <button id="leaderboardRetryBtn" class="btn btn-secondary lb-retry">Try again</button>
-          <ol id="leaderboardList" class="lb-list"></ol>
+        <div class="lb-body">
+          <div class="lb-side">
+            <div id="leaderboardPodium" class="lb-podium" aria-label="Top three"></div>
+            <p class="lb-explain">
+              Your best in every campaign level, daily challenge and endless run, added up.
+            </p>
+            <button id="leaderboardPlayBtn" class="btn btn-primary lb-play">Play</button>
+          </div>
+          <div class="lb-main">
+            <div id="leaderboardStatus" class="lb-status" role="status"></div>
+            <button id="leaderboardRetryBtn" class="btn btn-secondary lb-retry">Try again</button>
+            <ol id="leaderboardList" class="lb-list"></ol>
+            <div id="leaderboardMine" class="lb-mine" aria-label="Your place"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -543,7 +547,7 @@
     <div id="loadingScreen" class="flex-item modal-screen">
       <div id="progressContainer">
         <div id="progressBar">
-          <div id="progressValue"></div>
+          <div id="progressValue"><div id="progressDino" aria-hidden="true"></div></div>
         </div>
       </div>
     </div>

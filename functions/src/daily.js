@@ -2,12 +2,14 @@
  * The daily leaderboard's server logic, free of Firebase so it can be tested
  * on its own (tests/daily-submit.test.js). index.js wires it to Firestore.
  *
- *   handleSubmitDaily({ auth, data: { seed, score, seconds, ticket } }, { scores, tickets, limiter, now })
+ *   handleSubmitDaily({ auth, data: { seed, score, seconds, ticket } }, { scores, totals, tickets, limiter, now })
  *     -> { rank, total, best: { score, seconds }, improved }
  *
  * `scores` (Firestore: daily/{seed}/scores/{uid}):
  *   get(seed, uid) -> entry | null        set(seed, uid, entry)
  *   rankOf(seed, entry) -> 1-based rank   count(seed) -> entries that day
+ * `totals` (optional, totals/{uid}): the day's best also counts towards the
+ * combined board (functions/src/totals.js), raise(uid, { name, part, score }).
  *
  * Everything in the request is untrusted: the seed must be an open day, the
  * score a possible one, the time a plausible one, the run must have started on
@@ -47,7 +49,7 @@ const cantRank = () => new ApiError("invalid-argument", "That run can't be ranke
 
 export async function handleSubmitDaily(
   { auth, data },
-  { scores, tickets, limiter, now = Date.now },
+  { scores, totals, tickets, limiter, now = Date.now },
 ) {
   if (!auth || typeof auth.uid !== "string" || !auth.uid) {
     throw new ApiError("unauthenticated", "Sign in to submit a score.");
@@ -79,10 +81,16 @@ export async function handleSubmitDaily(
         seconds,
       });
     }
-    return {
-      improved: better,
-      best: better ? run : { score: stored.score, seconds: stored.seconds },
-    };
+    const best = better ? run : { score: stored.score, seconds: stored.seconds };
+    // the day's best, every time: a part only goes up, and a retry fills in a missed one
+    if (totals) {
+      await totals.raise(auth.uid, {
+        name: boardName(auth),
+        part: `daily-${seed}`,
+        score: best.score,
+      });
+    }
+    return { improved: better, best };
   });
   const [rank, total] = await Promise.all([scores.rankOf(seed, best), scores.count(seed)]);
   return { rank, total, best: { score: best.score, seconds: best.seconds }, improved };

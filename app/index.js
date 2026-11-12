@@ -42,7 +42,7 @@ import { auth } from "./auth";
 import { reminders } from "./reminders/push.js";
 import { createPrompt as createReminderPrompt } from "./reminders/prompt.js";
 import { leaderboard } from "./daily/leaderboard";
-import { boardView, BOARD_FAILED } from "./daily/board-view";
+import { BOARD_FAILED } from "./daily/board-view";
 import { createStreak } from "./daily/streak";
 import { createPending, errorCode, isFinalRefusal } from "./daily/pending";
 import { shareText, shareRun } from "./daily/share";
@@ -51,6 +51,8 @@ import { friendlyError } from "./firebase";
 import { endlessBoard } from "./modes/endless-board";
 import { createEndlessPending } from "./modes/endless-pending";
 import { createRunTickets } from "./modes/run-ticket";
+import { totalBoard } from "./leaderboard/total-board";
+import { totalView, shortScore } from "./leaderboard/view";
 import { firestoreEndless } from "./firebase/endless";
 import { MIN_LEVEL } from "./modes/endless-rules";
 import { firebaseAuthBackend } from "./firebase/auth";
@@ -463,6 +465,42 @@ window.addEventListener("load", function () {
   let hurtInLevel = false;
   let heartsSeen = MAX_HEARTS;
 
+  /**
+   * The campaign level being played, for the combined leaderboard: its ticket
+   * (asked in the background as it starts; null: unranked) and the run's score
+   * when it started, since a story run's score carries from level to level.
+   */
+  let campaignRun = null;
+  const startCampaignRun = (level) => {
+    campaignRun = {
+      level,
+      base: game.world.score,
+      ticket: runTickets.start("campaign", level, { wait: Infinity }),
+    };
+  };
+
+  /** Sends a finished campaign level's score; a failure just leaves it off the board. */
+  const submitCampaign = async (level, seconds) => {
+    const run = campaignRun;
+    campaignRun = null;
+    if (!run || run.level !== level) return;
+    const score = Math.max(0, Math.round(game.world.score - run.base));
+    const ticket = await run.ticket;
+    if (!ticket || ticket.seed !== level) return;
+    try {
+      await auth.ensurePlayer();
+      const sent = await totalBoard.submitCampaign({
+        level,
+        score,
+        seconds: Math.round(seconds * 10) / 10,
+        ticket: ticket.ticket,
+      });
+      track("campaign_ranked", { level_id: level, score, total: sent && sent.total });
+    } catch (error) {
+      console.warn("Campaign score failed:", friendlyError(error));
+    }
+  };
+
   /** Leaving a campaign level forward finishes it: award its stars. */
   const finishLevel = (id) => {
     const area = areas[id];
@@ -474,6 +512,7 @@ window.addEventListener("load", function () {
       seconds,
     });
     const { added } = campaign.finish(id, mask, seconds);
+    submitCampaign(id, seconds);
     const ghost = recorder.finish(id, seconds);
     if (ghost && ghostStore.offer(ghost)) {
       track("ghost_saved", { level_id: id, seconds: Math.round(seconds) });
@@ -879,11 +918,13 @@ window.addEventListener("load", function () {
     // walking into a campaign level unlocks it in the level select
     // (dev mode opens every level for testing; only real progress is saved:
     // a level you walked into from one you had really reached)
+    campaignRun = null;
     if (isCampaignLevel(areaId)) {
       const walkedIn = cameFrom != null && campaign.isUnlocked(cameFrom);
       if (campaign.isUnlocked(areaId) || walkedIn) {
         campaign.reach(areaId);
         cloud.changed();
+        startCampaignRun(areaId);
       }
     }
     cameFrom = null;
@@ -3772,78 +3813,125 @@ window.addEventListener("load", function () {
   const board = {
     status: $("leaderboardStatus"),
     list: $("leaderboardList"),
+    podium: $("leaderboardPodium"),
+    mine: $("leaderboardMine"),
     retry: $("leaderboardRetryBtn"),
-    tab: "today",
     load: 0,
   };
 
-  const boardRow = (entry, { me = false, pinned = false, endless: ranked = false } = {}) => {
-    const row = document.createElement("li");
-    row.className = `lb-row${ranked ? " endless" : ""}${me ? " me" : ""}${pinned ? " pinned" : ""}`;
-    // names come from other players: text only, never HTML
-    [
-      ["lb-rank", typeof entry.rank === "number" ? `#${entry.rank}` : entry.rank],
-      ["lb-avatar", ""],
-      ["lb-name", entry.name],
-      ...(ranked ? [["lb-level", `Lv ${entry.level}`]] : []),
-      ["lb-score", String(entry.score)],
-      ["lb-time", clock(entry.seconds)],
-      ["lb-seen", ""],
-    ].forEach(([cls, text]) => {
-      const cell = document.createElement("span");
-      cell.className = cls;
-      cell.textContent = text;
-      if (cls === "lb-avatar") cell.appendChild(avatarCanvas(null)); // the classic dino until profiles arrive
-      row.appendChild(cell);
-    });
+  // css px, inside each face's frame (index.css .lb-step-face and .lb-avatar)
+  const PODIUM_AVATAR = window.innerHeight < 500 ? 40 : 48;
+  const ROW_AVATAR = 36;
+
+  /** A text cell; names come from other players: text only, never HTML. */
+  const cell = (cls, text = "") => {
+    const el = document.createElement("span");
+    el.className = cls;
+    el.textContent = text;
+    return el;
+  };
+
+  /** A square dino face for `uid`: the classic dino until profiles arrive (paintLooks). */
+  const faceCell = (cls, uid, size) => {
+    const el = cell(cls);
+    if (uid) el.dataset.uid = uid;
+    el.dataset.size = String(size);
+    el.appendChild(avatarCanvas(null, size));
+    return el;
+  };
+
+  const scoreCell = (cls, score) => {
+    const el = cell(cls);
+    el.append(cell("lb-star", "★"), cell("lb-points", String(score)));
+    return el;
+  };
+
+  const seenCell = (uid) => {
+    const el = cell("lb-seen");
+    if (uid) el.dataset.uid = uid;
+    return el;
+  };
+
+  /** One list row: rank badge, face, name and last online, score. */
+  const boardRow = (entry, { me = false, pinned = false } = {}) => {
+    const row = document.createElement(pinned ? "div" : "li");
+    const top = typeof entry.rank === "number" && entry.rank <= 3 ? ` top${entry.rank}` : "";
+    row.className = `lb-row${top}${me ? " me" : ""}${pinned ? " pinned" : ""}`;
+    const who = cell("lb-who");
+    who.append(cell("lb-name", entry.name), seenCell(entry.uid));
+    row.append(
+      cell("lb-rank", String(entry.rank)),
+      faceCell("lb-avatar", entry.uid, ROW_AVATAR),
+      who,
+      scoreCell("lb-score", entry.score),
+    );
     return row;
   };
 
-  /** The tab's board: load() -> { rows, mine }, one function call (spec 4.4). */
-  const boardSource = (tab) => {
-    if (tab === "endless") return { load: () => endlessBoard.load() };
-    const seed = dailySeed();
-    return { load: () => leaderboard.load(seed) };
+  /** The top three on their steps, second / first / third; an empty step waits for a player. */
+  const drawPodium = (podium) => {
+    board.podium.replaceChildren(
+      ...[1, 0, 2].map((i) => {
+        const entry = podium[i];
+        const step = document.createElement("div");
+        step.className = `lb-step place${i + 1}${entry ? "" : " empty"}`;
+        step.append(
+          faceCell("lb-step-face", entry && entry.uid, PODIUM_AVATAR),
+          cell("lb-step-name", entry ? entry.name : "—"),
+          scoreCell("lb-step-score", entry ? shortScore(entry.score) : 0),
+        );
+        const block = cell("lb-step-block");
+        block.appendChild(cell("lb-step-rank", String(i + 1)));
+        step.appendChild(block);
+        return step;
+      }),
+    );
   };
 
-  /** Dinos and last-online on the rows already showing: one read for the whole board, never blocking it. */
-  const paintLooks = async (load, shown) => {
-    const found = await loadProfiles([...new Set(shown.map((row) => row.uid))], {
+  /** Dinos and last-online on everything showing: one read for the whole board, never blocking it. */
+  const paintLooks = async (load) => {
+    const holders = [...leaderboardScreen.querySelectorAll("[data-uid]")];
+    const uids = [...new Set(holders.map((el) => el.dataset.uid))];
+    if (!uids.length) return;
+    const found = await loadProfiles(uids, {
       fetch: (list) => profiles.fetch(list),
       isCurrent: () => load === board.load,
     });
     if (!found) return;
-    const looks = rowLooks(shown, found, dayNumber(Date.now()));
-    looks.forEach((look, i) => {
-      const { el } = shown[i];
-      el.querySelector(".lb-avatar").replaceChildren(avatarCanvas(look.profile));
-      el.querySelector(".lb-seen").textContent = look.seen;
+    const looks = new Map(
+      rowLooks(
+        uids.map((uid) => ({ uid })),
+        found,
+        dayNumber(Date.now()),
+      ).map((look) => [look.uid, look]),
+    );
+    holders.forEach((el) => {
+      const look = looks.get(el.dataset.uid);
+      if (!look) return;
+      if (el.classList.contains("lb-seen")) {
+        el.textContent = look.seen;
+        el.classList.toggle("today", look.seen === "Today");
+      } else el.replaceChildren(avatarCanvas(look.profile, Number(el.dataset.size)));
     });
   };
 
   const loadLeaderboard = async () => {
     const load = ++board.load;
-    const { tab } = board;
-    const source = boardSource(tab);
     board.list.replaceChildren();
+    board.mine.replaceChildren();
+    drawPodium([null, null, null]);
     board.retry.style.display = "none";
     board.status.textContent = "Loading leaderboard…";
     try {
       const { uid } = await auth.ensurePlayer();
-      const view = boardView(await source.load(), uid);
+      const view = totalView(await totalBoard.load(), uid);
       if (load !== board.load) return;
       board.status.textContent = view.status;
-      if (!view.rows.length) return;
-      const endlessTab = tab === "endless";
-      const shown = view.rows.map(({ entry, me, pinned }) => ({
-        uid: entry.uid,
-        el: boardRow(entry, { me, pinned, endless: endlessTab }),
-      }));
-      shown.forEach(({ el }) => board.list.appendChild(el));
+      drawPodium(view.podium);
+      board.list.append(...view.rows.map(({ entry, me }) => boardRow(entry, { me })));
+      board.mine.appendChild(boardRow(view.mine.entry, { me: true, pinned: true }));
       // never blocks the board: a drawing that throws leaves the classic dinos, and a log line
-      paintLooks(load, shown).catch((error) =>
-        console.warn("Profiles failed:", error && error.name),
-      );
+      paintLooks(load).catch((error) => console.warn("Profiles failed:", error && error.name));
     } catch (error) {
       if (load !== board.load) return;
       console.warn("Leaderboard failed:", friendlyError(error));
@@ -3852,22 +3940,10 @@ window.addEventListener("load", function () {
     }
   };
 
-  const selectBoard = (tab) => {
-    board.tab = tab;
-    document.querySelectorAll("#leaderboardTabs .tab").forEach((el) => {
-      el.classList.toggle("active", el.dataset.board === tab);
-      el.setAttribute("aria-selected", el.dataset.board === tab);
-    });
-    loadLeaderboard();
-  };
-  document.querySelectorAll("#leaderboardTabs .tab").forEach((el) => {
-    el.onclick = () => selectBoard(el.dataset.board);
-  });
-
   $("leaderboardsBtn").onclick = () => {
     track("leaderboard_open", {});
     show(leaderboardScreen, true);
-    selectBoard("today");
+    loadLeaderboard();
   };
   $("questsBtn").onclick = () => {
     renderNest();
@@ -3882,6 +3958,12 @@ window.addEventListener("load", function () {
   $("leaderboardCloseBtn").onclick = () => {
     board.load += 1;
     show(leaderboardScreen, false);
+  };
+  // the board's call to action: back into the campaign, where the points are
+  $("leaderboardPlayBtn").onclick = () => {
+    board.load += 1;
+    show(leaderboardScreen, false);
+    playBtn.onclick();
   };
 
   // --------------------------------------------------------------- input

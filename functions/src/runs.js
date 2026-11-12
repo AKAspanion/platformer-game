@@ -1,9 +1,9 @@
 /**
- * Run tickets: a ranked daily or endless run starts on the server. Free of
+ * Run tickets: a ranked daily, endless or campaign-level run starts on the server. Free of
  * Firebase, like handlers.js (tests/run-tickets.test.js); index.js wires it to
  * Firestore (runs/{ticket}, closed to clients).
  *
- *   handleStartRun({ auth, data: { mode, seed? } }, { tickets, limiter, now, newSeed })
+ *   handleStartRun({ auth, data: { mode, seed? } }  (seed: the day, or the campaign level's area id), { tickets, limiter, now, newSeed })
  *     -> { ticket, seed, startedAt }
  *   claimTicket(tickets, id, { uid, mode, seed, seconds, now })   throws when it can't rank
  *
@@ -19,18 +19,21 @@
  */
 import { randomInt } from "node:crypto";
 import { seedIsOpen } from "../shared/daily/rules.js";
+import { isCampaignLevel } from "../shared/campaign/score-rules.js";
 import { ApiError } from "./handlers.js";
 
 const DAY_MS = 86400000;
 
-export const MODES = ["daily", "endless"];
+export const MODES = ["daily", "endless", "campaign"];
 /** Tickets per account per hour: a run, a retry, another... */
 export const RUN_LIMIT = 60;
+/** Campaign tickets per account per hour, counted apart: one per level entered. */
+export const CAMPAIGN_RUN_LIMIT = 240;
 /**
  * How long a ticket can still rank its run: long enough for the offline queue
  * to send it later (a daily seed closes within a day or two anyway).
  */
-export const TICKET_TTL_MS = { daily: 3 * DAY_MS, endless: 3 * DAY_MS };
+export const TICKET_TTL_MS = { daily: 3 * DAY_MS, endless: 3 * DAY_MS, campaign: DAY_MS };
 /** The game's clock may run a little ahead of the server's (latency, rounding). */
 export const SLACK_RATIO = 1.05;
 export const SLACK_SECONDS = 5;
@@ -58,10 +61,15 @@ export async function handleStartRun(
     if (!seedIsOpen(seed, startedAt)) {
       throw new ApiError("failed-precondition", "That daily challenge has closed.");
     }
+  } else if (mode === "campaign") {
+    seed = body.seed;
+    if (!isCampaignLevel(seed)) throw new ApiError("invalid-argument", "That run can't be ranked.");
   } else {
     seed = newSeed();
   }
-  if (await limiter(auth.uid, "run", RUN_LIMIT)) {
+  const [kind, limit] =
+    mode === "campaign" ? ["campaignRun", CAMPAIGN_RUN_LIMIT] : ["run", RUN_LIMIT];
+  if (await limiter(auth.uid, kind, limit)) {
     throw new ApiError("resource-exhausted", "Too many runs, try again in a minute.");
   }
   const expiresAt = startedAt + TICKET_TTL_MS[mode];

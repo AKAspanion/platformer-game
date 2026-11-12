@@ -13,8 +13,12 @@ import { COIN_SCORE, COMBO_MAX, ENEMY_MAX_SCORE, FULL_HEART_BONUS } from "../dai
 /** The lowest level a run is ranked at (reaching level 1 is just starting). */
 export const MIN_LEVEL = 2;
 export const MAX_LEVEL = 500;
-/** Clearing a level takes at least this long. */
-export const SECONDS_PER_LEVEL = 8;
+/**
+ * Clearing a level takes at least this long: a level is 21 tiles (336 px) and
+ * the dino crosses it in about 3.4 s at full speed. Only a floor for
+ * impossible times; the run's ticket (functions/src/runs.js) checks real time.
+ */
+export const SECONDS_PER_LEVEL = 2;
 export const MAX_ENDLESS_SECONDS = 36000;
 /** Submissions per account per hour. */
 export const ENDLESS_LIMIT = 30;

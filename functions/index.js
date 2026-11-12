@@ -5,18 +5,22 @@
  *   designWorld({ prompt })  -> { spec }    Claude turns a prompt into a world spec
  *   publishWorld({ world })  -> { world }   validates a world and shares it in Firestore
  *   searchWorlds({ query })  -> { worlds }  every shared world matching a search
- *   startRun({ mode, seed? })  -> { ticket, seed, startedAt }  a ranked daily or endless run
- *                                           begins (the server picks endless seeds)
+ *   startRun({ mode, seed? })  -> { ticket, seed, startedAt }  a ranked daily, endless or
+ *                                           campaign-level run begins (the server picks endless seeds)
  *   submitDailyScore({ seed, score, seconds, ticket })
  *                            -> { rank, total, best, improved }  the daily challenge's leaderboard
  *   submitEndlessScore({ seed, level, score, seconds, ticket })
  *                            -> { rank, total, best, improved }  the endless mode's leaderboard
+ *   submitCampaignScore({ level, score, seconds, ticket })
+ *                            -> { level, best, total }  a campaign level's best, for the combined board
  *   getProfiles({ uids })    -> { [uid]: { skin, hat, companion, seenDay? } }
  *                                           up to 30 players' leaderboard looks
  *   getDailyBoard({ seed })  -> { top, me }  the day's top 50 and the caller's own entry,
  *                                           each { uid, name, score, seconds }
  *   getEndlessBoard()        -> { top, me }  the endless top 50 and the caller's own entry,
  *                                           each { uid, name, level, score, seconds }
+ *   getTotalBoard()          -> { top, me }  the combined board (campaign + daily + endless, all
+ *                                           time): the top 50 and the caller's own, each { uid, name, score }
  *   recordWorldPlay({ worldId, kind }) -> { counted }   a play or finish, once per account per day
  *   toggleWorldLike({ worldId })       -> { liked, likes }
  *   pickWorldOfWeek                    scheduled, Mondays 00:00 UTC
@@ -25,7 +29,7 @@
  *                            -> { on, devices }  turns the daily reminder on or off for a device
  *   sendReminders            scheduled hourly; sends the 18:00 local reminder
  *   deleteAccount()          -> { worlds }  deletes the caller; their worlds become "Anonymous",
- *                                           their daily scores, endless entry, save,
+ *                                           their daily scores, endless entry, total, save,
  *                                           leaderboard profile and reminders are deleted
  *
  * All are callable functions: the Firebase SDK in the game sends the
@@ -69,13 +73,16 @@ import { worldLink } from "./shared/worlds/community.js";
 import { handleSubmitDaily, outranks } from "./src/daily.js";
 import { handleSetReminders, handleSendReminders } from "./src/reminders.js";
 import { handleSubmitEndless } from "./src/endless.js";
+import { handleSubmitCampaign, raisedTotal } from "./src/totals.js";
 import { handleGetProfiles } from "./src/profiles.js";
 import {
   handleGetDailyBoard,
   handleGetEndlessBoard,
+  handleGetTotalBoard,
   createBoardCache,
   DAILY_FIELDS,
   ENDLESS_FIELDS,
+  TOTAL_FIELDS,
 } from "./src/boards.js";
 import { PROFILE_FIELDS } from "./shared/profiles/rules.js";
 import { handleStartRun } from "./src/runs.js";
@@ -278,8 +285,25 @@ export const startRun = callable({ timeoutSeconds: 15 }, (request) =>
   handleStartRun(request, { tickets, limiter }),
 );
 
+// totals/{uid}: each player's combined score and the best per part it adds up
+// (functions/src/totals.js). Raised in a transaction, so two submissions at once
+// can't lose a part.
+const totalsBoard = db.collection("totals");
+
+const totals = {
+  raise: (uid, offer) =>
+    db.runTransaction(async (transaction) => {
+      const ref = totalsBoard.doc(uid);
+      const snap = await transaction.get(ref);
+      const stored = snap.exists ? snap.data() : null;
+      const next = raisedTotal(stored, { uid, ...offer });
+      if (next) transaction.set(ref, next);
+      return next || stored;
+    }),
+};
+
 export const submitDailyScore = callable({ timeoutSeconds: 20 }, (request) =>
-  handleSubmitDaily(request, { scores, tickets, limiter }),
+  handleSubmitDaily(request, { scores, totals, tickets, limiter }),
 );
 
 // endless/{uid}: one best run per player, ever
@@ -315,7 +339,11 @@ const board = {
 };
 
 export const submitEndlessScore = callable({ timeoutSeconds: 20 }, (request) =>
-  handleSubmitEndless(request, { board, tickets, limiter }),
+  handleSubmitEndless(request, { board, totals, tickets, limiter }),
+);
+
+export const submitCampaignScore = callable({ timeoutSeconds: 20 }, (request) =>
+  handleSubmitCampaign(request, { totals, tickets, limiter }),
 );
 
 // players/{uid}: each player's leaderboard look, written by its own account
@@ -334,7 +362,7 @@ export const getProfiles = callable({ timeoutSeconds: 15 }, (request) =>
   handleGetProfiles(request, { profiles: playerProfiles }),
 );
 
-// daily/{seed}/scores/{uid} and endless/{uid} are read only here
+// daily/{seed}/scores/{uid}, endless/{uid} and totals/{uid} are read only here
 // (firestore.rules), with a field mask of the fields a board shows, so no
 // stored time and no document create or update time leaves this adapter:
 // only the document id and data().
@@ -373,6 +401,20 @@ const boardReads = {
       return rowOf(await db.getAll(endlessBoard.doc(uid), { fieldMask: ENDLESS_FIELDS }));
     },
   },
+  total: {
+    async top(count) {
+      return rowsOf(
+        await totalsBoard
+          .orderBy("score", "desc")
+          .limit(count)
+          .select(...TOTAL_FIELDS)
+          .get(),
+      );
+    },
+    async get(uid) {
+      return rowOf(await db.getAll(totalsBoard.doc(uid), { fieldMask: TOTAL_FIELDS }));
+    },
+  },
 };
 const boardLog = (message) => logger.warn(message);
 // one per instance: a board's top is kept 60 s, so polling can't time an improvement
@@ -384,6 +426,10 @@ export const getDailyBoard = callable({ timeoutSeconds: 15 }, (request) =>
 
 export const getEndlessBoard = callable({ timeoutSeconds: 15 }, (request) =>
   handleGetEndlessBoard(request, { board: boardReads.endless, log: boardLog, cache: boardCache }),
+);
+
+export const getTotalBoard = callable({ timeoutSeconds: 15 }, (request) =>
+  handleGetTotalBoard(request, { totals: boardReads.total, log: boardLog, cache: boardCache }),
 );
 
 /** Deletes every document `query` matches, 400 per batch. */
@@ -415,6 +461,9 @@ const accounts = {
   deleteSeen: (uid) => deleteAll(db.collectionGroup("seen").where("uid", "==", uid)),
   async deleteEndless(uid) {
     await endlessBoard.doc(uid).delete();
+  },
+  async deleteTotal(uid) {
+    await totalsBoard.doc(uid).delete();
   },
   async deleteSave(uid) {
     await db.collection("saves").doc(uid).delete();

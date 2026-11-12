@@ -126,6 +126,35 @@ test("20 rows sharing a combination draw once; copies are separate canvases", ()
   assert.equal(new Set(canvases).size, 20);
   avatars.canvas({ skin: "mint", hat: "cap", companion: "none" });
   assert.equal(drawn, 2);
+  // another size is its own drawing
+  avatars.canvas(look, 52);
+  assert.equal(drawn, 3);
+});
+
+test("an avatar is a square face, as tall as it is wide", () => {
+  const made = [];
+  const avatars = createAvatars({
+    makeCanvas: (px, size) => {
+      const canvas = {
+        px,
+        size,
+        width: px,
+        getContext: () => ({ drawImage() {}, clearRect() {} }),
+      };
+      made.push(canvas);
+      return canvas;
+    },
+    draw: () => true,
+    ratio: () => 2,
+  });
+  avatars.canvas(null, 52);
+  assert.deepEqual(
+    made.map(({ px, size }) => [px, size]),
+    [
+      [104, 52],
+      [104, 52],
+    ],
+  );
 });
 
 test("a sprite that loads late redraws the cached drawing and its copies", () => {
@@ -152,9 +181,9 @@ test("the board's look painting catches and logs its own errors", () => {
   const index = fs.readFileSync("app/index.js", "utf8");
   assert.match(
     index,
-    /paintLooks\(load, shown\)\.catch\(\(error\) =>\s*console\.warn\("Profiles failed:", error && error\.name\)/,
+    /paintLooks\(load\)\.catch\(\(error\) =>\s*console\.warn\("Profiles failed:", error && error\.name\)/,
   );
-  assert.equal(index.match(/paintLooks\(load, shown\);/g), null, "no fire-and-forget call");
+  assert.equal(index.match(/paintLooks\(load\);/g), null, "no fire-and-forget call");
 });
 
 test("the profiles backend says how profiles are really read", () => {

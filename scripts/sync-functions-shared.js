@@ -1,6 +1,6 @@
 /**
  * Copies the game code the server shares (world validation, the community
- * rules, the daily and reminder rules and the level generator they use, the
+ * rules, the daily, endless, campaign-score and reminder rules and the level generator they use, the
  * profile shape and the shop catalogue it checks against) into
  * functions/shared/, because a functions deploy only uploads functions/.
  *
@@ -25,6 +25,7 @@ const FILES = [
   ["worlds/community.js", "worlds/community.js"],
   ["reminders/rules.js", "reminders/rules.js"],
   ["modes/endless-rules.js", "modes/endless-rules.js"],
+  ["campaign/score-rules.js", "campaign/score-rules.js"],
   ["profiles/rules.js", "profiles/rules.js"],
   ["shop/catalog.js", "shop/catalog.js"],
 ];

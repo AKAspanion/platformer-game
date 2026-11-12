@@ -149,6 +149,7 @@ export async function handleDeleteAccount({ auth }, { accounts }) {
   const worlds = await accounts.anonymizeWorlds(user.uid, { uid: "", name: ANONYMOUS });
   await accounts.deleteDailyScores(user.uid);
   await accounts.deleteEndless(user.uid);
+  await accounts.deleteTotal(user.uid);
   await accounts.deleteSave(user.uid);
   await accounts.deleteProfile(user.uid);
   await accounts.deleteReminders(user.uid);

@@ -311,6 +311,8 @@ a.btn {
 .home-screen {
   z-index: 8;
   visibility: visible;
+  /* the logo stays at least 16 px below the top edge (or the notch) */
+  padding-top: calc(var(--sat) + 16px);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -598,8 +600,9 @@ a.btn {
   text-transform: none;
   background-color: rgba(20, 17, 26, 0.6);
   font-family: var(--font);
-  padding: calc(var(--sat) + 8px) calc(var(--sar) + 8px) calc(var(--sab) + 8px)
-    calc(var(--sal) + 8px);
+  /* at least 16 px from every edge, past any notch */
+  padding: calc(var(--sat) + 16px) calc(var(--sar) + 16px) calc(var(--sab) + 16px)
+    calc(var(--sal) + 16px);
 }
 #settingsScreen,
 #shopScreen,
@@ -623,7 +626,7 @@ a.btn {
 }
 .modal-container {
   --modal-padding: min(28px, 5vw);
-  width: min(900px, 94%);
+  width: min(900px, 100%);
   max-height: 100%;
   height: min(86vh, 720px);
   color: var(--ink);
@@ -634,7 +637,7 @@ a.btn {
   padding: var(--modal-padding);
 }
 .modal-narrow {
-  width: min(520px, 94%);
+  width: min(520px, 100%);
   height: auto;
 }
 .modal-header {
@@ -685,6 +688,7 @@ a.btn {
 
 /* help screen key art */
 .btn-tut {
+  flex-shrink: 0;
   margin: 0px 8px;
 }
 .key-btn {
@@ -1466,16 +1470,37 @@ a.btn {
 #progressBar {
   width: 100%;
   height: 10px;
-  margin-top: 12px;
+  margin-top: 40px; /* room for the dino riding the bar */
   border-radius: 10px;
-  overflow: hidden;
   background: #000000;
 }
 #progressValue {
+  position: relative;
   width: 0%;
   height: 10px;
+  border-radius: 10px;
   background: var(--gold);
   transition: width 0.3s ease;
+}
+/* a little dino at the end of the fill, running along as it grows */
+#progressDino {
+  position: absolute;
+  right: -18px;
+  bottom: 8px;
+  width: 36px;
+  height: 30px;
+  background: url("assets/sprites/player/right/Run (1).webp") 0 -5px / 54px auto no-repeat;
+  animation: progress-hop 0.36s ease-in-out infinite alternate;
+}
+@keyframes progress-hop {
+  to {
+    transform: translateY(-3px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #progressDino {
+    animation: none;
+  }
 }
 
 /* ------------------------------------------- landscape only on phones/tablets */
@@ -1612,23 +1637,191 @@ a.btn {
 
 /* --------------------------------------------------------------- leaderboard */
 
+/* Landscape first (the game's orientation): the podium and Play on the left,
+   the ranked list on the right with the viewer's own row pinned under it. */
 .lb-container {
+  width: min(860px, 100%);
   height: min(86vh, 640px);
+  background:
+    radial-gradient(circle at 50% -20%, rgba(255, 216, 77, 0.35), transparent 60%), var(--cream);
 }
-.lb-tabs {
-  flex: none;
-  width: auto;
-  margin: 0 16px;
+.lb-header {
+  position: relative;
+  justify-content: center;
+  padding-bottom: 10px;
 }
-.lb-tabs .tab {
-  flex: 1;
+.lb-header .close-btn {
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+.lb-ribbon {
+  position: relative;
+  padding: 4px 28px 6px;
+  border-radius: 12px;
+  background: linear-gradient(#ff6b66, var(--red));
+  box-shadow: 0 4px 0 var(--red-dark);
+}
+.lb-ribbon::before,
+.lb-ribbon::after {
+  content: "";
+  position: absolute;
+  top: 8px;
+  width: 16px;
+  height: 100%;
+  background: var(--red-dark);
+}
+.lb-ribbon::before {
+  left: -16px;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 40% 50%);
+}
+.lb-ribbon::after {
+  right: -16px;
+  clip-path: polygon(0 0, 100% 0, 60% 50%, 100% 100%, 0 100%);
+}
+.lb-ribbon .modal-title {
+  color: white;
+  font-size: clamp(22px, 4.4vmin, 32px);
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.15);
 }
 .lb-body {
+  display: grid;
+  grid-template-columns: minmax(200px, 0.8fr) minmax(0, 1.3fr);
+  gap: 18px;
+  width: 100%;
+  min-height: 0;
+  flex: 1;
+}
+.lb-side {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
   min-height: 0;
-  flex: 1;
+}
+.lb-explain {
+  font-size: 13px;
+  line-height: 1.3;
+  text-align: center;
+  opacity: 0.7;
+}
+.lb-play {
+  width: 100%;
+  max-width: 260px;
+}
+
+/* the podium: second, first, third, the first step tallest */
+.lb-podium {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  align-items: end;
+  gap: 6px;
+  width: 100%;
+}
+.lb-step {
+  --step: #d9e3f0;
+  --step-dark: #9fb2cc;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+}
+.lb-step.place1 {
+  --step: #ffd84d;
+  --step-dark: #e0a920;
+}
+.lb-step.place3 {
+  --step: #f7b27a;
+  --step-dark: #d7803f;
+}
+.lb-step-face {
+  display: block;
+  width: 60px;
+  height: 60px;
+  padding: 3px;
+  border-radius: 14px;
+  background: white;
+  border: 3px solid var(--step-dark);
+  box-shadow: 0 3px 0 rgba(29, 26, 36, 0.15);
+}
+.lb-step.place1 .lb-step-face {
+  transform: scale(1.12);
+  margin-bottom: 6px;
+}
+.lb-step-face canvas,
+.lb-avatar canvas {
+  display: block;
+  border: 0; /* not the game canvas's frame */
+}
+.lb-step-name {
+  max-width: 100%;
+  font-size: 14px;
+  font-weight: bold;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lb-step-block {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  height: 34px;
+  margin-top: 4px;
+  padding-top: 6px;
+  border-radius: 12px 12px 4px 4px;
+  background: linear-gradient(var(--step), var(--step-dark));
+  box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.45);
+}
+.lb-step.place1 .lb-step-block {
+  height: 56px;
+}
+.lb-step.place3 .lb-step-block {
+  height: 24px;
+}
+.lb-step-rank {
+  font-size: 20px;
+  line-height: 1;
+  color: white;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
+}
+.lb-step.empty .lb-step-face {
+  opacity: 0.35;
+}
+.lb-step.empty .lb-step-score {
+  visibility: hidden;
+}
+
+/* the score pill: a gold star and the points */
+.lb-score,
+.lb-step-score {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px 2px 6px;
+  border-radius: 999px;
+  background: white;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  box-shadow: inset 0 0 0 1px rgba(29, 26, 36, 0.08);
+}
+.lb-step-score {
+  max-width: 100%;
+  font-size: 13px;
+  padding: 1px 8px 1px 5px;
+}
+.lb-star {
+  color: #f0b400;
+  text-shadow: 0 1px 0 #b98400;
+}
+
+/* the list */
+.lb-main {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
 }
 .lb-status {
   padding: 12px 0;
@@ -1639,73 +1832,145 @@ a.btn {
 .lb-retry {
   display: none;
 }
-.lb-list {
-  width: 100%;
-  list-style: none;
+.lb-retry {
+  align-self: center;
 }
-/* Fixed columns so the rows line up; on a landscape phone (a 464 px list) they
-   leave the name at least 80 px, which then truncates (tests/board-layout.test.js). */
+.lb-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 2px 2px 4px;
+}
+/* Each row is its own grid: rank, face, name over last online, score. On a
+   landscape phone the name keeps at least 80 px, then truncates
+   (tests/board-layout.test.js). */
 .lb-row {
   display: grid;
-  grid-template-columns: 2.6em 40px minmax(80px, 1fr) auto 3.4em 3.6em;
-  gap: 4px;
+  grid-template-columns: 30px 42px minmax(80px, 1fr) auto;
+  gap: 8px;
   align-items: center;
-  min-height: 44px;
-  padding: 8px 10px;
-  border-radius: 10px;
+  min-height: 52px;
+  padding: 5px 10px 5px 6px;
+  border-radius: 14px;
   font-size: 16px;
+  background: rgba(255, 255, 255, 0.75);
+  box-shadow: 0 2px 0 rgba(29, 26, 36, 0.08);
 }
-.lb-row:nth-child(odd) {
-  background: rgba(29, 26, 36, 0.06);
+.lb-row.top1 {
+  background: #fff0bf;
+}
+.lb-row.top2 {
+  background: #e6edf7;
+}
+.lb-row.top3 {
+  background: #fde3cf;
 }
 .lb-row.me {
-  background: var(--gold);
-  font-weight: bold;
+  box-shadow:
+    inset 0 0 0 2px var(--red),
+    0 2px 0 rgba(29, 26, 36, 0.08);
+}
+.lb-row.me .lb-name {
+  color: var(--red-dark);
+}
+.lb-mine:empty {
+  display: none;
+}
+.lb-mine {
+  padding-top: 6px;
+  border-top: 2px dashed rgba(29, 26, 36, 0.15);
 }
 .lb-row.pinned {
-  position: sticky;
-  bottom: 0;
-  margin-top: 8px;
-  box-shadow: 0 -2px 0 rgba(29, 26, 36, 0.2);
+  background: #ffe2d6;
 }
-.lb-row.endless {
-  grid-template-columns: 2.6em 40px minmax(80px, 1fr) 3.4em auto 3.4em 3.6em;
+.lb-rank {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 14px;
+  white-space: nowrap;
+  color: var(--ink);
+  background: rgba(29, 26, 36, 0.08);
+}
+.lb-row.top1 .lb-rank {
+  color: white;
+  background: #e0a920;
+}
+.lb-row.top2 .lb-rank {
+  color: white;
+  background: #8ea3c2;
+}
+.lb-row.top3 .lb-rank {
+  color: white;
+  background: #d7803f;
 }
 .lb-avatar {
   display: block;
-  width: 40px;
-  height: 28px;
+  width: 42px;
+  height: 42px;
+  padding: 1px;
+  border-radius: 10px;
+  background: white;
+  border: 2px solid rgba(29, 26, 36, 0.18);
 }
-.lb-avatar canvas {
-  display: block;
-  width: 40px;
-  height: 28px;
+.lb-row.top1 .lb-avatar {
+  border-color: #e0a920;
 }
-.lb-seen {
-  font-size: 12px;
-  text-align: right;
-  white-space: nowrap;
-  opacity: 0.7;
+.lb-row.top2 .lb-avatar {
+  border-color: #8ea3c2;
 }
-.lb-level {
-  text-align: right;
-  white-space: nowrap;
+.lb-row.top3 .lb-avatar {
+  border-color: #d7803f;
+}
+.lb-who {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
 }
 .lb-name {
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-weight: bold;
 }
-.lb-score,
-.lb-time {
-  text-align: right;
+.lb-seen {
+  font-size: 12px;
   white-space: nowrap;
-  font-variant-numeric: tabular-nums;
+  padding: 0 8px;
+  border-radius: 999px;
+  color: white;
+  background: rgba(29, 26, 36, 0.35);
 }
-.lb-time {
-  opacity: 0.7;
+.lb-seen.today {
+  background: #3dae5a;
+}
+.lb-seen:empty {
+  display: none;
 }
 
+/* a narrow (portrait) screen: the podium above the list */
+@media (max-width: 560px) {
+  .lb-body {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 10px;
+  }
+  .lb-side {
+    order: 0;
+  }
+  .lb-explain {
+    display: none;
+  }
+}
 /* ----------------------------------------------------------- delete account */
 
 .delete-note {
@@ -2163,13 +2428,16 @@ a.btn {
     padding: calc(var(--sat) + 4px) calc(var(--sar) + 8px) calc(var(--sab) + 4px)
       calc(var(--sal) + 8px);
   }
+  .home-screen {
+    padding-top: calc(var(--sat) + 16px);
+  }
   .modal-screen {
-    padding: calc(var(--sat) + 4px) calc(var(--sar) + 6px) calc(var(--sab) + 4px)
-      calc(var(--sal) + 6px);
+    padding: calc(var(--sat) + 16px) calc(var(--sar) + 16px) calc(var(--sab) + 16px)
+      calc(var(--sal) + 16px);
   }
   .modal-container {
     --modal-padding: 12px;
-    width: min(900px, 98%);
+    width: min(900px, 100%);
     height: 100%;
     border-radius: 14px;
   }
@@ -2324,6 +2592,40 @@ a.btn {
     height: 44px;
     min-height: 44px;
     transform: translate(-50%, -50%);
+  }
+  /* the leaderboard: a smaller podium so the list keeps its room */
+  .lb-container {
+    height: 100%;
+  }
+  .lb-header {
+    padding-bottom: 6px;
+  }
+  .lb-step-face {
+    width: 48px;
+    height: 48px;
+    padding: 2px;
+    border-width: 2px;
+    border-radius: 11px;
+  }
+  .lb-step-block {
+    height: 24px;
+    padding-top: 3px;
+  }
+  .lb-step.place1 .lb-step-block {
+    height: 38px;
+  }
+  .lb-step.place3 .lb-step-block {
+    height: 16px;
+  }
+  .lb-step-rank {
+    font-size: 16px;
+  }
+  .lb-explain {
+    font-size: 12px;
+  }
+  .lb-play {
+    font-size: 17px;
+    padding: 8px 20px;
   }
 }
 
