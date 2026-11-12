@@ -63,8 +63,9 @@ export const NEEDS_PREMIUM = "Designing worlds needs Premium.";
 
 export async function handleDesign({ auth, data }, { design, limiter, entitlements }) {
   const user = verified(signedIn(auth));
-  // the game hides the creator without Premium; this is the check that counts
-  if (!(await entitlements.premium(user.uid))) {
+  // the game hides the creator without Premium; this is the check that counts.
+  // Only the boolean true is Premium; a failed lookup throws, so nothing reaches the AI.
+  if ((await entitlements.premium(user.uid)) !== true) {
     throw new ApiError("permission-denied", NEEDS_PREMIUM);
   }
   const prompt = String((data && data.prompt) || "")
