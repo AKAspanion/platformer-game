@@ -8,12 +8,13 @@ const template = read("app/pages/legal.html");
 const render = (page) => renderLegalPage(read(page.source), page, template);
 const byRoute = (route) => LEGAL_PAGES.find((page) => page.route === route);
 
-test("/privacy and /terms are built from PRIVACY.md and TERMS.md", () => {
+test("/privacy, /terms and /delete-account are built from their Markdown", () => {
   assert.deepEqual(
     LEGAL_PAGES.map(({ source, file, route }) => [source, file, route]),
     [
       ["PRIVACY.md", "privacy.html", "/privacy"],
       ["TERMS.md", "terms.html", "/terms"],
+      ["DELETE-ACCOUNT.md", "delete-account.html", "/delete-account"],
     ],
   );
   for (const page of LEGAL_PAGES) {
@@ -29,6 +30,19 @@ test("/privacy and /terms are built from PRIVACY.md and TERMS.md", () => {
 test("the policy and the terms link to each other", () => {
   assert.match(render(byRoute("/privacy")), /<a href="\/terms">Terms of Service<\/a>/);
   assert.match(render(byRoute("/terms")), /<a href="\/privacy">Privacy Policy<\/a>/);
+});
+
+test("the delete-account page gives the in-game steps, an email route and what is kept", () => {
+  const page = read("DELETE-ACCOUNT.md");
+  assert.match(page, /\*\*Settings\*\*/);
+  assert.match(page, /\*\*Delete account\*\*/);
+  assert.match(page, /mailto:panditankit1995@gmail\.com/);
+  assert.match(page, /anonymous account/);
+  assert.match(page, /### What is deleted/);
+  assert.match(page, /### What is kept/);
+  // every legal page links to it, and the policy points to it
+  assert.match(render(byRoute("/privacy")), /<a href="\/delete-account">Delete your account<\/a>/);
+  assert.match(read("PRIVACY.md"), /\(\/delete-account\)/);
 });
 
 test("the policy says what reminders store", () => {

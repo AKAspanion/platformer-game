@@ -3,6 +3,7 @@
  *
  *   PRIVACY.md -> dist/privacy.html  (served at /privacy)
  *   TERMS.md   -> dist/terms.html    (served at /terms)
+ *   DELETE-ACCOUNT.md -> dist/delete-account.html (served at /delete-account)
  *
  * The Markdown stays the single source (the tests read it); webpack's
  * CopyPlugin calls renderLegalPage to wrap it in app/pages/legal.html.
@@ -16,6 +17,12 @@ const TEMPLATE = path.join(__dirname, "..", "app", "pages", "legal.html");
 const LEGAL_PAGES = [
   { source: "PRIVACY.md", file: "privacy.html", route: "/privacy", title: "Privacy Policy" },
   { source: "TERMS.md", file: "terms.html", route: "/terms", title: "Terms of Service" },
+  {
+    source: "DELETE-ACCOUNT.md",
+    file: "delete-account.html",
+    route: "/delete-account",
+    title: "Delete your account",
+  },
 ];
 
 const escapeHtml = (text) =>

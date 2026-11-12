@@ -20,7 +20,7 @@ Signing in is optional and only needed for the Worlds feature (creating and shar
 - Worlds You Share: the worlds you create are public. Each one is stored in Cloud Firestore (Google) with your display name and an account identifier, and is shown to every player. Your email address is never shown to other players.
 - World Descriptions: the description you type to create a world is sent to Anthropic's Claude API to design the world. It is not stored with the world or shown to other players.
 
-You can sign out at any time in Settings, and delete your account there too: your account and its sign-in details are deleted, and the worlds you shared stay public but are credited to "Anonymous" with no account identifier. To remove a world you shared, contact us at the address below.
+You can sign out at any time in Settings, and delete your account there too: your account and its sign-in details are deleted, and the worlds you shared stay public but are credited to "Anonymous" with no account identifier. To remove a world you shared, contact us at the address below. [Delete your account](/delete-account) explains every way to delete it, including by email, and what is deleted.
 
 ### Leaderboards
 

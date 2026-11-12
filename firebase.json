@@ -18,6 +18,10 @@
         "destination": "/terms.html"
       },
       {
+        "source": "/delete-account",
+        "destination": "/delete-account.html"
+      },
+      {
         "source": "/w/**",
         "function": {
           "functionId": "worldPage",
@@ -65,7 +69,7 @@
         ]
       },
       {
-        "source": "/@(index.html|sw.js|bundle.js|manifest.json|assetlinks.json|404.html|auth-action.html|auth-action.js|pages.css|privacy.html|terms.html)",
+        "source": "/@(index.html|sw.js|bundle.js|manifest.json|assetlinks.json|404.html|auth-action.html|auth-action.js|pages.css|privacy.html|terms.html|delete-account.html)",
         "headers": [
           {
             "key": "Cache-Control",
