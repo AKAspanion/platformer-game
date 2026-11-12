@@ -196,6 +196,7 @@ test("firestore.indexes.json orders worldStats by trend; hosting rewrites /w/**"
     { source: "/auth/action", destination: "/auth-action.html" },
     { source: "/privacy", destination: "/privacy.html" },
     { source: "/terms", destination: "/terms.html" },
+    { source: "/delete-account", destination: "/delete-account.html" },
     { source: "/w/**", function: { functionId: "worldPage", region: "asia-south1" } },
   ]);
 });

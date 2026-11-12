@@ -274,10 +274,12 @@ body {
   color: white;
 }
 .legal-body p,
-.legal-body ul {
+.legal-body ul,
+.legal-body ol {
   margin-top: 10px;
 }
-.legal-body ul {
+.legal-body ul,
+.legal-body ol {
   padding-left: 22px;
 }
 .legal-body li + li {
