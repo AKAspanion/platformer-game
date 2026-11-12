@@ -6,10 +6,10 @@
  * Chromium and WebKit run these at the same time on the same emulators, so
  * each test makes its own data (a unique email) or writes the same thing twice.
  */
-const fs = require("fs");
-const path = require("path");
 const { test, expect } = require("./fixtures");
 const { seedDoc, verifyLinkFor } = require("./emulators");
+// a checked-in world (the unit tests use it too), seeded into the local emulator
+const world = require("../tests/fixtures/sunny-coral-reef.json");
 
 test("an email account signs up, verifies and shows in Settings", async ({
   page,
@@ -66,12 +66,6 @@ test("the daily leaderboard loads from the functions", async ({ page, openGame }
 });
 
 test("a community world from Firestore is listed and plays", async ({ page, openGame }) => {
-  const world = JSON.parse(
-    fs.readFileSync(
-      path.join(__dirname, "..", "tests", "fixtures", "sunny-coral-reef.json"),
-      "utf8",
-    ),
-  );
   await seedDoc("worlds", world.id, {
     ...world,
     tagline: world.spec.tagline,
