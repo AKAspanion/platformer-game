@@ -4,6 +4,7 @@ import Screen from "./screen";
 import GameEngine from "./engine";
 import Smoother from "./engine/smooth";
 import StillFrame from "./engine/still-frame";
+import { loadingScreenUp } from "./util/loading-screen";
 import Controller from "./controller";
 import MouseInput from "./controller/mouse-input";
 import { controlOpacity } from "./controller/opacity";
@@ -236,6 +237,7 @@ window.addEventListener("load", function () {
   let areaId = 1;
   let loaded = false;
   let paused = false;
+  let modeStarting = false; // a mode is fetching what it needs before its first level
   let worldChanged = false;
   let session = null; // null = story; otherwise a mode from app/modes
   let retry = null; // () => void, restarts after Game Over
@@ -975,7 +977,7 @@ window.addEventListener("load", function () {
       if (controllerActive) toggleControllers(false);
       if (!loadingActive) toggleLoadingScreen(true);
     } else {
-      if (loadingActive) {
+      if (loadingActive && !loadingScreenUp({ levelLoaded: loaded, modeStarting })) {
         toggleLoadingScreen(false);
         setProgressValue(0);
       }
@@ -1755,6 +1757,7 @@ window.addEventListener("load", function () {
     game.world.reset();
     game.over = false;
     paused = false;
+    modeStarting = false; // the loading screen comes down once this level has loaded
     retry = null;
 
     engine.hold();
@@ -1793,10 +1796,10 @@ window.addEventListener("load", function () {
     const start = ++endlessStarts;
     show(homeScreen, false);
     show(pauseScreen, false);
+    modeStarting = true; // keeps the loading screen over the old level while we wait
     toggleLoadingScreen(true);
     const ticket = await runTickets.start("endless");
     if (start !== endlessStarts) return; // started again meanwhile
-    toggleLoadingScreen(false);
     session = createEndlessSession(ticket ? ticket.seed : undefined);
     endless.ticks = 0;
     quests.played("endless");
