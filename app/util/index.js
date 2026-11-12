@@ -270,15 +270,15 @@ const HELP_SECTIONS = [
     content: [
       {
         items: [
-          { className: "btn left-btn btn-tut", text: "to run left" },
-          { className: "btn right-btn btn-tut", text: "to run right", notap: true },
+          { className: "left-btn btn-tut", text: "to run left" },
+          { className: "right-btn btn-tut", text: "to run right", notap: true },
         ],
       },
       {
-        items: [{ className: "btn fire-btn btn-tut flex-item", text: "to spit fire", dot: true }],
+        items: [{ className: "fire-btn btn-tut flex-item", text: "to spit fire", dot: true }],
       },
       {
-        items: [{ className: "btn jump-btn btn-tut", text: "to jump" }],
+        items: [{ className: "jump-btn btn-tut", text: "to jump" }],
       },
     ],
   },
@@ -287,15 +287,15 @@ const HELP_SECTIONS = [
     content: [
       {
         items: [
-          { className: "btn left-key-btn btn-tut key-btn", text: "to run left" },
-          { className: "btn right-key-btn btn-tut key-btn", text: "to run right", notap: true },
+          { className: "left-key-btn btn-tut key-btn", text: "to run left" },
+          { className: "right-key-btn btn-tut key-btn", text: "to run right", notap: true },
         ],
       },
       {
-        items: [{ className: "btn fire-key-btn btn-tut flex-item key-btn", text: "to spit fire" }],
+        items: [{ className: "fire-key-btn btn-tut flex-item key-btn", text: "to spit fire" }],
       },
       {
-        items: [{ className: "btn jump-key-btn btn-tut key-btn", text: "to jump" }],
+        items: [{ className: "jump-key-btn btn-tut key-btn", text: "to jump" }],
       },
     ],
   },

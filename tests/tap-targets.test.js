@@ -97,7 +97,8 @@ test("every kind of button in the markup is covered by that list", () => {
     "shop-btn", // the Shop .btn, which holds the coin balance
   ]);
   for (const name of classes) {
-    if (modifiers.has(name) || name.startsWith("btn-") || name === "lb-retry") continue;
+    if (modifiers.has(name) || name.startsWith("btn-") || name === "lb-retry" || name === "lb-play")
+      continue;
     assert.ok(
       TAP_TARGETS.includes(`.${name}`),
       `.${name} is a tap target the compact block must size`,

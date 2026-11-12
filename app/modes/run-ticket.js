@@ -1,12 +1,13 @@
 /**
- * Run tickets (functions/src/runs.js): a ranked daily or endless run starts on
- * the server, which notes the start time and, for endless, picks the seed. A
+ * Run tickets (functions/src/runs.js): a ranked daily, endless or campaign-level
+ * run starts on the server, which notes the start time and, for endless, picks the seed. A
  * run without a ticket (offline at the start, server busy) still plays; it just
  * isn't ranked.
  *
  *   const tickets = createRunTickets({ call, ensurePlayer })
  *   await tickets.start("endless")                         -> { ticket, seed } | null
  *   await tickets.start("daily", seed, { wait: Infinity }) -> { ticket, seed } | null
+ *   await tickets.start("campaign", areaId, { wait: Infinity }) -> { ticket, seed } | null
  *
  * `call(name, data)` runs a callable function; `ensurePlayer()` signs in an
  * anonymous player if nobody is signed in (the ticket belongs to an account).
@@ -23,7 +24,7 @@ export function createRunTickets({ call, ensurePlayer, setTimer = setTimeout }) 
     start(mode, seed, { wait = TICKET_WAIT_MS } = {}) {
       const request = (async () => {
         await ensurePlayer();
-        const out = await call("startRun", mode === "daily" ? { mode, seed } : { mode });
+        const out = await call("startRun", mode === "endless" ? { mode } : { mode, seed });
         return isTicket(out) ? { ticket: out.ticket, seed: out.seed } : null;
       })().catch(() => null);
       if (!Number.isFinite(wait)) return request;

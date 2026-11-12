@@ -25,7 +25,7 @@ function block(header) {
   throw new Error("unbalanced");
 }
 
-for (const header of ["/daily/{seed}/scores/{uid}", "/endless/{uid}"]) {
+for (const header of ["/daily/{seed}/scores/{uid}", "/endless/{uid}", "/totals/{uid}"]) {
   test(`firestore.rules: ${header} allows no client read, list or write`, () => {
     const text = block(header);
     const allows = [...text.matchAll(/allow ([^:]+):\s*if ([^;]+);/g)].map((m) => [m[1], m[2]]);
@@ -40,6 +40,7 @@ test("firestore.rules: the boards' matches come before the catch-all", () => {
   const catchAll = code.indexOf("match /{document=**}");
   assert.ok(code.indexOf("match /daily/{seed}/scores/{uid}") < catchAll);
   assert.ok(code.indexOf("match /endless/{uid}") < catchAll);
+  assert.ok(code.indexOf("match /totals/{uid}") < catchAll);
 });
 
 /**

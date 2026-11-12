@@ -276,6 +276,7 @@ test("deleteAccount: worlds become Anonymous, then data and account go", async (
     },
     deleteDailyScores: async (uid) => calls.push(["scores", uid]),
     deleteEndless: async (uid) => calls.push(["endless", uid]),
+    deleteTotal: async (uid) => calls.push(["total", uid]),
     deleteSave: async (uid) => calls.push(["save", uid]),
     deleteProfile: async (uid) => calls.push(["profile", uid]),
     deleteReminders: async (uid) => calls.push(["reminders", uid]),
@@ -297,6 +298,7 @@ test("deleteAccount: worlds become Anonymous, then data and account go", async (
     ["anonymize", "u9", { uid: "", name: ANONYMOUS }],
     ["scores", "u9"],
     ["endless", "u9"],
+    ["total", "u9"],
     ["save", "u9"],
     ["profile", "u9"],
     ["reminders", "u9"],
@@ -323,6 +325,7 @@ test("deleteAccount: a failing profile delete stops before the account goes", as
   for (const name of [
     "deleteDailyScores",
     "deleteEndless",
+    "deleteTotal",
     "deleteSave",
     "deleteReminders",
     "deleteEntitlement",

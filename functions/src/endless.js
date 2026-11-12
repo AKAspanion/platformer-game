@@ -2,12 +2,14 @@
  * The endless leaderboard's server logic, free of Firebase so it can be tested
  * on its own (tests/endless-submit.test.js). index.js wires it to Firestore.
  *
- *   handleSubmitEndless({ auth, data: { seed, level, score, seconds, ticket } }, { board, tickets, limiter, now })
+ *   handleSubmitEndless({ auth, data: { seed, level, score, seconds, ticket } }, { board, totals, tickets, limiter, now })
  *     -> { rank, total, best: { level, score, seconds }, improved }
  *
  * `board` (Firestore: endless/{uid}), one best run per player:
  *   get(uid) -> entry | null      set(uid, entry)
  *   rankOf(entry) -> 1-based rank count() -> entries on the board
+ * `totals` (optional, totals/{uid}): the highest endless score counts towards
+ * the combined board (functions/src/totals.js), raise(uid, { name, part, score }).
  *
  * The best run is the highest level, then the higher score, then the shorter
  * time. Everything in the request is untrusted: the run must have started on
@@ -23,7 +25,7 @@ export { ENDLESS_LIMIT };
 
 export async function handleSubmitEndless(
   { auth, data },
-  { board, tickets, limiter, now = Date.now },
+  { board, totals, tickets, limiter, now = Date.now },
 ) {
   if (!auth || typeof auth.uid !== "string" || !auth.uid) {
     throw new ApiError("unauthenticated", "Sign in to submit a score.");
@@ -54,6 +56,10 @@ export async function handleSubmitEndless(
         seconds,
         seed,
       });
+    }
+    // the highest endless score, whichever run ranks best (a part only goes up)
+    if (totals) {
+      await totals.raise(auth.uid, { name: boardName(auth), part: "endless", score });
     }
     return {
       improved: better,

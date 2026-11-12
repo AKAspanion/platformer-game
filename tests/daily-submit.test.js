@@ -105,7 +105,7 @@ test("submitDaily refuses scores no run can reach, and stores nothing", async ()
 
 test("submitDaily refuses times that are too fast, too slow or not numbers", async () => {
   const scores = fakeScores();
-  for (const seconds of [29, 7201, NaN, Infinity, "60", null, undefined, -60]) {
+  for (const seconds of [9, 7201, NaN, Infinity, "60", null, undefined, -60]) {
     await assert.rejects(
       run(user(), { seed: SEED, score: 100, seconds }, { scores }),
       rejected("invalid-argument", CANT_RANK),
@@ -113,7 +113,7 @@ test("submitDaily refuses times that are too fast, too slow or not numbers", asy
     );
   }
   assert.equal(scores.sets, 0);
-  await run(user(), { seed: SEED, score: 100, seconds: 30 }, { scores });
+  await run(user(), { seed: SEED, score: 100, seconds: 10 }, { scores });
   await run(user("u2"), { seed: SEED, score: 100, seconds: 7200 }, { scores });
   assert.equal(scores.sets, 2);
 });
@@ -238,6 +238,7 @@ test("deleteAccount removes the caller's scores from every day before the accoun
       for (const day of scores.days.values()) day.delete(uid);
     },
     deleteEndless: async () => calls.push("endless"),
+    deleteTotal: async () => calls.push("total"),
     deleteSave: async () => calls.push("save"),
     deleteProfile: async () => calls.push("profile"),
     deleteReminders: async () => calls.push("reminders"),
@@ -252,6 +253,7 @@ test("deleteAccount removes the caller's scores from every day before the accoun
   assert.deepEqual(calls, [
     "scores",
     "endless",
+    "total",
     "save",
     "profile",
     "reminders",

@@ -9,7 +9,8 @@
 import { generateSequence, themeFor } from "../pcg/generator.js";
 
 export const DAILY_LEVELS = 5;
-export const MIN_SECONDS = 30;
+/** The five 21-tile levels take about 17 s at full speed: only impossible times are refused. */
+export const MIN_SECONDS = 10;
 export const MAX_SECONDS = 7200;
 export const COIN_SCORE = 20;
 /** The most one enemy gives: the beetle's `score` in app/game/enemies.js (tests keep them equal). */

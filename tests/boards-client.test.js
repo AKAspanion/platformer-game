@@ -214,14 +214,13 @@ test("the board's copy is the fixes-and-leaderboards spec's", () => {
   // the failed load shows BOARD_FAILED and the Try again button
   const failed = game.slice(
     game.indexOf("const loadLeaderboard"),
-    game.indexOf("const selectBoard"),
+    game.indexOf('$("leaderboardsBtn").onclick'),
   );
   assert.match(
     failed,
     /board\.status\.textContent = BOARD_FAILED;\s+board\.retry\.style\.display = "inline-block";/,
   );
-  assert.match(failed, /boardView\(/);
-  assert.match(failed, /await source\.load\(\)/);
+  assert.match(failed, /totalView\(await totalBoard\.load\(\), uid\)/);
 });
 
 // --- the game never reads the boards from Firestore
@@ -231,9 +230,12 @@ test("the game asks the board functions and never reads a board from Firestore",
   assert.match(daily, /"getDailyBoard", \{ seed \}/);
   const endless = fs.readFileSync("app/firebase/endless.js", "utf8");
   assert.match(endless, /"getEndlessBoard", \{\}/);
+  const totals = fs.readFileSync("app/firebase/totals.js", "utf8");
+  assert.match(totals, /"getTotalBoard", \{\}/);
   for (const [file, source] of [
     ["daily", daily],
     ["endless", endless],
+    ["totals", totals],
   ]) {
     assert.doesNotMatch(source, /getDocs?\(|onSnapshot|collection\(|storeApi/, file);
   }

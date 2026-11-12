@@ -24,7 +24,7 @@ const SYNC = path.join(root, "scripts", "sync-functions-shared.js");
 test("constants", () => {
   assert.equal(MIN_LEVEL, 2);
   assert.equal(MAX_LEVEL, 500);
-  assert.equal(SECONDS_PER_LEVEL, 8);
+  assert.equal(SECONDS_PER_LEVEL, 2);
   assert.equal(MAX_ENDLESS_SECONDS, 36000);
   assert.equal(ENDLESS_LIMIT, 30);
 });
@@ -91,8 +91,8 @@ test("checkEndlessRun rejects what can't have happened", () => {
   bad({ level: 4, score: -1, seconds: 30 });
   bad({ level: 4, score: ceiling + 1, seconds: 30 });
   bad({ level: 4, score: 1.5, seconds: 30 });
-  bad({ level: 2, score: 0, seconds: 7 });
-  bad({ level: 4, score: 0, seconds: 23 });
+  bad({ level: 2, score: 0, seconds: 1 });
+  bad({ level: 4, score: 0, seconds: 5 });
   bad({ level: 4, score: 0, seconds: 36001 });
   bad({ level: 4, score: 0, seconds: NaN });
   bad({ level: 4, score: 0, seconds: "30" });
@@ -218,4 +218,11 @@ test("sync script: functions/shared/modes/endless-rules.js is current and loads 
     { cwd: root, encoding: "utf8" },
   );
   assert.equal(result.status, 0, result.stderr);
+});
+
+test("a fast player is ranked: level 3 in 15 s, level 9 in 40 s (prod refused these)", () => {
+  assert.equal(checkEndlessRun({ seed: 777, level: 3, score: 0, seconds: 15 }), null);
+  assert.equal(checkEndlessRun({ seed: 777, level: 9, score: 0, seconds: 40 }), null);
+  // a time no dino can run is still refused
+  assert.equal(typeof checkEndlessRun({ seed: 777, level: 9, score: 0, seconds: 10 }), "string");
 });

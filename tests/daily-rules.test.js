@@ -28,7 +28,7 @@ const SYNC = path.join(root, "scripts", "sync-functions-shared.js");
 
 test("constants", () => {
   assert.equal(DAILY_LEVELS, 5);
-  assert.equal(MIN_SECONDS, 30);
+  assert.equal(MIN_SECONDS, 10);
   assert.equal(MAX_SECONDS, 7200);
   assert.equal(COIN_SCORE, 20);
 });

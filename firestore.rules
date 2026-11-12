@@ -20,6 +20,11 @@ rules_version = '2';
 // like the daily board, never read by a client: the getEndlessBoard function
 // returns uid, name, level, score and seconds.
 //
+// totals/{uid}: each player's all-time combined score, the sum of their best
+// per campaign level, per daily challenge and in endless (and those parts).
+// Written only by the submit functions and never read by a client: the
+// getTotalBoard function returns uid, name and score, never the parts.
+//
 // saves/{uid}: one cloud save per account. Only that account reads or writes
 // it, and a write carries exactly v, updatedAt and data.
 //
@@ -56,13 +61,18 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // no client get or list: boards come from getDailyBoard / getEndlessBoard
+    // no client get or list: boards come from getDailyBoard / getEndlessBoard / getTotalBoard
     match /daily/{seed}/scores/{uid} {
       allow read: if false;
       allow write: if false;
     }
 
     match /endless/{uid} {
+      allow read: if false;
+      allow write: if false;
+    }
+
+    match /totals/{uid} {
       allow read: if false;
       allow write: if false;
     }

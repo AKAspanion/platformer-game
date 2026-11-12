@@ -1,21 +1,24 @@
 import { cleanProfile, lastSeenLabel } from "./rules";
 import { SKIN_PALETTES, tintFrames, hatImage, drawHat } from "../game/cosmetics";
-import { companionFrames } from "../game/companion";
 import { requestImage } from "../game/preload";
 
 /**
- * The little dino on each leaderboard row: the idle frame in the player's skin,
- * the hat on its head and the companion beside it. Looks come from other
- * players' profiles, so they are only ever used as ids into the shop catalogue
+ * The dino's face on the leaderboard: a square crop of the idle frame's head
+ * in the player's skin, with the hat on it. Looks come from other players'
+ * profiles, so they are only ever used as ids into the shop catalogue
  * (cleanProfile swaps anything else for the free item) and drawn on a canvas:
- * never parsed as HTML.
+ * never parsed as HTML. The companion isn't drawn: it stands beside the dino,
+ * outside a face.
  */
-export const AVATAR_SIZE = 28; // css px tall; drawn at devicePixelRatio
-const AVATAR_WIDTH = 40; // css px wide: the companion stands on the left of the dino
-const DINO_SCALE = 0.6; // game units to css px: keeps the tallest hat (41 units) inside 28 px
-const FEET = { x: 28, y: 27 }; // where the dino's feet are, in css px
-const COMPANION_PX = 16; // css px wide: a 32 px sprite at half size, a whole number of device px at 2x
+export const AVATAR_SIZE = 36; // css px square, unless a size is asked for; drawn at devicePixelRatio
 const DINO_FRAME = "./assets/sprites/player/right/Idle (1).webp";
+/**
+ * The square around the head, in game units from the dino's feet (the frame is
+ * drawn at -18, -35, 60 x 40 and the head spans about -5..18 across, -33..-16
+ * down; a hat sits above it, its tip up to -43).
+ */
+const FACE = { x: -6, y: -44, size: 28 };
+const BARE_FACE = { x: -5, y: -39, size: 25 }; // no hat: the head fills the square
 const idle = { assetCount: 0, loadCount: 0 }; // avatars never hold up a loading bar
 
 /** The worn looks, each slot a catalogue id (the free one when unknown); null is the classic dino. */
@@ -37,54 +40,48 @@ function onLoad(image, again) {
   }
 }
 
-/** Draws the dino, hat and companion on `ctx` (sized AVATAR_WIDTH x AVATAR_SIZE css px at `ratio`). Returns true when every sprite was in. */
-function drawLooks(ctx, look, again, ratio) {
-  ctx.imageSmoothingEnabled = false;
+/** Draws the dino's face and hat on `ctx`, `px` device pixels square. Returns true when every sprite was in. */
+function drawLooks(ctx, look, again, px) {
   const dinoImage = requestImage(DINO_FRAME, idle);
   const hat = hatImage(look.hat);
-  const pals = companionFrames(look.companion);
-  [dinoImage, hat, pals[0]].forEach((image) => onLoad(image, again));
-  let complete = ready(dinoImage) && (!hat || ready(hat)) && (!pals.length || ready(pals[0]));
+  [dinoImage, hat].forEach((image) => onLoad(image, again));
+  if (!ready(dinoImage)) return false;
+  const box = hat ? FACE : BARE_FACE;
+  const dino = tintFrames([dinoImage], SKIN_PALETTES[look.skin])[0];
   ctx.save();
-  ctx.scale(ratio, ratio);
-  if (pals.length && ready(pals[0])) {
-    const size = COMPANION_PX / 32;
-    ctx.drawImage(pals[0], 0, AVATAR_SIZE - 28 * size, 32 * size, 28 * size);
-  }
-  if (ready(dinoImage)) {
-    const dino = tintFrames([dinoImage], SKIN_PALETTES[look.skin])[0];
-    ctx.translate(FEET.x, FEET.y);
-    ctx.scale(DINO_SCALE, DINO_SCALE);
-    ctx.drawImage(dino, -18, -35, 60, 40);
-    if (hat && ready(hat)) drawHat(ctx, hat, 1, dino);
-  } else {
-    complete = false;
-  }
+  ctx.scale(px / box.size, px / box.size);
+  ctx.translate(-box.x, -box.y);
+  // the dino art is smooth, the hats are pixel art
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(dino, -18, -35, 60, 40);
+  ctx.imageSmoothingEnabled = false;
+  if (hat && ready(hat)) drawHat(ctx, hat, 1, dino);
   ctx.restore();
-  return complete;
+  return !hat || ready(hat);
 }
 
-function browserCanvas(width, height) {
+function browserCanvas(px, size) {
   const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  canvas.style.width = `${AVATAR_WIDTH}px`;
-  canvas.style.height = `${AVATAR_SIZE}px`;
+  canvas.width = px;
+  canvas.height = px;
+  canvas.style.width = `${size}px`;
+  canvas.style.height = `${size}px`;
   return canvas;
 }
 
 /**
- * An avatar maker. Each combination is drawn once (`draw`, onto a master
- * canvas) and kept; every call returns a fresh canvas holding a copy. A sprite
- * that hadn't loaded yet redraws the master, and every copy handed out, when
- * it arrives.
+ * An avatar maker. Each combination and size is drawn once (`draw`, onto a
+ * master canvas) and kept; every call returns a fresh canvas holding a copy. A
+ * sprite that hadn't loaded yet redraws the master, and every copy handed out,
+ * when it arrives.
  */
 export function createAvatars({
   makeCanvas = browserCanvas,
   draw = drawLooks,
   ratio = () => (typeof window !== "undefined" && window.devicePixelRatio) || 1,
 } = {}) {
-  const cache = new Map(); // key -> { master, copies, done }
+  const cache = new Map(); // key|size -> { master, copies, done }
 
   const blit = (entry, copy) => {
     const ctx = copy.getContext("2d");
@@ -92,19 +89,15 @@ export function createAvatars({
     ctx.drawImage(entry.master, 0, 0);
   };
 
-  function entryFor(key, look) {
+  function entryFor(key, look, size) {
     let entry = cache.get(key);
     if (entry) return entry;
-    const scale = ratio();
-    entry = {
-      master: makeCanvas(Math.round(AVATAR_WIDTH * scale), Math.round(AVATAR_SIZE * scale)),
-      copies: [],
-      done: false,
-    };
+    const px = Math.round(size * ratio());
+    entry = { master: makeCanvas(px, size), copies: [], done: false };
     const again = () => {
       const ctx = entry.master.getContext("2d");
       ctx.clearRect(0, 0, entry.master.width, entry.master.height);
-      entry.done = draw(ctx, look, again, scale);
+      entry.done = draw(ctx, look, again, px);
       entry.copies.forEach((copy) => blit(entry, copy));
     };
     cache.set(key, entry);
@@ -113,11 +106,10 @@ export function createAvatars({
   }
 
   return {
-    canvas(profile) {
+    canvas(profile, size = AVATAR_SIZE) {
       const look = looksOf(profile);
-      const key = avatarKey(look);
-      const entry = entryFor(key, look);
-      const copy = makeCanvas(entry.master.width, entry.master.height);
+      const entry = entryFor(`${avatarKey(look)}|${size}`, look, size);
+      const copy = makeCanvas(entry.master.width, size);
       blit(entry, copy);
       if (!entry.done) entry.copies.push(copy); // repainted when its sprites arrive
       return copy;
@@ -127,9 +119,9 @@ export function createAvatars({
 
 const avatars = createAvatars();
 
-/** A canvas with the dino's idle frame in the skin, the hat on its head, the companion beside it. */
-export function avatarCanvas(profile) {
-  return avatars.canvas(profile);
+/** A square canvas, `size` css px, with the dino's face in the skin and the hat on its head. */
+export function avatarCanvas(profile, size = AVATAR_SIZE) {
+  return avatars.canvas(profile, size);
 }
 
 /**
