@@ -8,6 +8,24 @@ const INVULNERABLE_TICKS = 45; // 1.5s of blinking after a hit
 const HURT_TICKS = 10; // knocked back, no control
 const FIRE_COOLDOWN = 9;
 
+// Jump feel, in ticks (30 per second). The full, held jump is the one the level
+// generator plans for (app/pcg/generator.js jumpReach): change JUMP_SPEED there too.
+export const JUMP_SPEED = 18;
+const WINGS_JUMP_SPEED = 15;
+export const COYOTE_TICKS = 3; // can still jump ~0.1 s after walking off a ledge
+export const JUMP_BUFFER_TICKS = 4; // a press up to ~0.13 s before landing still jumps
+const JUMP_CUT = 0.5; // letting go while rising halves the upward speed...
+const JUMP_MIN_TICKS = 1; // ...but not before the first tick, so a tap still clears a tile
+
+// Wall slide and wall jump: push into a wall in the air to slide down it, jump to
+// leap up and away. Levels never need it (the generator plans with normal jumps);
+// it's for shortcuts, speed and saves.
+export const WALL_SLIDE_SPEED = 1; // fall speed cap while sliding (~3 px a tick)
+const WALL_JUMP_SPEED = 16;
+const WALL_JUMP_PUSH = 5; // px a tick away from the wall
+const WALL_GRACE_TICKS = 3; // a wall jump still works ~0.1 s after leaving the wall
+const WALL_LOCK_TICKS = 6; // pushing back toward the wall is ignored for ~0.2 s
+
 // Power-up durations in ticks (30 per second)
 export const POWERUP_TICKS = { triple: 30 * 15, wings: 30 * 20 };
 
@@ -143,6 +161,17 @@ export default class Player extends Object {
     this.deadTimer = 0;
     this.grounded = false;
     this.airJumps = 0;
+    this.airTicks = 0; // ticks since last on the ground
+    this.jumpBuffer = 0; // ticks a jump press is still remembered
+    this.jumpHeld = false;
+    this.jumpRising = false; // rising from a jump (not a knockback), so letting go cuts it
+    this.jumpTicks = 0;
+    this.pushing = 0; // direction held this tick (-1, 0, 1)
+    this.wallDir = 0; // side of the wall being slid on, 0 when none
+    this.wallSide = 0; // side of the last wall touched
+    this.wallGrace = 0;
+    this.wallLock = 0;
+    this.wallLockDir = 0;
 
     // power-ups
     this.shield = false;
@@ -168,22 +197,89 @@ export default class Player extends Object {
     return this.hurtTimer <= 0;
   }
 
+  /** On a wall: in the air, pushing into it (sliding down when falling). */
+  get wallSliding() {
+    return this.wallDir !== 0;
+  }
+
+  /**
+   * Called by the world every tick after collision: `side` is the wall the player
+   * is in the air pushing into (-1 left, 1 right), or 0.
+   */
+  touchWall(side) {
+    this.wallDir = side;
+    if (side) {
+      this.wallSide = side;
+      this.wallGrace = WALL_GRACE_TICKS;
+      if (this.velocityY > WALL_SLIDE_SPEED) this.velocityY = WALL_SLIDE_SPEED;
+    } else if (this.wallGrace > 0) {
+      this.wallGrace -= 1;
+    }
+    this.pushing = 0;
+  }
+
+  /** On the ground, or just off a ledge (coyote time), and not already jumping. */
+  get canGroundJump() {
+    return !this.jumping && (this.grounded || this.airTicks < COYOTE_TICKS);
+  }
+
+  /** Jump now if possible. Returns true if it jumped. */
   jump() {
     if (!this.canControl) return false;
-    if (!this.jumping) {
+    if (this.canGroundJump) {
       this.jumping = true;
-      this.velocityY -= 18;
+      this.velocityY = -JUMP_SPEED;
       this.stretch(0.8, 1.25);
+      this.startRise();
+      return true;
+    }
+    // off a wall (or just after leaving it): up and away
+    if (this.wallGrace > 0) {
+      const away = -this.wallSide;
+      this.jumping = true;
+      this.velocityY = -WALL_JUMP_SPEED;
+      this.velocityX = away * WALL_JUMP_PUSH;
+      this.direction = away;
+      this.wallDir = 0;
+      this.wallGrace = 0;
+      this.wallLock = WALL_LOCK_TICKS;
+      this.wallLockDir = -away;
+      this.stretch(0.8, 1.25);
+      this.startRise();
       return true;
     }
     // wings: one extra jump in the air
     if (this.wings > 0 && this.airJumps === 0) {
       this.airJumps = 1;
-      this.velocityY = -15;
+      this.velocityY = -WINGS_JUMP_SPEED;
       this.stretch(0.85, 1.2);
+      this.startRise();
       return true;
     }
     return false;
+  }
+
+  startRise() {
+    this.jumpRising = true;
+    this.jumpHeld = true;
+    this.jumpTicks = 0;
+  }
+
+  /** Jump pressed: remembered for a few ticks so a press just before landing still jumps. */
+  queueJump() {
+    this.jumpBuffer = JUMP_BUFFER_TICKS;
+  }
+
+  /** Jump let go: a jump still rising is cut short. */
+  releaseJump() {
+    this.jumpHeld = false;
+  }
+
+  /** Jumps if a press is remembered and a jump is possible now. Returns true if it jumped. */
+  takeJump() {
+    if (this.jumpBuffer <= 0 || !this.jump()) return false;
+    this.jumpBuffer = 0;
+    return true;
   }
 
   // Cooldown in ticks (30 per second) rather than a timer, so it pauses with
@@ -197,12 +293,14 @@ export default class Player extends Object {
   }
 
   moveLeft() {
-    if (!this.canControl) return;
+    if (!this.canControl || (this.wallLock > 0 && this.wallLockDir === -1)) return;
+    this.pushing = -1;
     this.direction = -1;
     this.velocityX -= 0.5;
   }
   moveRight() {
-    if (!this.canControl) return;
+    if (!this.canControl || (this.wallLock > 0 && this.wallLockDir === 1)) return;
+    this.pushing = 1;
     this.direction = 1;
     this.velocityX += 0.5;
   }
@@ -230,6 +328,7 @@ export default class Player extends Object {
     this.velocityX = 4 * away;
     this.velocityY = -9;
     this.jumping = true;
+    this.jumpRising = false; // a knockback isn't a jump: letting go doesn't cut it
     this.stretch(1.25, 0.8);
     return "hurt";
   }
@@ -294,6 +393,9 @@ export default class Player extends Object {
     if (this.hurtTimer > 0) this.hurtTimer -= 1;
     if (this.triple > 0) this.triple -= 1;
     if (this.wings > 0) this.wings -= 1;
+    if (this.jumpBuffer > 0) this.jumpBuffer -= 1;
+    if (this.wallLock > 0) this.wallLock -= 1;
+    this.airTicks = this.grounded ? 0 : this.airTicks + 1;
 
     // ease squash & stretch back to normal
     this.scaleX += (1 - this.scaleX) * 0.3;
@@ -307,6 +409,15 @@ export default class Player extends Object {
 
     this.velocityX *= friction;
     this.velocityY *= friction;
+
+    if (this.jumpRising) {
+      this.jumpTicks += 1;
+      if (this.velocityY >= 0) this.jumpRising = false;
+      else if (!this.jumpHeld && this.jumpTicks >= JUMP_MIN_TICKS) {
+        this.velocityY *= JUMP_CUT;
+        this.jumpRising = false;
+      }
+    }
 
     const absVelocityX = Math.abs(this.velocityX);
     this.running = absVelocityX === 0.435 ? false : absVelocityX >= 0.2;

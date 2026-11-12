@@ -322,6 +322,7 @@ export const populateHelp = (touch = false) => {
     ["items/shield.png", "Shield: blocks the next hit"],
     ["items/triple.png", "Triple fire: three fireballs per shot for 15s"],
     ["items/wings.png", "Wings: double jump for 20s"],
+    ["player/right/Jump (6).webp", "Jump into a wall to slide down it; jump again to leap off"],
     ["enemies/beetle/right/image_part_01.png", "Beetles are armoured: two fireballs"],
     ["enemies/pig/attack/right/image_part_02.png", "A flashing enemy is about to lunge!"],
   ];

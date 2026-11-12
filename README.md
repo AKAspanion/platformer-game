@@ -51,7 +51,9 @@ shared-code check and a production build. `pnpm audit:all` audits both dependenc
 ## Controls
 
 - ← / → or A / D: move
-- ↑ or Space: jump (again in the air with Wings)
+- ↑ or Space: jump (again in the air with Wings). Hold it to jump higher, tap it for a
+  short hop. A press just before landing, or just after running off a ledge, still jumps.
+- In the air, push into a wall to slide down it; jump to leap up and away (wall jump)
 - Enter or Shift: fire (Enter also starts, resumes, or retries from the menus)
 - Esc or P: pause / resume (the game also pauses when the tab is hidden)
 

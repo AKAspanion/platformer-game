@@ -2,6 +2,8 @@ import Game from "./game";
 import { drawHat, SKIN_PALETTES, FIREBALL_PALETTES, tintFrames, hatImage } from "./game/cosmetics";
 import Screen from "./screen";
 import GameEngine from "./engine";
+import Smoother from "./engine/smooth";
+import StillFrame from "./engine/still-frame";
 import Controller from "./controller";
 import MouseInput from "./controller/mouse-input";
 import { controlOpacity } from "./controller/opacity";
@@ -906,6 +908,9 @@ window.addEventListener("load", function () {
   // SCREEN
   let screen;
 
+  // While paused the frozen frame is drawn once (see app/engine/still-frame.js).
+  const stillFrame = new StillFrame();
+
   const resize = () => {
     sizeControls();
     applyLayout();
@@ -916,7 +921,7 @@ window.addEventListener("load", function () {
     container.style.marginLeft = `${inset.left}px`;
     container.style.marginRight = `${inset.right}px`;
     screen.resize(width, height, game.world.width, game.world.height);
-    screen.render();
+    stillFrame.invalidate(); // resizing cleared the canvas
   };
 
   const setupScreen = () => {
@@ -941,7 +946,21 @@ window.addEventListener("load", function () {
 
   const isLoaded = () => game.isLoaded() && screen.isLoaded();
 
+  // Moving things are drawn between ticks (see app/engine/smooth.js).
+  const smoother = new Smoother();
+  const moving = [];
+  const movingObjects = () => {
+    const { player, boss, enemies, fireballs, projectiles } = game.world;
+    moving.length = 0;
+    moving.push(player);
+    if (boss) moving.push(boss);
+    moving.push(...enemies.items, ...fireballs.items, ...projectiles.items);
+    return moving;
+  };
+
   const update = () => {
+    // every tick, paused or not, so nothing is drawn between two old positions
+    smoother.snapshot(movingObjects());
     loaded = isLoaded();
     const loadValue = loadPercent();
 
@@ -968,14 +987,18 @@ window.addEventListener("load", function () {
       if (controller.left.active) player.moveLeft();
       if (controller.right.active) player.moveRight();
       if (hint && (controller.left.active || controller.right.active)) hint.run.moved();
+      // A press is remembered for a few ticks (jump buffer); letting go early
+      // makes a shorter jump.
       if (controller.up.active) {
-        if (player.jump()) {
-          if (hint) hint.run.jumped();
-          game.world.playJumpSound();
-          game.world.playerJumped();
-        }
+        player.queueJump();
         controller.up.active = false;
       }
+      if (player.takeJump()) {
+        if (hint) hint.run.jumped();
+        game.world.playJumpSound();
+        game.world.playerJumped();
+      }
+      if (!controller.up.down) player.releaseJump();
       if (controller.fire.active && !player.firing) {
         game.world.shootFireball(uid());
         controller.fire.active = false;
@@ -1583,7 +1606,18 @@ window.addEventListener("load", function () {
     ctx.textAlign = "start";
   };
 
-  const render = () => {
+  /** Draws a frame `alpha` (0 to 1) of the way from the last tick to the next. */
+  const render = (alpha = 1) => {
+    if (!stillFrame.shouldDraw(paused)) return;
+    smoother.apply(movingObjects(), alpha);
+    try {
+      drawFrame();
+    } finally {
+      smoother.restore();
+    }
+  };
+
+  const drawFrame = () => {
     screen.drawBackground();
     const ctx = screen.buffer;
     // the world shakes, the HUD doesn't; with the setting off nothing moves
@@ -1673,8 +1707,6 @@ window.addEventListener("load", function () {
     game.world.effects.draw(ctx);
     ctx.restore();
     drawHud(ctx);
-
-    screen.render();
   };
 
   resize();

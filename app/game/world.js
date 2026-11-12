@@ -459,6 +459,36 @@ export default class World {
     return index;
   }
 
+  /** True when the tile just past the player's `side` (-1 left, 1 right) is solid on its facing side. */
+  wallBeside(object, side) {
+    const x = side > 0 ? object.getRight() + 1 : object.getLeft() - 1;
+    const face = side > 0 ? "l" : "r";
+    const column = Math.floor(x / this.tileSize);
+    if (column < 0 || column >= this.columns) return false;
+    return [object.getTop() + 1, object.getBottom() - 1].some((y) => {
+      const row = Math.floor(y / this.tileSize);
+      const value = row >= 0 && row < this.rows && this.collisonMap[row][column];
+      return typeof value === "string" && value.includes(face);
+    });
+  }
+
+  /** In the air pushing into a wall: the player slides down it, with a little dust. */
+  updateWallSlide() {
+    const { player } = this;
+    const side =
+      !player.grounded &&
+      !this.isPlayerDead &&
+      player.pushing &&
+      this.wallBeside(player, player.pushing)
+        ? player.pushing
+        : 0;
+    player.touchWall(side);
+    if (side && player.velocityY > 0 && this.areaTicks % 4 === 0) {
+      const x = side > 0 ? player.getRight() : player.getLeft();
+      this.effects.dust(x, player.getCenterY(), 1);
+    }
+  }
+
   /** Side walls (anything the player can't walk through) block fireballs. */
   isWallAt(x, y) {
     const column = Math.floor(x / this.tileSize);
@@ -890,6 +920,7 @@ export default class World {
       }
       player.land(fallSpeed);
     }
+    this.updateWallSlide();
     if (!this.isPlayerDead) this.trackSafeGround();
 
     // coins (backwards: collecting removes from the list)
