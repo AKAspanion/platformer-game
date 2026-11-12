@@ -147,9 +147,12 @@ export default class Screen {
 
     this.canvas.style.height = `var(--canvas-height, ${gH}px)`;
     this.canvas.style.width = `var(--canvas-width, ${gW}px)`;
+    // The canvas has devicePixelRatio² pixels per world pixel, so the pixel art stays
+    // crisp after the CSS scale-up. The world is drawn straight at that size (setting
+    // the canvas size above reset the context's transform).
     this.canvas.height = Math.floor(gH * scale * scale);
     this.canvas.width = Math.floor(gW * scale * scale);
-    this.buffer.scale(scale, scale);
+    this.buffer.scale(scale * scale, scale * scale);
 
     const cssScale = width / gW;
 
@@ -159,19 +162,5 @@ export default class Screen {
     this.buffer.webkitImageSmoothingEnabled = false;
     this.buffer.mozImageSmoothingEnabled = false;
     this.buffer.imageSmoothingEnabled = false;
-  }
-
-  render() {
-    this.buffer.drawImage(
-      this.buffer.canvas,
-      0,
-      0,
-      this.buffer.canvas.width,
-      this.buffer.canvas.height,
-      0,
-      0,
-      this.buffer.canvas.width,
-      this.buffer.canvas.height,
-    );
   }
 }

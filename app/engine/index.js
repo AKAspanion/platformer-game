@@ -1,3 +1,7 @@
+// Draw at most ~60 frames a second: a 120 Hz screen gets every other refresh. The
+// game ticks at 30 Hz, so more frames only cost battery (the tolerance absorbs jitter).
+export const MIN_FRAME_MS = 1000 / 60 - 2;
+
 export default class GameEngine {
   constructor(timeStep, update, render) {
     this.timeStep = timeStep;
@@ -11,6 +15,7 @@ export default class GameEngine {
 
     this.time = null;
     this.extraTime = 0;
+    this.lastRender = -Infinity;
     this.animationFrameRequest = null;
     this.engineLoop = (t) => this.loop(t);
   }
@@ -37,14 +42,18 @@ export default class GameEngine {
       this.updated = true;
     }
 
-    // Draw every screen refresh once the game has ticked, with how far it is into
-    // the next tick (0 to 1), so moving things can be drawn between ticks.
-    if (this.updated) this.render(Math.min(1, this.extraTime / this.timeStep));
+    // Draw once the game has ticked, up to ~60 times a second, with how far it is
+    // into the next tick (0 to 1), so moving things can be drawn between ticks.
+    if (this.updated && timeStamp - this.lastRender >= MIN_FRAME_MS) {
+      this.lastRender = timeStamp;
+      this.render(Math.min(1, this.extraTime / this.timeStep));
+    }
   }
 
   start() {
     this.started = true;
     this.extraTime = this.timeStep;
+    this.lastRender = -Infinity;
 
     this.time = window.performance.now();
     this.animationFrameRequest = window.requestAnimationFrame(this.engineLoop);

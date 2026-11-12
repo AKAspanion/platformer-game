@@ -3,6 +3,7 @@ import { drawHat, SKIN_PALETTES, FIREBALL_PALETTES, tintFrames, hatImage } from 
 import Screen from "./screen";
 import GameEngine from "./engine";
 import Smoother from "./engine/smooth";
+import StillFrame from "./engine/still-frame";
 import Controller from "./controller";
 import MouseInput from "./controller/mouse-input";
 import { controlOpacity } from "./controller/opacity";
@@ -907,6 +908,9 @@ window.addEventListener("load", function () {
   // SCREEN
   let screen;
 
+  // While paused the frozen frame is drawn once (see app/engine/still-frame.js).
+  const stillFrame = new StillFrame();
+
   const resize = () => {
     sizeControls();
     applyLayout();
@@ -917,7 +921,7 @@ window.addEventListener("load", function () {
     container.style.marginLeft = `${inset.left}px`;
     container.style.marginRight = `${inset.right}px`;
     screen.resize(width, height, game.world.width, game.world.height);
-    screen.render();
+    stillFrame.invalidate(); // resizing cleared the canvas
   };
 
   const setupScreen = () => {
@@ -1604,6 +1608,7 @@ window.addEventListener("load", function () {
 
   /** Draws a frame `alpha` (0 to 1) of the way from the last tick to the next. */
   const render = (alpha = 1) => {
+    if (!stillFrame.shouldDraw(paused)) return;
     smoother.apply(movingObjects(), alpha);
     try {
       drawFrame();
@@ -1702,8 +1707,6 @@ window.addEventListener("load", function () {
     game.world.effects.draw(ctx);
     ctx.restore();
     drawHud(ctx);
-
-    screen.render();
   };
 
   resize();
