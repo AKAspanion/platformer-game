@@ -1,7 +1,8 @@
 import "./env";
 import test, { beforeEach } from "node:test";
 import assert from "node:assert/strict";
-import { isPremium, hasAccountPremium, watchAccountPremium } from "../app/util/premium";
+import fs from "node:fs";
+import { isPremium, watchAccountPremium } from "../app/util/premium";
 
 // a stand-in for app/auth: the test calls `emit(user)` like a sign-in or sign-out
 const fakeAuth = () => {
@@ -15,7 +16,6 @@ const fakeAuth = () => {
   };
 };
 const player = (uid, isAnonymous = false) => ({ uid, isAnonymous });
-const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 let auth;
 let changes;
@@ -23,29 +23,34 @@ const watch = (entitlements) =>
   watchAccountPremium(auth, entitlements, () => changes.push(isPremium()));
 
 beforeEach(async () => {
-  // start every test signed out, with no local Premium switch
-  localStorage.removeItem("premium");
+  // every test starts signed out
   auth = fakeAuth();
-  changes = [];
   watchAccountPremium(auth, { premium: async () => false });
   await auth.emit(null);
-  changes = [];
   auth = fakeAuth();
+  changes = [];
 });
 
-test("an account with the entitlement has Premium, and loses it on sign-out", async () => {
+test("an account whose Firestore doc says premium: true has Premium, until sign-out", async () => {
   watch({ premium: async (uid) => uid === "paid" });
   assert.equal(isPremium(), false);
   await auth.emit(player("paid"));
   assert.equal(isPremium(), true);
-  assert.equal(localStorage.getItem("premiumAccount"), "paid");
   await auth.emit(null);
   assert.equal(isPremium(), false);
-  assert.equal(localStorage.getItem("premiumAccount"), null);
   assert.deepEqual(changes, [true, false]);
 });
 
-test("an account without it, or an anonymous player, has no Premium", async () => {
+test("only the boolean true counts", async () => {
+  for (const answer of ["true", 1, {}, null, undefined, false]) {
+    auth = fakeAuth();
+    watch({ premium: async () => answer });
+    await auth.emit(player("u1"));
+    assert.equal(isPremium(), false, `answer ${JSON.stringify(answer)}`);
+  }
+});
+
+test("an account without the doc, or an anonymous player, has no Premium", async () => {
   const asked = [];
   watch({ premium: async (uid) => asked.push(uid) && false });
   await auth.emit(player("free"));
@@ -55,10 +60,10 @@ test("an account without it, or an anonymous player, has no Premium", async () =
   assert.deepEqual(changes, []);
 });
 
-test("offline, the remembered account keeps Premium; another account doesn't get it", async () => {
+test("offline, nothing is remembered: no Premium until Firestore answers", async () => {
   watch({ premium: async () => true });
   await auth.emit(player("paid"));
-  assert.equal(hasAccountPremium(), true);
+  assert.equal(isPremium(), true);
 
   auth = fakeAuth();
   watch({
@@ -67,12 +72,10 @@ test("offline, the remembered account keeps Premium; another account doesn't get
     },
   });
   await auth.emit(player("paid"));
-  assert.equal(isPremium(), true);
-  await auth.emit(player("someone-else"));
   assert.equal(isPremium(), false);
 });
 
-test("a slow answer for an account that already signed out is ignored", async () => {
+test("switching accounts drops Premium at once, and a late answer for the old one is ignored", async () => {
   let release;
   watch({
     premium: (uid) =>
@@ -82,13 +85,20 @@ test("a slow answer for an account that already signed out is ignored", async ()
   await auth.emit(player("free"));
   release();
   await pending;
-  await settle();
   assert.equal(isPremium(), false);
 });
 
-test("the local test switch still unlocks Premium on its own", () => {
+test("nothing on the device turns Premium on: no URL, switch, build flag or saved value", () => {
   localStorage.setItem("premium", "1");
-  assert.equal(hasAccountPremium(), false);
-  assert.equal(isPremium(), true);
-  localStorage.removeItem("premium");
+  localStorage.setItem("premiumAccount", "paid");
+  assert.equal(isPremium(), false);
+  const src = fs.readFileSync("app/util/premium.js", "utf8");
+  assert.doesNotMatch(src, /localStorage\.(getItem|setItem)/);
+  assert.doesNotMatch(src, /PREMIUM_DEFAULT|URLSearchParams/);
+  const game = fs.readFileSync("app/index.js", "utf8");
+  assert.doesNotMatch(game, /setPremium|premiumUnlockBtn|setPremiumDev/);
+  assert.doesNotMatch(fs.readFileSync("webpack.config.js", "utf8"), /PREMIUM/);
+  // the server reads the same doc, emulators included
+  const fn = fs.readFileSync("functions/index.js", "utf8");
+  assert.doesNotMatch(fn, /FUNCTIONS_EMULATOR/);
 });
