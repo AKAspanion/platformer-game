@@ -38,6 +38,9 @@ export const WorldSpec = z.object({
     surface: z.enum(OPTIONS.surfaces),
     pits: z.enum(OPTIONS.pits).describe("liquid pools, spike floors, or bottomless"),
     traps: z.boolean().describe("Spike traps on the ground"),
+    slippery: z
+      .boolean()
+      .describe("Icy ground the dino slides on a little when it stops: for ice and snow worlds"),
   }),
   backdrop: z.object({
     skyline: z.enum(OPTIONS.skylines),
@@ -69,6 +72,7 @@ export const SYSTEM = `You design worlds for "Dino's Adventure", a pixel-art 2D 
 A world has 5 levels and a boss fight. The game paints the art, composes chiptune music and builds the levels from your spec, so you only choose its settings.
 
 Look: pick a palette that reads well (sky colours light enough or dark enough for the ground to stand out; surface clearly different from ground), a surface style, a skyline and decorations that fit the place.
+Floor: the surface style also sets what lies on the ground and gives underfoot: grass and moss bend and spring back, snow, candy, sand and ash keep footprints, stone has loose grit, metal and crystal are bare and clean. Make the ground slippery for icy or frozen places (ice, snow, glaciers), not otherwise.
 Creatures: 2-4 enemies with names, bodies, colours and features that fit the world. Behaviours: walker (patrols and lunges), flyer (swoops at the player from above), turret (stands still, spits seeds). At least one walker.
 Boss: a bigger creature with a name and 3-5 moves:
 - ground moves (not for flyers): charge (dash across the arena), rocket (faster dash that bounces back), stomp (heavy hop, rolling seeds), bounce (three hops), quake (big jump, shock waves)

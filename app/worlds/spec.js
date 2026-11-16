@@ -309,11 +309,16 @@ export function normalizeWorldSpec(raw = {}) {
     name: cleanText(r.name, 24, "My World"),
     tagline: cleanText(r.tagline, 80, ""),
     palette,
-    terrain: {
-      surface: oneOf(t.surface, OPTIONS.surfaces, preset.surface),
-      pits: oneOf(t.pits, OPTIONS.pits, preset.pits),
-      traps: !!t.traps,
-    },
+    terrain: (() => {
+      const surface = oneOf(t.surface, OPTIONS.surfaces, preset.surface);
+      return {
+        surface,
+        pits: oneOf(t.pits, OPTIONS.pits, preset.pits),
+        traps: !!t.traps,
+        // icy ground the dino slides on; snow is unless the spec says otherwise
+        slippery: typeof t.slippery === "boolean" ? t.slippery : surface === "snow",
+      };
+    })(),
     backdrop: {
       skyline: oneOf(b.skyline, OPTIONS.skylines, preset.skyline),
       celestial: oneOf(b.celestial, OPTIONS.celestials, preset.celestial),

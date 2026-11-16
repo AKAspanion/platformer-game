@@ -26,7 +26,8 @@ const DENSITY = { low: 0.6, medium: 1, high: 1.4 };
 
 const frameSet = (list) => list.map(toImage);
 
-// a created world's floor texture by its surface style (app/game/floor.js)
+// a created world's floor texture by its surface style (app/game/floor.js);
+// metal and crystal floors are bare, like the factory's
 const FLOOR_TEXTURE = {
   grass: "blades",
   moss: "tufts",
@@ -34,19 +35,23 @@ const FLOOR_TEXTURE = {
   candy: "powder",
   sand: "grit",
   ash: "grit",
+  stone: "dust",
+  metal: null,
+  crystal: null,
 };
 
 const css = ([r, g, b]) => `rgb(${r}, ${g}, ${b})`;
 
-/** The floor of a created world: its surface colours, and snow is slippery like Iceland. */
+/** The floor of a created world: its surface colours, slippery if its spec says so. */
 export const floorOf = (spec) => {
   const surface = rgb(spec.palette.surface);
+  const texture = FLOOR_TEXTURE[spec.terrain.surface];
   return {
-    texture: FLOOR_TEXTURE[spec.terrain.surface] || "dust",
+    texture: texture === undefined ? "dust" : texture,
     back: [shade(surface, -0.18), shade(surface, -0.08), surface].map(css),
     front: [shade(surface, 0.3), shade(surface, 0.15)].map(css),
     packed: css(shade(surface, -0.32)),
-    slippery: spec.terrain.surface === "snow",
+    slippery: !!spec.terrain.slippery,
   };
 };
 

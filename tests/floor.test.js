@@ -69,15 +69,18 @@ test("the slippery settings keep top speed close to normal ground's", () => {
 const flatMap = () => arena().collisonMap;
 const strandsNear = (ground, x) => ground.strandsAt(GROUND, x - 2, x + 2);
 
-test("every world has a floor texture on its open tops", () => {
-  Object.keys(FLOORS).forEach((world) => {
-    const ground = new Ground(flatMap(), floorFor({ world: Number(world) }), TILE, 1);
+test("every world but the factory has a floor texture on its open tops", () => {
+  [1, 2, 3, 4].forEach((world) => {
+    const ground = new Ground(flatMap(), floorFor({ world }), TILE, 1);
     assert.ok(ground.strands.length > 0, `world ${world}`);
     assert.ok(
       ground.strands.every((s) => s.y === GROUND * TILE),
       "strands stand on the ground's top",
     );
   });
+  const factory = new Ground(flatMap(), floorFor({ world: 5 }), TILE, 1);
+  assert.equal(factory.strands.length, 0, "the factory floor is clean metal");
+  assert.equal(factory.step({ left: 80, right: 90, bottom: GROUND * TILE }), 0);
 });
 
 test("a top with ground right on top of it gets no texture", () => {
@@ -228,20 +231,21 @@ test("a platform's rounded ends are bare, and the grass shortens towards them", 
   assert.ok(ground.strands.some((s) => s.y === GROUND * TILE && s.x < EDGE_INSET));
 });
 
-test("grass sways in the wind with nobody on it", () => {
+test("grass lies still with nobody on it, and only moves when stepped on", () => {
   const ground = new Ground(flatMap(), floorFor({ world: 1 }), TILE, 1);
   const frame = () => {
     const ctx = recorder();
     ground.draw(ctx, 0);
+    ground.draw(ctx, 1);
     return JSON.stringify(ctx.rects);
   };
-  const before = frame();
-  for (let t = 0; t < 20; t++) ground.update();
-  assert.notEqual(frame(), before);
-  assert.ok(
-    ground.strands.every((s) => s.press === 0),
-    "the wind doesn't press it",
-  );
+  const still = frame();
+  for (let t = 0; t < 40; t++) ground.update();
+  assert.equal(frame(), still, "no wind");
+  ground.step({ left: 80, right: 90, bottom: GROUND * TILE });
+  assert.notEqual(frame(), still, "a foot parts it");
+  for (let t = 0; t < 60; t++) ground.update();
+  assert.equal(frame(), still, "and it settles back exactly");
 });
 
 test("snow squashes up into a ridge beside a footprint", () => {
@@ -280,14 +284,30 @@ test("running through grass kicks bits of it up; a bare floor kicks up nothing",
 
 // ---------------------------------------------------------- created worlds
 
-test("a created world's floor comes from its surface style; snow worlds are slippery", () => {
-  const spec = (surface) =>
-    normalizeWorldSpec({ terrain: { surface }, palette: { surface: "#40a040" } });
-  const grass = floorOf(spec("grass"));
+test("a created world's floor comes from its surface style; its spec says if it's slippery", () => {
+  const spec = (terrain) => normalizeWorldSpec({ terrain, palette: { surface: "#40a040" } });
+  const grass = floorOf(spec({ surface: "grass" }));
   assert.equal(grass.texture, "blades");
   assert.equal(grass.slippery, false);
-  assert.equal(floorOf(spec("snow")).slippery, true);
-  assert.equal(floorOf(spec("metal")).texture, "dust");
-  const ground = new Ground(flatMap(), floorFor({ floor: grass }), TILE, 3);
-  assert.ok(ground.strands.length > 0);
+  assert.ok(new Ground(flatMap(), floorFor({ floor: grass }), TILE, 3).strands.length > 0);
+
+  assert.equal(floorOf(spec({ surface: "snow" })).slippery, true, "snow is, by default");
+  assert.equal(floorOf(spec({ surface: "snow", slippery: false })).slippery, false);
+  assert.equal(floorOf(spec({ surface: "crystal", slippery: true })).slippery, true);
+  assert.equal(floorOf(spec({ surface: "stone" })).texture, "dust");
+
+  ["metal", "crystal"].forEach((surface) => {
+    const bare = floorFor({ floor: floorOf(spec({ surface })) });
+    assert.equal(new Ground(flatMap(), bare, TILE, 3).strands.length, 0, `${surface} is bare`);
+  });
+});
+
+test("a world spec keeps its slippery choice; snow is slippery unless it says not", () => {
+  assert.equal(normalizeWorldSpec({ terrain: { surface: "sand" } }).terrain.slippery, false);
+  assert.equal(
+    normalizeWorldSpec({ terrain: { surface: "sand", slippery: true } }).terrain.slippery,
+    true,
+  );
+  assert.equal(normalizeWorldSpec({ terrain: { surface: "snow" } }).terrain.slippery, true);
+  assert.equal(normalizeWorldSpec({ terrain: { slippery: "yes" } }).terrain.slippery, false);
 });
