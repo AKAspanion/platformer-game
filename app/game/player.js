@@ -3,6 +3,7 @@ import Animator from "./animator";
 import { SKIN_PALETTES, tintFrames, hatImage } from "./cosmetics";
 import { FREE } from "../shop/catalog";
 import { SLIPPERY } from "./floor";
+import { deathPose, deathStyle } from "./death";
 
 export const MAX_HEARTS = 3;
 const INVULNERABLE_TICKS = 45; // 1.5s of blinking after a hit
@@ -163,6 +164,8 @@ export default class Player extends Object {
     this.invulnerable = 0;
     this.hurtTimer = 0;
     this.deadTimer = 0;
+    this.deathKind = null; // how it died (app/game/death.js), set by the world
+    this.deathDir = 1; // the way it was flung
     this.grounded = false;
     this.dropRow = null; // the ledge row it is dropping through (down pressed)
     this.airJumps = 0;
@@ -360,7 +363,7 @@ export default class Player extends Object {
 
   /** Blink while invulnerable. */
   get alpha() {
-    if (this.deadTimer > 0) return Math.max(0, Math.min(1, (60 - this.deadTimer) / 20));
+    if (this.deadTimer > 0) return deathPose(this.deathKind, this.deadTimer, this.deathDir).alpha;
     if (this.invulnerable > 0 && Math.floor(this.invulnerable / 3) % 2 === 0) return 0.35;
     return 1;
   }
@@ -371,7 +374,9 @@ export default class Player extends Object {
       this.animator.changeFrameSet(this.frameSets[name + side], delay);
 
     if (dead) {
-      set("dead", 2);
+      const { frames } = deathStyle(this.deathKind);
+      if (frames === "hold") return; // frozen in the pose it died in
+      set(frames, frames === "dead" ? 2 : 4);
       this.animator.animate(true);
       return;
     }
@@ -450,7 +455,25 @@ export default class Player extends Object {
     this.airJumps = 0;
   }
 
-  updateDeath() {
+  /** Dead: plays out its death (app/game/death.js) instead of update(). */
+  updateDeath(gravity, friction) {
     this.deadTimer += 1;
+    const { motion, sink = 0 } = deathStyle(this.deathKind);
+    if (motion === "fall" || motion === "fly") {
+      this.update(gravity, friction);
+      return;
+    }
+    this.xOld = this.x;
+    this.yOld = this.y;
+    this.velocityX = 0;
+    this.velocityY = 0;
+    this.y += sink;
+    this.grounded = false;
+  }
+
+  /** Dead and passing through the ground (flung off screen, or sinking in a pit). */
+  get ghostly() {
+    const { motion } = deathStyle(this.deathKind);
+    return this.deadTimer > 0 && motion !== "fall";
   }
 }

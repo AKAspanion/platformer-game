@@ -20,6 +20,7 @@ import { getSkin, audioSrc } from "../util/registry";
 import areas from "../areas";
 import { preloadArea } from "./preload";
 import sfx, { ENEMY_SFX, BOSS_MOVE_SFX } from "../controller/sfx";
+import { deathStyle, pitDeath, projectileDeath, hazardDeath, SHATTER_TICK } from "./death";
 
 // particles when a projectile breaks, by kind
 const PROJECTILE_BREAK = {
@@ -680,7 +681,7 @@ export default class World {
   }
 
   /** Enemy, seed or spike hit. Shield absorbs it; otherwise lose a heart. */
-  hurtPlayer(fromX, onGameOver) {
+  hurtPlayer(fromX, onGameOver, death = "knockout", colors = null) {
     if (this.isPlayerDead) return;
     const result = this.player.damage(fromX);
     if (!result) return;
@@ -701,7 +702,7 @@ export default class World {
     }
     this.effects.shake(2, 6);
     if (result === "dead") {
-      this.die(onGameOver);
+      this.die(onGameOver, { kind: death, fromX, colors });
       return;
     }
     this.effects.burst(player.getCenterX(), player.getCenterY(), {
@@ -718,13 +719,14 @@ export default class World {
 
   /** Fell in a pit: lose a heart and come back at the last safe spot. */
   fallInPit(onGameOver) {
+    const col = Math.floor(this.player.getCenterX() / this.tileSize);
     const { player } = this;
     if (player.invulnerable <= 0) {
       player.hearts = Math.max(0, player.hearts - 1);
       this.endCombo();
       this.effects.shake(2, 6);
       if (player.hearts === 0) {
-        this.die(onGameOver, "fall");
+        this.die(onGameOver, { kind: this.pitDeath(col) });
         return;
       }
     }
@@ -746,14 +748,148 @@ export default class World {
     AudioController.play("hurt");
   }
 
-  die(onGameOver, audio = "fall") {
-    // a little hop before falling over
-    this.player.velocityY = -10;
-    this.player.velocityX = 0;
-    this.player.invulnerable = 0;
+  /** The death a pit at column `col` gives (app/game/death.js). */
+  pitDeath(col) {
+    return pitDeath(Math.max(0, Math.min(this.columns - 1, col)), {
+      water: this.water.items,
+      objects: this.objects,
+      map: this.map,
+      rows: this.rows,
+      theme: this.areaTheme,
+      tileSize: this.tileSize,
+    });
+  }
+
+  /**
+   * The last heart is gone. `cause` { kind, fromX, colors } picks the death
+   * (app/game/death.js): `fromX` is where the hit came from, `colors` a shot's.
+   */
+  die(onGameOver, { kind = "knockout", fromX, colors } = {}) {
+    const { player } = this;
+    const style = deathStyle(kind);
+    const away = fromX === undefined ? -player.direction : player.getCenterX() < fromX ? -1 : 1;
+    player.deathKind = kind;
+    player.deathDir = away;
+    player.velocityY = style.hop || 0;
+    player.velocityX = (style.push || 0) * away;
+    player.jumping = true;
+    player.invulnerable = 0;
+    player.hurtTimer = 0;
+    this.deathBurst(kind, colors);
     this.endCombo();
     this.emit("death");
-    this.onPlayerDead(onGameOver, audio);
+    this.onPlayerDead(onGameOver);
+  }
+
+  /** The splash, sparks or splat the moment it dies. */
+  deathBurst(kind, colors) {
+    const { player, effects } = this;
+    const x = player.getCenterX();
+    const y = player.getCenterY();
+    const splash = (cols) =>
+      effects.burst(x, player.getBottom() - 2, {
+        count: 16,
+        colors: cols,
+        speed: 2.6,
+        life: 12,
+        gravity: 0.25,
+        spreadY: 0.5,
+      });
+    switch (kind) {
+      case "shot":
+        effects.burst(x, y, {
+          count: 12,
+          colors: colors || ["#ff5a6a", "#ffd0d6", "#ffffff"],
+          speed: 2.6,
+          life: 11,
+          gravity: 0.2,
+        });
+        break;
+      case "spiked":
+        effects.burst(x, player.getBottom(), {
+          count: 12,
+          colors: ["#ff3b3b", "#ffd0d6", "#ffffff"],
+          speed: 2.4,
+          life: 10,
+        });
+        effects.shake(3, 8);
+        break;
+      case "burnt":
+        effects.fireImpact(x, y);
+        effects.burst(x, y, {
+          count: 10,
+          colors: ["#fff6a8", "#ffd23f", "#ff8c1a"],
+          speed: 3,
+          life: 10,
+        });
+        effects.shake(3, 8);
+        break;
+      case "frozen":
+        effects.burst(x, y, {
+          count: 8,
+          colors: ["#ffffff", "#e6f4ff", "#9fd0ff"],
+          speed: 1.4,
+          life: 10,
+          gravity: 0,
+          size: 1,
+        });
+        break;
+      case "drown":
+        splash(["#ffffff", "#cfe8ff", "#7cc8f5", "#4a90e2"]);
+        break;
+      case "melt":
+        splash(["#e8ffc8", "#a8f070", "#7be04a", "#3fa02a"]);
+        break;
+      case "void":
+        effects.dust(x, player.getBottom(), 6);
+        break;
+      default:
+        // knockout: stars
+        effects.burst(x, player.getTop(), {
+          count: 12,
+          colors: ["#fff7c2", "#ffd84d", "#ffffff"],
+          speed: 2.8,
+          life: 12,
+          gravity: 0.1,
+        });
+        effects.shake(3, 8);
+        break;
+    }
+  }
+
+  /** Each tick of a death: bubbles, steam, smoke, the ice shattering. */
+  deathTrail() {
+    const { player, effects } = this;
+    const t = player.deadTimer;
+    const x = player.getCenterX() + (effects.random() - 0.5) * 8;
+    const rise = (y, cols, size = 1) =>
+      effects.burst(x, y, { count: 1, colors: cols, speed: 0.5, life: 14, gravity: -0.06, size });
+    switch (player.deathKind) {
+      case "drown":
+        if (t % 3 === 0 && t < 34) rise(player.getTop(), ["#ffffff", "#cfe8ff", "#9fd0ff"]);
+        break;
+      case "melt":
+        if (t % 2 === 0 && t < 30) rise(player.getTop(), ["#e8ffc8", "#c8f5a8", "#ffffff"], 2);
+        break;
+      case "burnt":
+        if (t % 4 === 0 && t < 36) rise(player.getTop(), ["#4a4a4a", "#6a6a6a", "#2e2e2e"], 2);
+        break;
+      case "frozen":
+        if (t === SHATTER_TICK) {
+          effects.burst(player.getCenterX(), player.getCenterY(), {
+            count: 22,
+            colors: ["#ffffff", "#e6f4ff", "#bfe8ff", "#7cc8f5"],
+            speed: 3,
+            life: 14,
+            gravity: 0.25,
+          });
+          effects.shake(2, 6);
+          sfx("icicle-shatter");
+        }
+        break;
+      default:
+        break;
+    }
   }
 
   /** Remember solid ground the player stood on, away from hazards. */
@@ -909,7 +1045,7 @@ export default class World {
       if (h.active > 0) {
         h.active -= 1;
         if (!this.isPlayerDead && this.checkCollision(player, h)) {
-          this.hurtPlayer(h.x + h.width / 2, onGameOver);
+          this.hurtPlayer(h.x + h.width / 2, onGameOver, hazardDeath(h.kind));
         }
         continue;
       }
@@ -994,11 +1130,10 @@ export default class World {
     return this.parts.every((part) => part.loaded);
   }
 
-  onPlayerDead(onGameOver, audio = "fall") {
+  onPlayerDead(onGameOver) {
     if (!this.isPlayerDead) {
-      AudioController.play(audio, "mp3");
+      AudioController.play("fall", "mp3");
 
-      this.player.velocityX = 0;
       this.stopThemeMusic();
       onGameOver();
     }
@@ -1035,12 +1170,17 @@ export default class World {
     this.areaTicks += 1;
     if (this.musicSwap > 0 && --this.musicSwap === 0) this.switchTrack(this.areaTheme);
 
-    player.update(this.gravity, this.friction);
-    if (this.isPlayerDead) player.updateDeath();
+    if (this.isPlayerDead) {
+      player.updateDeath(this.gravity, this.friction);
+      this.deathTrail();
+    } else {
+      player.update(this.gravity, this.friction);
+    }
 
     const fallSpeed = player.velocityY;
     player.landed = false;
-    this.collideObject(player);
+    // a dino flung off screen or sinking in a pit passes through the ground
+    if (!player.ghostly) this.collideObject(player);
     this.endDrop();
     if (player.landed) {
       if (fallSpeed > 4 && !this.isPlayerDead) {
@@ -1141,7 +1281,7 @@ export default class World {
         const area = this.deathAreas[index];
         if (!this.checkCollision(player, area)) continue;
         if (area.y >= this.height - 40) this.fallInPit(onGameOver);
-        else this.hurtPlayer(area.getCenterX(), onGameOver);
+        else this.hurtPlayer(area.getCenterX(), onGameOver, "spiked");
         break;
       }
     }
@@ -1229,7 +1369,13 @@ export default class World {
       seed.update();
       if (!this.isPlayerDead && this.checkCollision(player, seed, -1, -1)) {
         this.projectiles.remove(seed);
-        this.hurtPlayer(seed.getCenterX(), onGameOver);
+        const look = PROJECTILE_BREAK[seed.kind];
+        this.hurtPlayer(
+          seed.getCenterX(),
+          onGameOver,
+          projectileDeath(seed.kind),
+          seed.colors || (look && look.colors),
+        );
         if (seed.kind === "missile") {
           this.effects.burst(seed.getCenterX(), seed.getCenterY(), PROJECTILE_BREAK.missile);
           this.hazards.push({
