@@ -163,6 +163,7 @@ export default class Player extends Object {
     this.deathKind = null; // how it died (app/game/death.js), set by the world
     this.deathDir = 1; // the way it was flung
     this.grounded = false;
+    this.dropRow = null; // the ledge row it is dropping through (down pressed)
     this.airJumps = 0;
     this.airTicks = 0; // ticks since last on the ground
     this.jumpBuffer = 0; // ticks a jump press is still remembered
