@@ -11,8 +11,10 @@
  *
  * A foot flattens the strands under it and parts the ones at its edges (grass
  * bends aside, snow and sand squash up into a little ridge); they spring back
- * at the texture's own pace: grass at once, snow footprints linger. Grass
- * also sways in the wind.
+ * at the texture's own pace: grass at once, snow footprints linger. Nobody
+ * on it, it lies still.
+ *
+ * The factory's floor is bare metal: no texture, nothing to press.
  */
 
 // How each texture behaves. Each layer: `step` px between strands, `chance`
@@ -20,7 +22,7 @@
 // and fall (clumps, drifts), `jitter` how much each strand differs from its
 // neighbours (spiky grass vs smooth snow, default 0.35), `spike` odds of an
 // extra-tall strand. Then:
-// `lean` strands bend aside, `sway` they move in the wind, `squish` the floor
+// `lean` strands bend aside, `squish` the floor
 // beside a foot rises, `recover` press lost per tick, `flat` how much of a
 // pressed strand still shows.
 export const TEXTURES = {
@@ -28,7 +30,6 @@ export const TEXTURES = {
     back: { step: 1, chance: 0.92, heights: [1, 5], mound: 6, jitter: 0.6, spike: 0.15 },
     front: { step: 1, chance: 0.55, heights: [1, 2], mound: 3, jitter: 0.5, spike: 0 },
     lean: true,
-    sway: true,
     squish: false,
     recover: 0.07,
     flat: 0.2,
@@ -36,7 +37,6 @@ export const TEXTURES = {
   powder: {
     back: { step: 1, chance: 1, heights: [1, 4], mound: 7, jitter: 0.12, spike: 0 },
     lean: false,
-    sway: false,
     squish: true,
     recover: 0.006,
     flat: 0,
@@ -44,7 +44,6 @@ export const TEXTURES = {
   grit: {
     back: { step: 1, chance: 0.9, heights: [1, 3], mound: 5, spike: 0 },
     lean: false,
-    sway: false,
     squish: true,
     recover: 0.02,
     flat: 0,
@@ -53,7 +52,6 @@ export const TEXTURES = {
     back: { step: 1, chance: 0.6, heights: [1, 4], mound: 3, spike: 0.08 },
     front: { step: 2, chance: 0.4, heights: [1, 2], mound: 3, spike: 0 },
     lean: true,
-    sway: true,
     squish: false,
     recover: 0.05,
     flat: 0.3,
@@ -61,7 +59,6 @@ export const TEXTURES = {
   dust: {
     back: { step: 2, chance: 0.35, heights: [1, 1], mound: 1, spike: 0 },
     lean: true,
-    sway: false,
     squish: false,
     recover: 0.015,
     flat: 0,
@@ -92,7 +89,7 @@ export const FLOORS = {
     front: ["#5c9a7a"],
     packed: "#244249",
   },
-  5: { texture: "dust", back: ["#cfc4bc", "#bca796"], packed: "#a8927f" },
+  5: { texture: null }, // the factory: clean metal
 };
 
 // Slippery ground: the dino keeps more of its speed (friction) and picks up
@@ -151,7 +148,6 @@ export default class Ground {
     this.tileSize = tileSize;
     this.strands = [];
     this.cells = new Map(); // "row,col" -> strands on that tile's top
-    this.time = 0;
     this.rects = new Map(); // colour -> [x, y, w, h, ...], reused each draw
     const kind = TEXTURES[floor.texture];
     if (!kind || !floor.back || !floor.back.length) return;
@@ -210,7 +206,6 @@ export default class Ground {
         color: colors[Math.floor(noise(x, r, s + 5) * colors.length)],
         press: 0,
         lean: 0,
-        sway: this.kind.sway && h >= 3,
       };
       this.strands.push(strand);
       const key = `${r},${Math.floor(x / tileSize)}`;
@@ -269,10 +264,9 @@ export default class Ground {
     return this.step({ left: x - radius, right: x + radius, bottom: y, spread: 4 });
   }
 
-  /** Pressed strands spring back, bent ones straighten, the wind moves on. */
+  /** Pressed strands spring back, bent ones straighten. */
   update() {
     if (!this.kind) return;
-    this.time += 1;
     const { recover } = this.kind;
     for (let i = 0; i < this.strands.length; i++) {
       const s = this.strands[i];
@@ -283,11 +277,6 @@ export default class Ground {
         if (Math.abs(s.lean) < 0.05) s.lean = 0;
       }
     }
-  }
-
-  /** The wind's push on a strand now: a slow ripple along the floor. */
-  windAt(s) {
-    return s.sway ? Math.sin(this.time * 0.09 - s.x * 0.12) * 0.8 : 0;
   }
 
   /**
@@ -315,7 +304,7 @@ export default class Ground {
       const height = s.press > 0 ? s.h * (1 - s.press * (1 - flat)) : s.h * (1 - s.press);
       if (height < 0.5) continue;
       const h = Math.max(1, Math.round(height));
-      const lean = Math.round(s.lean + this.windAt(s));
+      const lean = Math.round(s.lean);
       if (lean && h >= 2) {
         const low = Math.ceil(h / 2);
         add(s.color, s.x, s.y - low, 1, low);
