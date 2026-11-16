@@ -964,8 +964,10 @@ export default class World {
       }
     }
 
-    // fireballs: one fireball, one kill. It burns out on the first enemy,
-    // seed or wall it touches. (Backwards: hits remove from the list.)
+    // fireballs: one fireball, one kill. It burns out on the first enemy, boss
+    // or seed it touches, and flies through walls: the hand-made levels draw
+    // dirt the dino walks in front of, so their walls don't match what is drawn.
+    // (Backwards: hits remove from the list.)
     for (let index = this.fireballs.items.length - 1; index >= 0; index--) {
       const fireball = this.fireballs.items[index];
 
@@ -988,9 +990,6 @@ export default class World {
       } else if (seed) {
         this.projectiles.remove(seed);
         this.emit("burn");
-        this.effects.fireImpact(tip.x, tip.y, fireball.direction);
-        this.fireballs.remove(fireball);
-      } else if (this.isWallAt(tip.x, tip.y)) {
         this.effects.fireImpact(tip.x, tip.y, fireball.direction);
         this.fireballs.remove(fireball);
       } else if (

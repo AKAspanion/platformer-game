@@ -13,6 +13,7 @@ import {
   TILE,
   GROUND,
 } from "./helpers";
+import areas from "../app/areas";
 
 const fire = (world, id = "f1") => world.shootFireball(id);
 const noFireballs = (world) => () => world.fireballs.items.length === 0;
@@ -71,17 +72,27 @@ test("a second fireball passes the dying enemy and kills the next one", () => {
   assert.equal(world.totalEnemies, 2);
 });
 
-test("fireballs stop at walls and don't kill enemies behind them", () => {
+test("fireballs fly through walls and kill the enemy behind them", () => {
   const world = makeWorld(
-    arena({ enemies: [enemy("hidden", 10)], walls: [{ col: 7, top: GROUND - 3 }] }),
+    arena({ enemies: [enemy("behind", 10)], walls: [{ col: 7, top: GROUND - 3 }] }),
   );
   freeze(world);
 
   fire(world);
-  const ticks = tickUntil(world, noFireballs(world));
-  assert.ok(ticks > 0 && ticks < 30, `fireball should hit the wall quickly (took ${ticks})`);
-  assert.equal(byId(world, "hidden").dying, false);
-  assert.equal(world.totalEnemies, 0);
+  tickUntil(world, noFireballs(world));
+  assert.equal(byId(world, "behind").dying, true);
+  assert.equal(world.totalEnemies, 1);
+});
+
+test("Iceland 2: a shot from the left cave flies through the dirt to the right cave's pig", () => {
+  const world = makeWorld(areas[8]);
+  placePlayer(world, 48, 1, 8);
+  freeze(world);
+
+  fire(world, "cave");
+  tickUntil(world, noFireballs(world));
+  // it used to burst on a wall hidden inside the snowman ledge, at x 272
+  assert.equal(byId(world, "a08e03").dying, true);
 });
 
 test("fireballs fly over a one-tile step and hit the enemy on it", () => {
