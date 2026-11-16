@@ -182,7 +182,8 @@ test("walkerShoots counts the patrol sway and the lunge", () => {
 test("shooting is a flag only: the levels are the ones generated before it existed", () => {
   // a digest of 200 daily and 200 endless seeds' levels without the `shoots` flag. It was
   // retaken when platform placement changed (every generated level keeps reachable
-  // platforms); the flag itself still changes nothing else.
+  // platforms) and when each level began starting at the height the one before ends
+  // (no step at the seam); the flag itself still changes nothing else.
   const hash = createHash("sha256");
   everyArea((area) => {
     const plain = {
@@ -193,7 +194,7 @@ test("shooting is a flag only: the levels are the ones generated before it exist
   });
   assert.equal(
     hash.digest("hex"),
-    "c7dd9012334219b063dee5e813d394bf57e7335f817cb144d387645a62be195f",
+    "b712985af6b2973f2de572e249022c2e1768e26291a84e25752a148c01371347",
   );
 });
 

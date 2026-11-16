@@ -1232,7 +1232,8 @@ export function generateSequence({ idBase, seed, levels }) {
   const areas = [];
   levels.forEach((spec, i) => {
     const id = idBase + i;
-    const entryHeight = 9;
+    // the ground runs on from the level before: same height across the seam (app/engine/scroll.js)
+    const entryHeight = i === 0 ? 9 : exits[i - 1];
     const exitHeight = 9 + (rng() < 0.4 ? 1 : 0);
     const last = i === levels.length - 1;
     const result = generateArea({
@@ -1248,13 +1249,22 @@ export function generateSequence({ idBase, seed, levels }) {
           : { area: id - 1, x: 330, y: exits[i - 1] * TILE - 8 },
       next: last ? { area: -1, x: 16, y: 0 } : { area: id + 1, x: 16, y: entryHeight * TILE - 8 },
     });
-    exits.push(result.heights[COLS - 1]);
+    const exit = result.heights[COLS - 1];
+    // the next level starts at this exit's height (a boss arena on its own flat floor)
+    if (!last) arriveStanding(result.data, levels[i + 1].boss ? BOSS_FLOOR : exit);
+    exits.push(exit);
     areas.push(result.data);
   });
   return areas;
 }
 
-/** One endless-mode level: always entered at row 9 from the left. */
+/** Points the forward portal at the next level's ground top row `row`: the dino lands standing. */
+function arriveStanding(data, row) {
+  const portal = data.portals.find((p) => p.direction > 0);
+  portal.destinationY = row * TILE - 8;
+}
+
+/** One endless-mode level: entered from the left at the height the level before ends (`prevExit`). */
 export function generateEndlessLevel({ id, seed, index, prevExit }) {
   const difficulty = Math.min(5, 1 + Math.floor(index / 2));
   const result = generateArea({
@@ -1262,7 +1272,7 @@ export function generateEndlessLevel({ id, seed, index, prevExit }) {
     seed,
     theme: themeFor(index),
     difficulty,
-    entryHeight: 9,
+    entryHeight: index === 0 ? 9 : prevExit,
     exitHeight: 9 + (index % 2),
     enemyScale: 0.8 + Math.min(0.6, index * 0.05),
     powerupCount: index % 3 === 2 ? 2 : 1,
@@ -1270,5 +1280,7 @@ export function generateEndlessLevel({ id, seed, index, prevExit }) {
       index === 0 ? { area: null, x: 330, y: 0 } : { area: id - 1, x: 330, y: prevExit * TILE - 8 },
     next: { area: id + 1, x: 16, y: 9 * TILE - 8 },
   });
-  return { data: result.data, exit: result.heights[COLS - 1] };
+  const exit = result.heights[COLS - 1];
+  arriveStanding(result.data, exit); // the next level starts at this height
+  return { data: result.data, exit };
 }
