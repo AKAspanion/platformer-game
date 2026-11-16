@@ -1,4 +1,4 @@
-import { toImage, Pix } from "./pixels";
+import { toImage, Pix, rgb, shade } from "./pixels";
 import { buildEnemy, buildBossFrames } from "./creatures";
 import { buildTiles, buildBackground, buildObjects, buildLiquid } from "./scenery";
 import { composeTrack, creatureSounds, bossSounds, wavUrl } from "./audio";
@@ -25,6 +25,30 @@ export const worldKey = (world) => `w${hashString(`${world.id}:${world.seed}`).t
 const DENSITY = { low: 0.6, medium: 1, high: 1.4 };
 
 const frameSet = (list) => list.map(toImage);
+
+// a created world's floor texture by its surface style (app/game/floor.js)
+const FLOOR_TEXTURE = {
+  grass: "blades",
+  moss: "tufts",
+  snow: "powder",
+  candy: "powder",
+  sand: "grit",
+  ash: "grit",
+};
+
+const css = ([r, g, b]) => `rgb(${r}, ${g}, ${b})`;
+
+/** The floor of a created world: its surface colours, and snow is slippery like Iceland. */
+export const floorOf = (spec) => {
+  const surface = rgb(spec.palette.surface);
+  return {
+    texture: FLOOR_TEXTURE[spec.terrain.surface] || "dust",
+    back: [shade(surface, -0.18), shade(surface, -0.08), surface].map(css),
+    front: [shade(surface, 0.3), shade(surface, 0.15)].map(css),
+    packed: css(shade(surface, -0.32)),
+    slippery: spec.terrain.surface === "snow",
+  };
+};
 
 /** The boss fight scales with the world's difficulty (tier 1-5, like the story bosses). */
 export const bossConfig = (spec, size, types) => {

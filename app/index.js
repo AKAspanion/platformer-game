@@ -1697,6 +1697,8 @@ window.addEventListener("load", function () {
 
     screen.drawMap(map);
     screen.drawMapObjects(objects);
+    // the floor's texture (grass, snow, sand...): pressed down where the dino and a boss walk
+    game.world.ground.draw(ctx, 0);
 
     for (let index = 0; index < coins.items.length; index++) {
       const coin = coins.items[index];
@@ -1750,6 +1752,8 @@ window.addEventListener("load", function () {
     drawGhost(ctx, player);
     drawCompanion(ctx, player);
     drawPlayer(ctx, player, game.world.isPlayerDead);
+    // the floor's front blades, over the feet of what stands in them
+    game.world.ground.draw(ctx, 1);
     if (game.world.bossArea) drawGates(ctx);
 
     game.world.effects.draw(ctx);

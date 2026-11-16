@@ -2,6 +2,7 @@ import Object from "./object";
 import Animator from "./animator";
 import { SKIN_PALETTES, tintFrames, hatImage } from "./cosmetics";
 import { FREE } from "../shop/catalog";
+import { SLIPPERY } from "./floor";
 
 export const MAX_HEARTS = 3;
 const INVULNERABLE_TICKS = 45; // 1.5s of blinking after a hit
@@ -26,6 +27,8 @@ const WALL_JUMP_PUSH = 5; // px a tick away from the wall
 const WALL_GRACE_TICKS = 3; // a wall jump still works ~0.1 s after leaving the wall
 const WALL_LOCK_TICKS = 6; // pushing back toward the wall is ignored for ~0.2 s
 
+const RUN_ACCEL = 0.5; // speed a tick holding left or right
+
 // Power-up durations in ticks (30 per second)
 export const POWERUP_TICKS = { triple: 30 * 15, wings: 30 * 20 };
 
@@ -35,6 +38,7 @@ export default class Player extends Object {
     this.loaded = false;
 
     this.hearts = MAX_HEARTS;
+    this.slippery = false; // the area's floor is slippery (set by the world)
     this.resetState();
     this.firing = true; // no fireballs before the first reset()
 
@@ -297,13 +301,22 @@ export default class Player extends Object {
     if (!this.canControl || (this.wallLock > 0 && this.wallLockDir === -1)) return;
     this.pushing = -1;
     this.direction = -1;
-    this.velocityX -= 0.5;
+    this.velocityX -= this.runAccel;
   }
   moveRight() {
     if (!this.canControl || (this.wallLock > 0 && this.wallLockDir === 1)) return;
     this.pushing = 1;
     this.direction = 1;
-    this.velocityX += 0.5;
+    this.velocityX += this.runAccel;
+  }
+
+  /** On slippery ground and not taking off: slower to start and stop. */
+  get onSlippery() {
+    return this.slippery && this.grounded && !this.jumping;
+  }
+
+  get runAccel() {
+    return this.onSlippery ? SLIPPERY.accel : RUN_ACCEL;
   }
 
   /**
@@ -402,13 +415,17 @@ export default class Player extends Object {
     this.scaleX += (1 - this.scaleX) * 0.3;
     this.scaleY += (1 - this.scaleY) * 0.3;
 
+    // grounded is still last tick's here: on slippery ground the dino slides on
+    const frictionX = this.onSlippery ? SLIPPERY.friction : friction;
+    const accel = this.runAccel;
+
     this.xOld = this.x;
     this.yOld = this.y;
     this.velocityY += gravity;
     this.x += this.velocityX;
     this.y += this.velocityY;
 
-    this.velocityX *= friction;
+    this.velocityX *= frictionX;
     this.velocityY *= friction;
 
     if (this.jumpRising) {
@@ -421,7 +438,8 @@ export default class Player extends Object {
     }
 
     const absVelocityX = Math.abs(this.velocityX);
-    this.running = absVelocityX === 0.435 ? false : absVelocityX >= 0.2;
+    // a single tick's push from standing isn't a run yet
+    this.running = absVelocityX === accel * frictionX ? false : absVelocityX >= 0.2;
     this.grounded = false; // set again by collision this tick
   }
 

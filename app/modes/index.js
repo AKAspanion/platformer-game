@@ -1,6 +1,6 @@
 import areas from "../areas";
 import { FINISH, generateEndlessLevel, generateSequence } from "../pcg/generator";
-import { buildWorld } from "../gen";
+import { buildWorld, floorOf } from "../gen";
 import { LEVELS_PER_WORLD } from "../worlds/spec";
 import { DAILY_LEVELS, dailyLevels } from "../daily/rules";
 import { dailyEggId, dailyEggLevel } from "../rewards/eggs";
@@ -99,7 +99,11 @@ export function createCustomSession(world, options = {}) {
     seed: assets.seed,
     levels: assets.levels,
   });
-  levels.forEach((data) => (data.skin = assets.key));
+  const floor = floorOf(assets.spec);
+  levels.forEach((data) => {
+    data.skin = assets.key;
+    data.floor = floor;
+  });
   register(levels);
   return {
     kind: "custom",
