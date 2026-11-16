@@ -5,6 +5,7 @@ import Screen from "./screen";
 import GameEngine from "./engine";
 import Smoother from "./engine/smooth";
 import StillFrame from "./engine/still-frame";
+import { joinsSeamlessly, createSlide } from "./engine/scroll";
 import { loadingScreenUp } from "./util/loading-screen";
 import Controller from "./controller";
 import MouseInput from "./controller/mouse-input";
@@ -290,6 +291,9 @@ window.addEventListener("load", function () {
     return "idleRight";
   };
   let cameFrom = null; // the area the player just walked out of (portal)
+  // walking into the next level of the same world pans across to it (app/engine/scroll.js)
+  let slide = null;
+  let slideSnap = null; // the level just left, as it looked, drawn sliding out
   // dev mode (localhost or ?debug): every level open for testing, without
   // touching the saved progress; Settings has a switch to turn it off
   const devUnlock = () => canToggleLocally() && settings.get("devUnlockAll") !== false;
@@ -914,6 +918,7 @@ window.addEventListener("load", function () {
   };
 
   const setupWorld = () => {
+    slide = null;
     if (session) session.ensure(areaId);
     game.world.setup(areas[areaId]);
     // walking into a campaign level unlocks it in the level select
@@ -1027,6 +1032,16 @@ window.addEventListener("load", function () {
       if (!controllerActive && !paused) toggleControllers(true);
     }
 
+    // the camera pans into the next level; play picks up again once it has arrived
+    if (slide) {
+      if (loaded && !paused) {
+        slide.step();
+        player.updateAnimation({ dead: false });
+      }
+      if (!slide.done) return;
+      slide = null;
+    }
+
     if (!game.over && loaded && !paused) {
       if (controller.left.active) player.moveLeft();
       if (controller.right.active) player.moveRight();
@@ -1078,6 +1093,11 @@ window.addEventListener("load", function () {
       } else {
         worldChanged = true;
         engine.hold();
+        // the next level of the same world joins on: pan across rather than cut
+        const seamless =
+          !reduceMotion() && joinsSeamlessly(areas[areaId], areas[portal.destinationArea], portal);
+        const exitAt = { x: player.x, y: player.y };
+        if (seamless) captureWorld();
         cameFrom = areaId;
         const rushHearts =
           session && session.kind === "bossrush" && portal.direction > 0
@@ -1091,6 +1111,14 @@ window.addEventListener("load", function () {
           daily.hearts = rushHearts;
         }
         setupScreen();
+        if (seamless) {
+          slide = createSlide({
+            direction: portal.direction,
+            width: game.world.width,
+            from: exitAt,
+            to: { x: player.x, y: player.y },
+          });
+        }
         engine.resume();
       }
     }
@@ -1691,15 +1719,59 @@ window.addEventListener("load", function () {
     if (!stillFrame.shouldDraw(paused)) return;
     smoother.apply(movingObjects(), alpha);
     try {
-      drawFrame();
+      drawFrame(alpha);
     } finally {
       smoother.restore();
     }
   };
 
-  const drawFrame = () => {
-    screen.drawBackground();
+  const reduceMotion = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+  /** Keeps the level being left, without the dino, to slide out as the next comes in. */
+  const captureWorld = () => {
+    const { canvas } = screen;
+    if (!slideSnap) slideSnap = document.createElement("canvas");
+    slideSnap.width = canvas.width;
+    slideSnap.height = canvas.height;
+    drawWorld(screen.buffer, { actors: false });
+    slideSnap.getContext("2d").drawImage(canvas, 0, 0);
+  };
+
+  /** Mid-pan: the level left slides out one side as the next slides in, the dino crossing the seam. */
+  const drawSlide = (alpha) => {
     const ctx = screen.buffer;
+    const { width, height, player } = game.world;
+    const { old, next } = slide.frame(alpha);
+    ctx.drawImage(slideSnap, old, 0, width, height);
+    ctx.save();
+    ctx.translate(next, 0);
+    drawWorld(ctx, { actors: false });
+    const { x, y } = player;
+    const at = slide.player(alpha);
+    player.x = at.x;
+    player.y = at.y;
+    try {
+      drawPlayer(ctx, player, false);
+    } finally {
+      player.x = x;
+      player.y = y;
+    }
+    ctx.restore();
+    drawHud(ctx);
+  };
+
+  const drawFrame = (alpha = 1) => {
+    if (slide && slideSnap) {
+      drawSlide(alpha);
+      return;
+    }
+    drawWorld(screen.buffer);
+    drawHud(screen.buffer);
+  };
+
+  /** The level and everything in it; `actors: false` leaves out the dino, its ghost and companion. */
+  const drawWorld = (ctx, { actors = true } = {}) => {
+    screen.drawBackground();
     // the world shakes, the HUD doesn't; with the setting off nothing moves
     const shake = settings.get("shake") ? game.world.effects.shakeOffset() : { x: 0, y: 0 };
     ctx.save();
@@ -1781,16 +1853,17 @@ window.addEventListener("load", function () {
 
     if (game.world.boss) drawBoss(ctx, game.world.boss);
 
-    drawGhost(ctx, player);
-    drawCompanion(ctx, player);
-    drawPlayer(ctx, player, game.world.isPlayerDead);
+    if (actors) {
+      drawGhost(ctx, player);
+      drawCompanion(ctx, player);
+      drawPlayer(ctx, player, game.world.isPlayerDead);
+    }
     // the floor's front blades, over the feet of what stands in them
     game.world.ground.draw(ctx, 1);
     if (game.world.bossArea) drawGates(ctx);
 
     game.world.effects.draw(ctx);
     ctx.restore();
-    drawHud(ctx);
   };
 
   resize();
