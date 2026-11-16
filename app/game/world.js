@@ -21,6 +21,10 @@ import { preloadArea } from "./preload";
 import sfx, { ENEMY_SFX, BOSS_MOVE_SFX } from "../controller/sfx";
 
 // particles when a projectile breaks, by kind
+// Tiles that draw a left or right dirt edge (worlds 1-4 share the numbering).
+const LEFT_EDGE_TILES = [1, 4, 12];
+const RIGHT_EDGE_TILES = [3, 6, 16];
+
 const PROJECTILE_BREAK = {
   seed: { count: 4, colors: ["#7a4a22", "#c89a5a"], speed: 1, life: 6 },
   sand: { count: 5, colors: ["#f3d9a0", "#c48a3a"], speed: 1.2, life: 6 },
@@ -179,6 +183,7 @@ export default class World {
 
     this.id = data.id;
     this.map = data.areaMap;
+    this.edgeTiles = data.world !== 5;
     this.backdrop = data.backdrop || null; // factory back wall, drawn behind everything
     this.isPlayerDead = false;
     this.objects = data.objectsMap;
@@ -489,13 +494,46 @@ export default class World {
     }
   }
 
-  /** Side walls (anything the player can't walk through) block fireballs. */
-  isWallAt(x, y) {
+  /**
+   * Side walls (anything the player can't walk through) block fireballs. With a
+   * `direction` (-1 left, 1 right), only the face that blocks the player moving
+   * that way counts, so a fireball passes the back of a one-sided wall as the dino does.
+   */
+  isWallAt(x, y, direction = 0) {
     const column = Math.floor(x / this.tileSize);
     const row = Math.floor(y / this.tileSize);
     if (row < 0 || row >= this.rows || column < 0 || column >= this.columns) return false;
     const value = this.collisonMap[row] && this.collisonMap[row][column];
-    return typeof value === "string" && /[lr]/.test(value);
+    if (typeof value !== "string") return false;
+    if (direction > 0) return value.includes("l");
+    if (direction < 0) return value.includes("r");
+    return /[lr]/.test(value);
+  }
+
+  /** The tile ids drawn in a cell (a cell can stack several), [] off the map. */
+  tilesAt(row, column) {
+    const value = this.map && this.map[row] && this.map[row][column];
+    return value ? [].concat(value) : [];
+  }
+
+  /**
+   * Whether a fireball moving `direction` bursts at (x, y). Hand-made levels draw
+   * dirt the dino walks in front of (caves, hollow islands), so their walls don't
+   * always sit on a drawn edge. A fireball goes by what is drawn: it stops at a
+   * drawn edge facing it, and at a wall only where it flies out of open air into
+   * drawn ground, never at one hidden inside dirt or standing in empty air.
+   */
+  fireballHitsWall(x, y, direction) {
+    const column = Math.floor(x / this.tileSize);
+    const row = Math.floor(y / this.tileSize);
+    if (row < 0 || row >= this.rows || column < 0 || column >= this.columns) return false;
+    const tiles = this.tilesAt(row, column);
+    if (!tiles.length) return false;
+    // the factory's crates draw no side edges; its walls alone count there
+    const edges = this.edgeTiles && (direction > 0 ? LEFT_EDGE_TILES : RIGHT_EDGE_TILES);
+    if (edges && tiles.some((tile) => edges.includes(tile))) return true;
+    const from = this.tilesAt(row, column - direction);
+    return from.length === 0 && this.isWallAt(x, y, direction);
   }
 
   /** A fireball hit an enemy: armoured ones take two hits. */
@@ -990,7 +1028,7 @@ export default class World {
         this.emit("burn");
         this.effects.fireImpact(tip.x, tip.y, fireball.direction);
         this.fireballs.remove(fireball);
-      } else if (this.isWallAt(tip.x, tip.y)) {
+      } else if (this.fireballHitsWall(tip.x, tip.y, fireball.direction)) {
         this.effects.fireImpact(tip.x, tip.y, fireball.direction);
         this.fireballs.remove(fireball);
       } else if (

@@ -13,6 +13,7 @@ import {
   TILE,
   GROUND,
 } from "./helpers";
+import areas from "../app/areas";
 
 const fire = (world, id = "f1") => world.shootFireball(id);
 const noFireballs = (world) => () => world.fireballs.items.length === 0;
@@ -82,6 +83,67 @@ test("fireballs stop at walls and don't kill enemies behind them", () => {
   assert.ok(ticks > 0 && ticks < 30, `fireball should hit the wall quickly (took ${ticks})`);
   assert.equal(byId(world, "hidden").dying, false);
   assert.equal(world.totalEnemies, 0);
+});
+
+// Hand-made levels draw dirt the dino can walk in front of (caves, hollow islands),
+// so their walls don't always sit on a drawn edge. Fireballs go by what is drawn.
+const DIRT = [7, 8, 9];
+const dirtBlock = ({ leftEdge, wallAt }) => {
+  const data = arena({ enemies: [enemy("behind", 13)] });
+  for (let r = GROUND - 3; r < GROUND; r++) {
+    DIRT.forEach((c) => (data.areaMap[r][c] = 5));
+    if (leftEdge) data.areaMap[r][DIRT[0]] = 4;
+    if (wallAt) data.collisonMap[r][wallAt] = "l";
+  }
+  return data;
+};
+
+test("fireballs stop at a drawn edge, even with no wall behind it", () => {
+  const world = makeWorld(dirtBlock({ leftEdge: true }));
+  freeze(world);
+
+  fire(world);
+  tickUntil(world, noFireballs(world));
+  assert.equal(byId(world, "behind").dying, false);
+});
+
+test("fireballs pass a wall hidden inside drawn dirt", () => {
+  const world = makeWorld(dirtBlock({ leftEdge: false, wallAt: 9 }));
+  freeze(world);
+
+  fire(world);
+  tickUntil(world, noFireballs(world));
+  assert.equal(byId(world, "behind").dying, true);
+});
+
+test("fireballs pass the back of a one-sided wall, as the dino does", () => {
+  const data = arena({ enemies: [enemy("behind", 12)] });
+  for (let r = GROUND - 3; r < GROUND; r++) {
+    data.areaMap[r][7] = 6; // right edge: faces away from the shot
+    data.collisonMap[r][7] = "r";
+  }
+  const world = makeWorld(data);
+  freeze(world);
+
+  fire(world);
+  tickUntil(world, noFireballs(world));
+  assert.equal(byId(world, "behind").dying, true);
+});
+
+test("Iceland 2: a shot from the left cave stops at the snowman ledge's drawn face", () => {
+  const world = makeWorld(areas[8]);
+  placePlayer(world, 48, 1, 8);
+  freeze(world);
+
+  fire(world, "cave");
+  const fireball = world.fireballs.items.find((f) => f.id === "cave");
+  let tip = fireball.tip();
+  while (world.fireballs.items.includes(fireball)) {
+    tip = fireball.tip();
+    tick(world);
+  }
+  // the face is drawn at x 224 (column 14); the old hidden wall sat at x 272
+  assert.ok(tip.x >= 214 && tip.x <= 226, `fireball burst at x ${tip.x}`);
 });
 
 test("fireballs fly over a one-tile step and hit the enemy on it", () => {
