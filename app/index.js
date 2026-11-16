@@ -1,5 +1,6 @@
 import Game from "./game";
 import { drawHat, SKIN_PALETTES, FIREBALL_PALETTES, tintFrames, hatImage } from "./game/cosmetics";
+import { deathPose, deathStyle, POSE_PIVOT } from "./game/death";
 import Screen from "./screen";
 import GameEngine from "./engine";
 import Smoother from "./engine/smooth";
@@ -1195,17 +1196,48 @@ window.addEventListener("load", function () {
     ctx.restore();
   };
 
+  // the dino's frame washed with a colour (a death's ice, char, acid...)
+  const tintCanvas = document.createElement("canvas");
+  const deathTint = (frame, color, amount) => {
+    tintCanvas.width = frame.naturalWidth || frame.width || 60;
+    tintCanvas.height = frame.naturalHeight || frame.height || 40;
+    const tctx = tintCanvas.getContext("2d");
+    tctx.clearRect(0, 0, tintCanvas.width, tintCanvas.height);
+    tctx.drawImage(frame, 0, 0);
+    tctx.globalCompositeOperation = "source-atop";
+    tctx.globalAlpha = amount;
+    tctx.fillStyle = color;
+    tctx.fillRect(0, 0, tintCanvas.width, tintCanvas.height);
+    tctx.globalCompositeOperation = "source-over";
+    tctx.globalAlpha = 1;
+    return tintCanvas;
+  };
+
   const drawPlayer = (ctx, player, dead) => {
-    const frame = player.animator.frameValue;
-    const deadOffset = dead ? (player.direction < 0 ? 12 : -12) : 0;
+    // how it is dying (app/game/death.js): turned, scaled, tinted, faded
+    const pose = dead ? deathPose(player.deathKind, player.deadTimer, player.deathDir) : null;
+    if (pose && pose.hidden) return;
+    let frame = player.animator.frameValue;
+    // the falling-over frames sit a little to the side of the others
+    const fallingOver = dead && deathStyle(player.deathKind).frames === "dead";
+    const deadOffset = fallingOver ? (player.direction < 0 ? 12 : -12) : 0;
     const xOffset = (player.direction < 0 ? -36 : -12) + deadOffset;
     const feetX = player.getCenterX();
     const feetY = player.getBottom();
 
     ctx.save();
-    ctx.globalAlpha = player.alpha;
+    ctx.globalAlpha = pose ? pose.alpha : player.alpha;
     // squash & stretch around the feet
     ctx.translate(feetX, feetY);
+    if (pose) {
+      ctx.translate(pose.offsetX, pose.offsetY - POSE_PIVOT);
+      ctx.rotate(pose.rotation);
+      ctx.scale(pose.scaleX, pose.scaleY);
+      ctx.translate(0, POSE_PIVOT);
+      if (pose.tint && pose.tintAmount > 0 && frame.complete !== false) {
+        frame = deathTint(frame, pose.tint, pose.tintAmount);
+      }
+    }
     ctx.scale(player.scaleX, player.scaleY);
     ctx.drawImage(frame, -6 + xOffset, -35, 60, 40);
     if (!dead) drawHat(ctx, player.hatImage, player.direction, frame);
