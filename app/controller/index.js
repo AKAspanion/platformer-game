@@ -6,10 +6,11 @@ export default class Controller {
     this.left = new Input();
     this.right = new Input();
     this.fire = new Input();
+    this.down = new Input();
   }
 
   releaseAll() {
-    [this.up, this.left, this.right, this.fire].forEach((input) => {
+    [this.up, this.left, this.right, this.fire, this.down].forEach((input) => {
       input.down = false;
       input.active = false;
     });
@@ -30,6 +31,10 @@ export default class Controller {
       case 39:
       case 68:
         this.right.getInput(down);
+        break;
+      case 40:
+      case 83:
+        this.down.getInput(down);
         break;
       case 13:
       case 16:

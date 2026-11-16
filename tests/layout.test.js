@@ -36,8 +36,15 @@ const inside = ({ left, top }, size, view, inset) =>
   left + size <= view.width - inset.right &&
   top + size <= view.height - inset.bottom;
 
-test("the five controls and a default of null (the CSS default)", () => {
-  assert.deepEqual(CONTROL_IDS, ["leftBtn", "rightBtn", "fireBtn", "jumpBtn", "pauseBtn"]);
+test("the six controls and a default of null (the CSS default)", () => {
+  assert.deepEqual(CONTROL_IDS, [
+    "leftBtn",
+    "downBtn",
+    "rightBtn",
+    "fireBtn",
+    "jumpBtn",
+    "pauseBtn",
+  ]);
   assert.equal(DEFAULT_LAYOUT, null);
 });
 
@@ -103,6 +110,7 @@ test("toFractions(clamp(...)) round-trips to the same place", () => {
 test("after a rotation (width and height swapped) every control is still on screen", () => {
   const layout = normalizeLayout({
     leftBtn: { x: 0.05, y: 0.95 },
+    downBtn: { x: 0.12, y: 0.95 },
     rightBtn: { x: 0.2, y: 0.95 },
     fireBtn: { x: 0.8, y: 0.9 },
     jumpBtn: { x: 0.95, y: 0.95 },

@@ -1,9 +1,9 @@
 /**
- * A custom touch-button layout: where each of the five controls sits, as the
+ * A custom touch-button layout: where each of the six controls sits, as the
  * share (0..1) of the screen's width and height at the control's centre. Shares
  * follow rotation and resizing; clampToScreen pulls a control back on screen.
  */
-export const CONTROL_IDS = ["leftBtn", "rightBtn", "fireBtn", "jumpBtn", "pauseBtn"];
+export const CONTROL_IDS = ["leftBtn", "downBtn", "rightBtn", "fireBtn", "jumpBtn", "pauseBtn"];
 
 /** No saved layout: the controls sit where the CSS puts them. */
 export const DEFAULT_LAYOUT = null;
