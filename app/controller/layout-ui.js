@@ -51,7 +51,7 @@ function measureDefaults(layout, safeArea) {
 }
 
 /**
- * The layout editor on `root` (#layoutEditor): the five controls as handles to
+ * The layout editor on `root` (#layoutEditor): the six controls as handles to
  * drag, and the Save, Reset and Cancel buttons.
  *
  *   getLayout   () => the saved layout or null

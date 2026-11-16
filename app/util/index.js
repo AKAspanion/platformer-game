@@ -280,6 +280,9 @@ const HELP_SECTIONS = [
       {
         items: [{ className: "jump-btn btn-tut", text: "to jump" }],
       },
+      {
+        items: [{ className: "down-btn btn-tut", text: "to drop down through a ledge" }],
+      },
     ],
   },
   {
@@ -296,6 +299,14 @@ const HELP_SECTIONS = [
       },
       {
         items: [{ className: "jump-key-btn btn-tut key-btn", text: "to jump" }],
+      },
+      {
+        items: [
+          {
+            className: "down-key-btn btn-tut key-btn",
+            text: "(or S) to drop down through a ledge",
+          },
+        ],
       },
     ],
   },

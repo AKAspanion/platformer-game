@@ -129,6 +129,11 @@ img {
 #rightBtn {
   background: url(images/right_btn.webp) center center / 100% no-repeat;
 }
+/* the right arrow turned to point down (`rotate` keeps the pressed scale working) */
+#downBtn {
+  background: url(images/right_btn.webp) center center / 100% no-repeat;
+  rotate: 90deg;
+}
 #fireBtn {
   background: url(images/small_btn.webp) center center / 100% no-repeat;
 }
@@ -223,6 +228,10 @@ img {
 }
 .layout-handle[data-id="rightBtn"] {
   background: url(images/right_btn.webp) center center / 100% no-repeat;
+}
+.layout-handle[data-id="downBtn"] {
+  background: url(images/right_btn.webp) center center / 100% no-repeat;
+  rotate: 90deg;
 }
 .layout-handle[data-id="jumpBtn"] {
   background: url(images/up_btn.webp) center center / 100% no-repeat;
@@ -701,7 +710,9 @@ a.btn {
 .right-key-btn,
 .fire-btn,
 .jump-btn,
-.jump-key-btn {
+.jump-key-btn,
+.down-btn,
+.down-key-btn {
   width: var(--small-btn-size);
   height: var(--small-btn-size);
 }
@@ -731,6 +742,15 @@ a.btn {
 }
 .jump-key-btn {
   background: url(images/key_up.webp) center center / var(--small-btn-size) no-repeat;
+}
+/* down: the right arrow and the → key, turned to point down */
+.down-btn {
+  background: url(images/right_btn.webp) center center / var(--small-btn-size) no-repeat;
+  rotate: 90deg;
+}
+.down-key-btn {
+  background: url(images/key_right.webp) center center / var(--small-btn-size) no-repeat;
+  rotate: 90deg;
 }
 .help-item {
   gap: 6px;

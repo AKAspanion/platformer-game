@@ -1042,6 +1042,11 @@ window.addEventListener("load", function () {
         game.world.playerJumped();
       }
       if (!controller.up.down) player.releaseJump();
+      // one press, one drop through the ledge underfoot
+      if (controller.down.active) {
+        game.world.dropThrough();
+        controller.down.active = false;
+      }
       if (controller.fire.active && !player.firing) {
         game.world.shootFireball(uid());
         controller.fire.active = false;
@@ -1784,7 +1789,7 @@ window.addEventListener("load", function () {
   // -------------------------------------------------------------- game flow
 
   const clearMouse = () => {
-    [upMouse, fireMouse, leftMouse, rightMouse].forEach((m) => m && m.actions.clear());
+    [upMouse, fireMouse, leftMouse, rightMouse, downMouse].forEach((m) => m && m.actions.clear());
   };
 
   /** Start (or restart) play in area `id`, standing at left/top. */
@@ -4012,6 +4017,7 @@ window.addEventListener("load", function () {
   const rightMouse = touch("rightBtn", 39);
   const upMouse = touch("jumpBtn", 32);
   const fireMouse = touch("fireBtn", 13);
+  const downMouse = touch("downBtn", 40);
 
   document.addEventListener("visibilitychange", function () {
     if (document.visibilityState === "hidden") cloud.flush();

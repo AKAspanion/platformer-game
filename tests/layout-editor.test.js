@@ -5,6 +5,7 @@ import { CONTROL_IDS } from "../app/controller/layout";
 
 const DEFAULTS = {
   leftBtn: { x: 0.1, y: 0.9 },
+  downBtn: { x: 0.15, y: 0.9 },
   rightBtn: { x: 0.2, y: 0.9 },
   fireBtn: { x: 0.8, y: 0.9 },
   jumpBtn: { x: 0.9, y: 0.88 },
@@ -23,7 +24,7 @@ const make = (initial = null) => {
   return { editor, calls };
 };
 
-test("with no saved layout the editor starts at the default places, all five controls", () => {
+test("with no saved layout the editor starts at the default places, all six controls", () => {
   const { editor } = make();
   assert.deepEqual(Object.keys(editor.positions), CONTROL_IDS);
   assert.deepEqual(editor.positions, DEFAULTS);
@@ -54,7 +55,7 @@ test("a move of an unknown control or a bad place is ignored", () => {
   assert.deepEqual(Object.keys(editor.positions), CONTROL_IDS);
 });
 
-test("Save stores all five places and closes", () => {
+test("Save stores all six places and closes", () => {
   const { editor, calls } = make();
   editor.move("jumpBtn", { x: 0.7, y: 0.5 });
   editor.save();

@@ -160,6 +160,7 @@ export default class Player extends Object {
     this.hurtTimer = 0;
     this.deadTimer = 0;
     this.grounded = false;
+    this.dropRow = null; // the ledge row it is dropping through (down pressed)
     this.airJumps = 0;
     this.airTicks = 0; // ticks since last on the ground
     this.jumpBuffer = 0; // ticks a jump press is still remembered

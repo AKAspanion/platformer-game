@@ -3,7 +3,7 @@ import { CONTROL_IDS, normalizeLayout } from "./layout";
 const isShare = (n) => typeof n === "number" && Number.isFinite(n) && n >= 0 && n <= 1;
 
 /**
- * The state of the layout editor, with no screen in it: where each of the five
+ * The state of the layout editor, with no screen in it: where each of the six
  * controls is now, and what Save, Reset and Cancel do. The shell draws it.
  *
  *   initial   the saved layout (or null)

@@ -411,7 +411,7 @@ export default class World {
     setTop();
     setLeft();
     this.collider.collide(
-      this.collisonMap[top][left],
+      this.cellFor(object, top, left),
       object,
       left * this.tileSize,
       top * this.tileSize,
@@ -421,7 +421,7 @@ export default class World {
     setTop();
     setRight();
     this.collider.collide(
-      this.collisonMap[top][right],
+      this.cellFor(object, top, right),
       object,
       right * this.tileSize,
       top * this.tileSize,
@@ -431,7 +431,7 @@ export default class World {
     setBottom();
     setLeft();
     this.collider.collide(
-      this.collisonMap[bottom][left],
+      this.cellFor(object, bottom, left),
       object,
       left * this.tileSize,
       bottom * this.tileSize,
@@ -441,12 +441,63 @@ export default class World {
     setBottom();
     setRight();
     this.collider.collide(
-      this.collisonMap[bottom][right],
+      this.cellFor(object, bottom, right),
       object,
       right * this.tileSize,
       bottom * this.tileSize,
       this.tileSize,
     );
+  }
+
+  /** A collision cell as `object` meets it: a dino dropping down passes its ledge's top. */
+  cellFor(object, row, column) {
+    const value = this.collisonMap[row][column];
+    if (object !== this.player || object.dropRow !== row || typeof value !== "string") {
+      return value;
+    }
+    return value.replace("t", "");
+  }
+
+  /** A standable top somewhere below `row` in `column`, with at least a row of room. */
+  landingBelow(row, column) {
+    for (let r = row + 1; r < this.rows; r++) {
+      const value = this.collisonMap[r][column];
+      if (typeof value === "string" && value.includes("t")) return r >= row + 2;
+    }
+    return false;
+  }
+
+  /**
+   * Down pressed: a dino standing on a ledge with somewhere to land below drops
+   * through it. Ground with nothing under it holds, so it never falls out of the map.
+   * Returns true if it dropped.
+   */
+  dropThrough() {
+    const { player } = this;
+    if (this.isPlayerDead || !player.canControl || !player.grounded) return false;
+    const row = Math.floor((player.getBottom() + 1) / this.tileSize);
+    if (row < 0 || row >= this.rows) return false;
+    const columns = [
+      Math.floor(player.getLeft() / this.tileSize),
+      Math.floor((player.getRight() - 0.01) / this.tileSize),
+    ].filter((c) => c >= 0 && c < this.columns);
+    const holding = columns.filter((c) => {
+      const value = this.collisonMap[row][c];
+      return typeof value === "string" && value.includes("t");
+    });
+    if (!holding.length || !holding.every((c) => this.landingBelow(row, c))) return false;
+    player.dropRow = row;
+    player.grounded = false;
+    return true;
+  }
+
+  /** The drop is over once the dino is below its ledge, or going up again. */
+  endDrop() {
+    const { player } = this;
+    if (player.dropRow == null) return;
+    if (player.velocityY < 0 || player.getTop() >= (player.dropRow + 1) * this.tileSize) {
+      player.dropRow = null;
+    }
   }
 
   _normalizeIndex(index, maxIndex) {
@@ -914,6 +965,7 @@ export default class World {
     const fallSpeed = player.velocityY;
     player.landed = false;
     this.collideObject(player);
+    this.endDrop();
     if (player.landed) {
       if (fallSpeed > 4 && !this.isPlayerDead) {
         this.effects.dust(player.getCenterX(), player.getBottom(), 5);
@@ -1002,8 +1054,12 @@ export default class World {
       }
     }
 
-    // pits send you back to safe ground; spikes hurt like an enemy
-    if (!this.isPlayerDead) {
+    // pits send you back to safe ground; spikes hurt like an enemy. The screen's
+    // bottom edge is never a floor: reaching it (a column with no ground under
+    // it) is falling in a pit too, so the dino never stands on the edge.
+    if (!this.isPlayerDead && player.getBottom() >= this.height) {
+      this.fallInPit(onGameOver);
+    } else if (!this.isPlayerDead) {
       for (let index = 0; index < this.deathAreas.length; index++) {
         const area = this.deathAreas[index];
         if (!this.checkCollision(player, area)) continue;
