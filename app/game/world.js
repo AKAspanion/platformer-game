@@ -9,6 +9,7 @@ import Egg, { EGG_IMAGE } from "./egg";
 import Collider from "./collider";
 import Effects from "./effects";
 import Combo from "./combo";
+import Ground, { floorFor, floorColors } from "./floor";
 import Fireballs from "./fireballs";
 import Projectiles, { SEED_IMAGES } from "./projectiles";
 import { walkerShoots, storyDifficulty } from "../pcg/generator";
@@ -113,6 +114,7 @@ export default class World {
     this.width = this.tileSize * this.columns;
 
     this.player = new Player();
+    this.ground = new Ground();
     this.collider = new Collider();
     this.fireballs = new Fireballs();
     this.projectiles = new Projectiles();
@@ -194,6 +196,11 @@ export default class World {
       this.width = this.tileSize * this.columns;
     }
 
+    // the floor: slippery or not, and the texture the dino and a boss press down
+    this.floor = floorFor(data);
+    this.ground = new Ground(this.collisonMap, this.floor, this.tileSize, data.id || 1);
+    this.player.slippery = this.floor.slippery;
+
     this.deathAreas = data.death.map(({ x, y, height, width }) => new Object(x, y, width, height));
 
     // a story area's walkers shoot by where they stand and how hard the level is;
@@ -223,6 +230,7 @@ export default class World {
     this.gate = 0;
     this.gateWidth = 11;
     this.gateBottom = data.boss ? (data.boss.top + 1) * this.tileSize : 0;
+    this.bossLastX = null;
     this.minions = 0;
     if (data.boss && !new Set(this.killedEnemies.split(",")).has(data.boss.id)) {
       this.boss = new Boss(data.boss, {
@@ -498,6 +506,70 @@ export default class World {
     if (player.dropRow == null) return;
     if (player.velocityY < 0 || player.getTop() >= (player.dropRow + 1) * this.tileSize) {
       player.dropRow = null;
+    }
+  }
+
+  /**
+   * The dino's feet press the floor texture and kick bits of it up while it
+   * runs; a hard landing pushes it wider and splashes it both ways.
+   */
+  pressGround(fallSpeed) {
+    const { player } = this;
+    if (this.isPlayerDead || !player.grounded) return;
+    const hard = player.landed && fallSpeed > 6;
+    const touched = this.ground.step({
+      left: player.getLeft() + 1,
+      right: player.getRight() - 1,
+      bottom: player.getBottom(),
+      vx: player.velocityX,
+      spread: hard ? 6 : 3,
+    });
+    if (!touched) return;
+    const x = player.getCenterX();
+    const y = player.getBottom();
+    if (hard) {
+      this.kickUp(x - 3, y, -0.8, 3);
+      this.kickUp(x + 3, y, 0.8, 3);
+    } else if (Math.abs(player.velocityX) > 1.8 && this.areaTicks % 3 === 0) {
+      const back = -Math.sign(player.velocityX);
+      this.kickUp(x + back * 4, y, back * 0.9, 2);
+    }
+  }
+
+  /** Bits of the floor (grass, snow, sand) flicked up from (x, y), towards `direction`. */
+  kickUp(x, y, direction, count = 2, speed = 1) {
+    const colors = floorColors(this.floor);
+    if (!colors.length) return;
+    this.effects.burst(x, y - 1, {
+      count,
+      colors,
+      speed,
+      life: 7,
+      gravity: 0.2,
+      size: 1,
+      spreadY: 0.7,
+      direction,
+    });
+  }
+
+  /** A boss on the ground leaves a wide print (a flyer only when it lands). */
+  pressGroundUnderBoss() {
+    const { boss } = this;
+    const x = boss.getCenterX();
+    const vx = this.bossLastX == null ? 0 : x - this.bossLastX;
+    this.bossLastX = x;
+    if (boss.dying || !boss.onGround) return;
+    const half = boss.width * 0.35;
+    const touched = this.ground.step({
+      left: x - half,
+      right: x + half,
+      bottom: boss.arena.groundY,
+      vx,
+      spread: 5,
+    });
+    if (touched && Math.abs(vx) > 0.6 && this.areaTicks % 4 === 0) {
+      const back = -Math.sign(vx);
+      this.kickUp(x + back * half, boss.arena.groundY, back * 0.9, 2);
     }
   }
 
@@ -921,6 +993,10 @@ export default class World {
         this.projectiles.add(x, y, Math.sign(options.vx || 1), { gravity: 0.05, ...options }),
       slam: (x, y) => {
         sfx("boss-slam");
+        if (this.ground.impact(x, y)) {
+          this.kickUp(x - 8, y, -1.4, 5, 1.6);
+          this.kickUp(x + 8, y, 1.4, 5, 1.6);
+        }
         this.effects.burst(x, y - 2, {
           count: 10,
           colors,
@@ -1112,6 +1188,7 @@ export default class World {
       }
       player.land(fallSpeed);
     }
+    this.pressGround(fallSpeed);
     this.updateWallSlide();
     if (!this.isPlayerDead) this.trackSafeGround();
 
@@ -1253,6 +1330,9 @@ export default class World {
         }
       }
     }
+
+    if (this.boss) this.pressGroundUnderBoss();
+    this.ground.update();
 
     this.updateGates();
     this.updateHazards(onGameOver);
