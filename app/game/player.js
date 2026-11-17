@@ -168,6 +168,7 @@ export default class Player extends Object {
     this.deathDir = 1; // the way it was flung
     this.grounded = false;
     this.dropRow = null; // the ledge row it is dropping through (down pressed)
+    this.inFront = null; // the dirt wall it jumped in front of: { x, side, top } (world.js)
     this.airJumps = 0;
     this.airTicks = 0; // ticks since last on the ground
     this.jumpBuffer = 0; // ticks a jump press is still remembered

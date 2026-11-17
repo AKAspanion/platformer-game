@@ -1,6 +1,7 @@
 /**
- * The levels of a world read as one long level: walking out the side of one into
- * the next pans the camera across, the two screens side by side, instead of cutting.
+ * The levels of a world read as one long level. Areas join on into one run the
+ * camera scrolls through (app/game/world.js extend); where the next area isn't in
+ * yet, walking out the side pans the camera across instead of cutting.
  * A boss arena stays its own room (a cut in and out), and so does a change of world.
  */
 
@@ -21,6 +22,27 @@ export function joinsSeamlessly(from, to, portal) {
   const [fromColumns, fromRows] = sizeOf(from);
   const [toColumns, toRows] = sizeOf(to);
   return fromColumns === toColumns && fromRows === toRows;
+}
+
+/** At most this many areas are laid out behind a level that starts mid-run. */
+export const MAX_RUN_BEHIND = 10;
+
+/**
+ * The run that leads into area `id` of `areas`, oldest first: the levels of its world
+ * before it that join on, so a level started mid-world can be walked back out of.
+ * Just [area] when none join (a world's first level, a boss arena).
+ */
+export function runInto(areas, id) {
+  const run = [areas[id]];
+  while (run.length <= MAX_RUN_BEHIND) {
+    const back = run[0].portals.find((p) => p.direction === -1 && p.destinationArea != null);
+    const prev = back && areas[back.destinationArea];
+    const on =
+      prev && prev.portals.find((p) => p.direction === 1 && p.destinationArea === run[0].id);
+    if (!on || !joinsSeamlessly(prev, run[0], on)) break;
+    run.unshift(prev);
+  }
+  return run;
 }
 
 /** Slow out, slow in. */

@@ -1190,14 +1190,22 @@ export function ascii({ data }) {
  * takes away (decor, coins) goes with it.
  */
 export const TOUCHES = {
-  // Iceland 3: Iceland 2's cave floor line runs on into the cliff (decor inside the dirt)
+  // Iceland 3: Iceland 2's cave floor line runs on through the cliff and out of its far
+  // face (the levels scroll as one run): a snowy ledge to stand on all the way, ending
+  // in the cliff's top-right corner, a step down to the ground beyond. The cliff is
+  // Iceland 2's plateau carried on, so like it its dirt is background: no wall up its
+  // face, the dino jumps in front of it onto the ledge or the top. Only the ledge's
+  // corner, a one-tile step at the ground, stops it walking into the dirt.
   9: {
     cells: [
-      [8, 0, 2, ""],
-      [8, 1, [5, 3], ""],
-      [9, 1, [5, 6], ""],
-      [10, 1, [5, 6], ""],
-      [11, 1, [5, 6], ""],
+      [4, 3, 3, "t"],
+      [5, 3, 6, ""],
+      [6, 3, 6, ""],
+      [7, 3, 6, ""],
+      [8, 0, 2, "t"],
+      [8, 1, 2, "t"],
+      [8, 2, 2, "t"],
+      [8, 3, 3, "tr"],
     ],
   },
   // Iceland 4: the ground ends a column early (col 18); a pit opens under the exit ledge

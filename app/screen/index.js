@@ -8,7 +8,8 @@ export default class Screen {
     this.tileSet = tileSetFor(16, 8, world, skin);
   }
 
-  drawMap(map) {
+  /** The map's tiles in columns `from` to `to` (what is on screen). */
+  drawMap(map, from = 0, to = Infinity) {
     const { images, tileSize } = this.tileSet;
 
     const drawTile = (x, y, value) => {
@@ -22,7 +23,8 @@ export default class Screen {
 
     for (let i = 0; i < map.length; i++) {
       const row = map[i];
-      for (let j = 0; j < row.length; j++) {
+      const last = Math.min(row.length - 1, to);
+      for (let j = Math.max(0, from); j <= last; j++) {
         const value = row[j];
 
         if (value) {
@@ -45,12 +47,14 @@ export default class Screen {
     }
   }
 
-  drawMapObjects(objects) {
+  /** The map's objects in columns `from` to `to`. */
+  drawMapObjects(objects, from = 0, to = Infinity) {
     const { objectImages, tileSize } = this.tileSet;
 
     for (let i = 0; i < objects.length; i++) {
       const row = objects[i];
-      for (let j = 0; j < row.length; j++) {
+      const last = Math.min(row.length - 1, to);
+      for (let j = Math.max(0, from); j <= last; j++) {
         const value = row[j];
 
         if (value) {
@@ -150,6 +154,7 @@ export default class Screen {
     // The canvas has devicePixelRatio² pixels per world pixel, so the pixel art stays
     // crisp after the CSS scale-up. The world is drawn straight at that size (setting
     // the canvas size above reset the context's transform).
+    this.pixelScale = scale * scale;
     this.canvas.height = Math.floor(gH * scale * scale);
     this.canvas.width = Math.floor(gW * scale * scale);
     this.buffer.scale(scale * scale, scale * scale);

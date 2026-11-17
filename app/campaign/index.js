@@ -9,7 +9,8 @@
  *   COINS   every coin in the level
  *   ENEMIES every enemy in the level (the boss, in a boss level)
  *   TIME    finished under the level's target time
- * A level is finished by leaving it forward (its right-hand exit).
+ * A level is finished by leaving it forward (its right-hand exit); a boss arena
+ * as soon as its boss is beaten (leaving it later counts coins got after the fight).
  */
 import { BOSSES } from "../game/boss";
 
