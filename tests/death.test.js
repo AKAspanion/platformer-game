@@ -1,4 +1,6 @@
 import "./env";
+import fs from "node:fs";
+import path from "node:path";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { arena, makeWorld, enemy, freeze, tick, byId, placePlayer, TILE, GROUND } from "./helpers";
@@ -11,7 +13,10 @@ import {
   pitDeath,
   projectileDeath,
   hazardDeath,
+  deathSound,
+  DEATH_SFX,
 } from "../app/game/death";
+import { resetSfxGap } from "../app/controller/sfx";
 
 const PIT = { x: 8 * TILE, y: 170, width: 32, height: 32 };
 
@@ -184,4 +189,73 @@ test("a fresh run forgets how the dino died", () => {
   world.player.reset();
   assert.equal(world.player.deathKind, null);
   assert.equal(world.player.deadTimer, 0);
+});
+
+// ------------------------------------------------------------------ sounds
+
+/** The sounds played while `fn` runs. */
+const heard = (fn) => {
+  globalThis.__played.length = 0;
+  resetSfxGap();
+  fn();
+  return [...globalThis.__played];
+};
+
+test("every death has its own sound, and the sound file exists", () => {
+  assert.equal(new Set(DEATH_SFX).size, DEATH_KINDS.length, "no two deaths share a sound");
+  DEATH_KINDS.forEach((kind) => {
+    assert.equal(deathSound(kind), `death-${kind}`);
+    const file = path.join(process.cwd(), "app/assets/audio/sfx", `death-${kind}.wav`);
+    assert.ok(fs.existsSync(file), `${kind} sound file`);
+  });
+  assert.equal(deathSound("nonsense"), "death-knockout");
+});
+
+test("dying plays that death's sound, once", () => {
+  const cases = [
+    [
+      "knockout",
+      () => {
+        const world = lastHeart(arena({ enemies: [enemy("pig", 6)] }));
+        placePlayer(world, byId(world, "pig").x - 8);
+        return world;
+      },
+    ],
+    [
+      "frozen",
+      () => {
+        const world = lastHeart();
+        const { player } = world;
+        world.projectiles.add(player.getCenterX(), player.getCenterY(), -1, {
+          kind: "icicle",
+          vx: 0,
+          vy: 0,
+        });
+        return world;
+      },
+    ],
+    [
+      "void",
+      () => {
+        const world = lastHeart(arena({ death: [PIT] }));
+        world.player.x = PIT.x + 4;
+        world.player.y = 172;
+        return world;
+      },
+    ],
+  ];
+  cases.forEach(([kind, setup]) => {
+    const world = setup();
+    const played = heard(() => tick(world, 3));
+    assert.equal(world.player.deathKind, kind);
+    const deaths = played.filter((p) => p.startsWith("sfx/death-"));
+    assert.deepEqual(deaths, [`sfx/death-${kind}.wav`], `${kind}: ${played.join(", ")}`);
+    assert.ok(!played.some((p) => p.startsWith("fall")), "no shared fall sound");
+  });
+});
+
+test("a frozen dino shatters with its own sound after the freeze", () => {
+  const world = shotBy("icicle");
+  const played = heard(() => tick(world, SHATTER_TICK + 2));
+  assert.ok(played.includes("sfx/icicle-shatter.wav"), "shatters");
 });
