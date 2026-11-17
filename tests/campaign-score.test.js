@@ -34,10 +34,10 @@ test("CAMPAIGN_LEVELS lists every campaign level with its real contents", () => 
 
 test("only campaign levels rank, and a boss arena gives room for the boss", () => {
   assert.equal(isCampaignLevel(1), true);
-  assert.equal(isCampaignLevel(5), false); // a passage between levels
+  assert.equal(isCampaignLevel(31), false); // past the last level
   assert.equal(isCampaignLevel("1"), false);
-  assert.equal(levelScoreCeiling(5), 0);
-  assert.ok(levelScoreCeiling(25) >= COMBO_MAX * BOSS_SCORE);
+  assert.equal(levelScoreCeiling(31), 0);
+  assert.ok(levelScoreCeiling(6) >= COMBO_MAX * BOSS_SCORE);
 });
 
 test("campaignScore caps the score and refuses what can't be a run", () => {
@@ -45,5 +45,5 @@ test("campaignScore caps the score and refuses what can't be a run", () => {
   assert.equal(campaignScore({ level: 1, score: 1e9, seconds: 30 }), levelScoreCeiling(1));
   assert.equal(campaignScore({ level: 1, score: 120, seconds: 1 }), null);
   assert.equal(campaignScore({ level: 1, score: -3, seconds: 30 }), null);
-  assert.equal(campaignScore({ level: 6, score: 3, seconds: 30 }), null);
+  assert.equal(campaignScore({ level: 31, score: 3, seconds: 30 }), null);
 });

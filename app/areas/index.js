@@ -28,9 +28,6 @@ import area27 from "./area-27.json";
 import area28 from "./area-28.json";
 import area29 from "./area-29.json";
 import area30 from "./area-30.json";
-import area31 from "./area-31.json";
-import area32 from "./area-32.json";
-import area33 from "./area-33.json";
 
 // Mutable: game modes add generated areas at runtime (see app/modes).
 export default {
@@ -64,7 +61,4 @@ export default {
   [area28.id]: area28,
   [area29.id]: area29,
   [area30.id]: area30,
-  [area31.id]: area31,
-  [area32.id]: area32,
-  [area33.id]: area33,
 };

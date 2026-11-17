@@ -96,7 +96,7 @@ test("assetsFor lists what an area needs", () => {
   assert.deepEqual(kindsIn(grass.images), ["chameleon", "pig"]);
   assert.equal(grass.images.filter(isBoss).length, 0);
 
-  const boss = world.assetsFor(areas[25]);
+  const boss = world.assetsFor(areas[6]);
   assert.ok(boss.audio.includes("./assets/audio/boss-kingPig.mp3"));
   assert.ok(boss.images.some((s) => s.includes("sprites/enemies/boss/kingPig/")));
 });
@@ -105,7 +105,7 @@ test("a boss level asks for that boss's sprites, and no other boss's", () => {
   const world = new World();
   const start = mark();
   world.reset();
-  world.setup(areas[25]);
+  world.setup(areas[6]);
   const asked = since(start);
   assert.ok(asked.some((s) => s.includes("sprites/enemies/boss/kingPig/")));
   assert.equal(asked.filter((s) => s.includes("boss/frostSlime")).length, 0);
@@ -117,13 +117,13 @@ test("starting the same level twice asks for nothing twice", () => {
   const world = new World();
   world.reset();
   world.setup(areas[1]);
-  world.setup(areas[25]);
+  world.setup(areas[6]);
   const start = mark();
   // the game keeps one world and sets each level up in it
   world.reset();
   world.setup(areas[1]);
   world.reset();
-  world.setup(areas[25]);
+  world.setup(areas[6]);
   world.reset();
   world.setup(areas[1]);
   const again = since(start).filter((src) => isAudio(src) || isEnemy(src));
@@ -140,7 +140,7 @@ test("music starts only once the level has loaded, never from loadWorld's setup"
     return original(key, ext);
   };
   // iceland's music is not downloaded yet: it arrives after the sprites
-  world.setup(areas[3]);
+  world.setup(areas[7]);
   assert.deepEqual(starts, [], "setup does not start music");
   assert.equal(world.isLoaded(), false);
   await new Promise((resolve) => setTimeout(resolve)); // the sprites arrive first
@@ -169,7 +169,7 @@ test("resume keeps the music quiet while loading and while muted", () => {
   world.reset();
   const heard = [];
   world.audioController.play = (key) => heard.push(key);
-  world.setup(areas[4]); // desert: music pending
+  world.setup(areas[13]); // desert: music pending
   world.playThemeMusic(); // what resume() calls
   assert.deepEqual(heard, [], "still loading");
 });

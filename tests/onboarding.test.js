@@ -80,26 +80,26 @@ test("hintDone is remembered and does not throw", () => {
   assert.doesNotThrow(() => createOnboarding(blocked).hintDone());
 });
 
-test("world 1 offer shows once for level 25 only", () => {
+test("world 1 offer shows once for level 6 only", () => {
   const s = fakeStorage();
   const o = createOnboarding(s);
-  assert.equal(o.takeWorld1Offer(27), false);
-  assert.equal(o.takeWorld1Offer(25), true);
-  assert.equal(o.takeWorld1Offer(25), false);
-  assert.equal(createOnboarding(s).takeWorld1Offer(25), false);
+  assert.equal(o.takeWorld1Offer(12), false);
+  assert.equal(o.takeWorld1Offer(6), true);
+  assert.equal(o.takeWorld1Offer(6), false);
+  assert.equal(createOnboarding(s).takeWorld1Offer(6), false);
 });
 
 test("blocked storage never repeats a one-time flow", () => {
   const o = createOnboarding(blocked);
   assert.equal(o.takeFirstOpen(fresh), false);
-  assert.equal(o.takeWorld1Offer(25), false);
+  assert.equal(o.takeWorld1Offer(6), false);
 });
 
 test("corrupt stored flags never throw and never repeat a flow", () => {
   for (const bad of ["{nope", "null", "[]", '"x"']) {
     const o = createOnboarding(fakeStorage({ onboarding: bad }));
     assert.equal(o.takeFirstOpen(fresh), false);
-    assert.equal(o.takeWorld1Offer(25), false);
+    assert.equal(o.takeWorld1Offer(6), false);
   }
 });
 
@@ -112,5 +112,5 @@ test("a store that reads but cannot write does not report a take", () => {
   };
   const o = createOnboarding(s);
   assert.equal(o.takeFirstOpen(fresh), false);
-  assert.equal(o.takeWorld1Offer(25), false);
+  assert.equal(o.takeWorld1Offer(6), false);
 });

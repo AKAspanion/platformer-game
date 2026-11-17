@@ -82,18 +82,16 @@ const pans = (fromId, portalOf = forward) => {
 // ----------------------------------------------------------- which walks pan
 
 test("the levels of a world join on, both ways", () => {
-  // grasslands 1 → 2 → 7 → 9 → 10, then iceland 3 → 8 → 11 → 12 → 26
-  [1, 2, 7, 9, 3, 8, 11, 12].forEach((id) => assert.equal(pans(id), true, `${id} forward`));
-  [2, 7, 9, 10, 8, 11, 12, 26].forEach((id) =>
-    assert.equal(pans(id, backward), true, `${id} back`),
-  );
+  // grasslands 1 → 2 → 3 → 4 → 5, then iceland 7 → 8 → 9 → 10 → 11
+  [1, 2, 3, 4, 7, 8, 9, 10].forEach((id) => assert.equal(pans(id), true, `${id} forward`));
+  [2, 3, 4, 5, 8, 9, 10, 11].forEach((id) => assert.equal(pans(id, backward), true, `${id} back`));
 });
 
 test("a boss arena stays its own room: walking in or out of it cuts", () => {
-  assert.equal(pans(10), false, "into the King Pig");
-  assert.equal(pans(25), false, "out of the King Pig");
-  assert.equal(pans(3, backward), false, "back into the King Pig");
-  [26, 28, 30, 32].forEach((id) => assert.equal(pans(id), false, `${id} into its boss`));
+  assert.equal(pans(5), false, "into the King Pig");
+  assert.equal(pans(6), false, "out of the King Pig");
+  assert.equal(pans(7, backward), false, "back into the King Pig");
+  [11, 17, 23, 29].forEach((id) => assert.equal(pans(id), false, `${id} into its boss`));
 });
 
 test("the whole campaign, walked through: it cuts only into and out of each world's boss", () => {
@@ -106,16 +104,16 @@ test("the whole campaign, walked through: it cuts only into and out of each worl
     id = next;
   }
   assert.deepEqual(cuts, [
-    "10->25", // King Pig
-    "25->3",
-    "26->27", // Frost Slime
-    "27->13",
-    "28->29", // Sand Lizard
-    "29->17",
-    "30->31", // Bat Lord
-    "31->21",
-    "32->33", // Mecha Beetle
-    "33->-1",
+    "5->6", // King Pig
+    "6->7",
+    "11->12", // Frost Slime
+    "12->13",
+    "17->18", // Sand Lizard
+    "18->19",
+    "23->24", // Bat Lord
+    "24->25",
+    "29->30", // Mecha Beetle
+    "30->-1",
   ]);
 });
 

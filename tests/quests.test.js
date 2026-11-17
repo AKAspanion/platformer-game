@@ -128,7 +128,7 @@ test("the mode quest is the unlocked mode played least in the last 7 days", () =
 });
 
 test("a quest only names an enemy from a world the player has reached", () => {
-  const grass = { reached: [1, 2, 7], last: 7, stars: {}, best: {} };
+  const grass = { reached: [1, 2, 3], last: 3, stars: {}, best: {} };
   const met = metEnemies(grass);
   assert.deepEqual([...met].sort(), ["bat", "beetle", "chameleon", "pig"]);
   const types = scan(ctx({ metEnemies: met })).filter((p) => p.id === "defeat-type");

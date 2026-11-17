@@ -225,157 +225,73 @@ export const POWERUPS = ["heart", "shield", "triple", "wings"];
 // Area theme = its music track. Graveyard plays "dungeon", factory plays "lab".
 export const THEMES = { grasslands: 1, iceland: 2, desert: 3, dungeon: 4, lab: 5 };
 
-/**
- * The levels to generate. Like Grassland 1-2, ground stays low
- * (rows 8-10, mostly 9-10) and the space above is filled with tiers of floating platforms
- * with coins and patrolling enemies. Where each starts and ends (entryRow / exitRow) is
- * set by the seam pass after the list.
- */
-export const LEVELS = [
-  {
-    id: 9,
-    world: 1,
-    theme: "grasslands",
-    seed: 9001,
-    placement: "v1",
-    difficulty: 2,
-    prev: { area: 7, x: 330 },
-    next: { area: 10, x: 16 },
-  },
-  {
-    id: 10,
-    world: 1,
-    theme: "grasslands",
-    seed: 10001,
-    placement: "v1",
-    difficulty: 3,
-    prev: { area: 9, x: 330 },
-    next: { area: 3, x: 6, y: 24 },
-  },
-  {
-    id: 11,
-    world: 2,
-    theme: "iceland",
-    seed: 11001,
-    placement: "v1",
-    difficulty: 3,
-    prev: { area: 8, x: 330 },
-    next: { area: 12, x: 16 },
-  },
-  {
-    id: 12,
-    world: 2,
-    theme: "iceland",
-    seed: 12001,
-    placement: "v1",
-    difficulty: 4,
-    prev: { area: 11, x: 330 },
-    next: { area: 13, x: 16 },
-  },
-  {
-    id: 13,
-    world: 3,
-    theme: "desert",
-    seed: 13169,
-    placement: "v1",
-    difficulty: 3,
-    prev: { area: 12, x: 330 },
-    next: { area: 14, x: 16 },
-  },
-  {
-    id: 14,
-    world: 3,
-    theme: "desert",
-    seed: 14006,
-    placement: "v1",
-    difficulty: 3,
-    prev: { area: 13, x: 330 },
-    next: { area: 15, x: 16 },
-  },
-  {
-    id: 15,
-    world: 3,
-    theme: "desert",
-    seed: 15052,
-    placement: "v1",
-    difficulty: 4,
-    prev: { area: 14, x: 330 },
-    next: { area: 16, x: 16 },
-  },
-  {
-    id: 16,
-    world: 3,
-    theme: "desert",
-    seed: 16189,
-    placement: "v1",
-    difficulty: 4,
-    prev: { area: 15, x: 330 },
-    next: { area: 17, x: 16 },
-  },
-  ...[
-    [17, 4, "dungeon", 3],
-    [18, 4, "dungeon", 3],
-    [19, 4, "dungeon", 4],
-    [20, 4, "dungeon", 4],
-    [21, 5, "lab", 4],
-    [22, 5, "lab", 4],
-    [23, 5, "lab", 5],
-    [24, 5, "lab", 5],
-  ].map(([id, world, theme, difficulty], i) => ({
-    id,
-    world,
-    theme,
-    seed: id * 1000 + 1,
-    placement: "v1",
-    difficulty,
-    prev: { area: id - 1, x: 330 },
-    next: id === 24 ? { area: 1, x: 16, y: 24 } : { area: id + 1, x: 16 },
-  })),
-];
-
-// Every world has 6 levels; level 6 is a boss arena. The levels below extend
-// the chain above: [id, world, theme, difficulty, boss, after, before].
 export const FINISH = -1; // the last boss's exit ends the campaign
-[
-  [25, 1, "grasslands", 3, "kingPig", 10, 3],
-  [26, 2, "iceland", 4, null, 12, 27],
-  [27, 2, "iceland", 4, "frostSlime", 26, 13],
-  [28, 3, "desert", 4, null, 16, 29],
-  [29, 3, "desert", 4, "sandLizard", 28, 17],
-  [30, 4, "dungeon", 5, null, 20, 31],
-  [31, 4, "dungeon", 5, "batLord", 30, 21],
-  [32, 5, "lab", 5, null, 24, 33],
-  [33, 5, "lab", 5, "mechBeetle", 32, FINISH],
-].forEach(([id, world, theme, difficulty, boss, after, before]) => {
-  const prev = LEVELS.find((l) => l.id === after);
-  if (prev) prev.next = { area: id, x: 16 };
-  const next = LEVELS.find((l) => l.id === before);
-  if (next) next.prev = { area: id, x: 330 };
-  LEVELS.push({
-    id,
-    world,
-    theme,
-    seed: id * 1000 + 1,
-    placement: "v1",
-    difficulty,
-    ...(boss ? { boss } : {}),
-    prev: { area: after, x: 330 },
-    next:
-      before === FINISH
-        ? { area: FINISH, x: 16, y: 0 }
-        : before === 3
-          ? { area: 3, x: 6, y: 24 } // hand-made Iceland 1: arrive on its upper ledge
-          : { area: before, x: 16 },
-  });
-});
+
+/**
+ * The campaign, in play order: area id = (world - 1) * 6 + level, so Grassland 1-6 are
+ * areas 1-6, Iceland 7-12, Desert 13-18, Graveyard 19-24 and Factory 25-30. Level 6 of
+ * each world is a boss arena. Grassland 1-3 and Iceland 1-2 are hand-made; the rest are
+ * generated from this table. Like Grassland 1-2, ground stays low (rows 8-10) and the
+ * space above is filled with tiers of floating platforms with coins and patrolling enemies.
+ *
+ * Each row: [id, theme, difficulty, seed, exit, boss]. `exit` is the seam the level ends
+ * on (rolled once with seamRow and kept); left out, the level ends at the next one's boss
+ * floor. The next level starts on that seam (the seam pass below).
+ */
+const STORY = [
+  [4, "grasslands", 2, 9001, 8],
+  [5, "grasslands", 3, 10001],
+  [6, "grasslands", 3, 25001, null, "kingPig"],
+  [9, "iceland", 3, 11001, 3],
+  [10, "iceland", 4, 12001, 7],
+  [11, "iceland", 4, 26001],
+  [12, "iceland", 4, 27001, null, "frostSlime"],
+  [13, "desert", 3, 13169, 9],
+  [14, "desert", 3, 14006, 10],
+  [15, "desert", 4, 15052, 4],
+  [16, "desert", 4, 16189, 9],
+  [17, "desert", 4, 28001],
+  [18, "desert", 4, 29001, null, "sandLizard"],
+  [19, "dungeon", 3, 17001, 8],
+  [20, "dungeon", 3, 18001, 4],
+  [21, "dungeon", 4, 19001, 8],
+  [22, "dungeon", 4, 20001, 9],
+  [23, "dungeon", 5, 30001],
+  [24, "dungeon", 5, 31001, null, "batLord"],
+  [25, "lab", 4, 21001, 4],
+  [26, "lab", 4, 22001, 5],
+  [27, "lab", 5, 23001, 4],
+  [28, "lab", 5, 24001, 6],
+  [29, "lab", 5, 32001],
+  [30, "lab", 5, 33001, null, "mechBeetle"],
+];
+export const STORY_LEVELS = 30;
+
+/** The levels to generate (see STORY), linked to their neighbours in play order. */
+export const LEVELS = STORY.map(([id, theme, difficulty, seed, exit, boss]) => ({
+  id,
+  world: THEMES[theme],
+  theme,
+  seed,
+  placement: "v1",
+  difficulty,
+  ...(boss ? { boss } : {}),
+  ...(exit ? { exitRow: exit } : {}),
+  prev: { area: id - 1, x: 330 },
+  next:
+    id === STORY_LEVELS
+      ? { area: FINISH, x: 16, y: 0 }
+      : id === 6
+        ? { area: 7, x: 6, y: 24 } // hand-made Iceland 1: arrive on its upper ledge
+        : { area: id + 1, x: 16 },
+}));
 
 /**
  * Seams: a level starts where the one before it ends, mirrored: the same shapes at the
- * edge on both sides. A seam is the row the dino stands on (picked at random for each
- * seam, rows 3 to 10, see seamRow) and the ground row at the edge (seamGround): rows
- * LOW_SEAM and below are that ground; higher, a floating ledge over ground at row 9
- * (see seamLedges). After a hand-made level the ground can itself be high: a cliff. The
- * level before a boss ends at the arena's floor.
+ * edge on both sides. A seam is the row the dino stands on (rows 3 to 10, see seamRow)
+ * and the ground row at the edge (seamGround): rows LOW_SEAM and below are that ground;
+ * higher, a floating ledge over ground at row 9 (see seamLedges). After a hand-made level
+ * the ground can itself be high: a cliff. The level before a boss ends at the arena's floor.
  */
 export const LOW_SEAM = 8;
 /** A random seam row, 3 to 10, from a roll in [0, 1). */
@@ -384,25 +300,21 @@ export const seamRow = (roll) => 3 + Math.floor(roll * 8);
 export const seamGround = (row) => (row >= LOW_SEAM ? row : 9);
 // hand-made levels a generated one follows, and how each ends: Grassland 3's slab runs
 // down to the bottom there (row 7), Iceland 2's plateau is solid from row 4
-const HANDMADE_EXITS = { 7: { row: 7, ground: 7 }, 8: { row: 4, ground: 4 } };
+const HANDMADE_EXITS = { 3: { row: 7, ground: 7 }, 8: { row: 4, ground: 4 } };
 {
   const byId = Object.fromEntries(LEVELS.map((level) => [level.id, level]));
   LEVELS.forEach((level) => {
-    if (level.boss) {
-      level.entryRow = BOSS_FLOOR;
-      level.exitRow = BOSS_FLOOR;
-      return;
-    }
     const next = byId[level.next.area];
-    level.exitRow = next && next.boss ? BOSS_FLOOR : seamRow(mulberry32(level.id * 7919 + 17)());
+    if (level.boss || (next && next.boss)) level.exitRow = BOSS_FLOOR;
+    if (level.boss) level.entryRow = BOSS_FLOOR;
     level.exitGround = seamGround(level.exitRow);
   });
   LEVELS.forEach((level) => {
     if (level.boss) return;
     const prev = byId[level.prev.area];
     const handMade = HANDMADE_EXITS[level.prev.area];
-    level.entryRow = prev ? prev.exitRow : handMade ? handMade.row : BOSS_FLOOR;
-    level.entryGround = prev ? prev.exitGround : handMade ? handMade.ground : BOSS_FLOOR;
+    level.entryRow = prev ? prev.exitRow : handMade.row;
+    level.entryGround = prev ? prev.exitGround : handMade.ground;
     if (handMade) level.prev.y = handMade.row * TILE - 8;
   });
 }

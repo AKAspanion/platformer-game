@@ -152,7 +152,8 @@ test("generated levels keep ground low and fill the space above with platforms",
   const generated = generator.LEVELS.map((l) => l.id);
   assert.deepEqual(
     generated,
-    Array.from({ length: 25 }, (_, i) => i + 9),
+    // the story's generated levels: all but Grassland 1-3 and Iceland 1-2
+    Array.from({ length: 30 }, (_, i) => i + 1).filter((id) => ![1, 2, 3, 7, 8].includes(id)),
   );
   for (const id of generated) {
     const area = areas[id];

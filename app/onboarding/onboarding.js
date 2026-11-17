@@ -8,7 +8,7 @@
  */
 const KEY = "onboarding";
 /** Grassland 6, the world 1 boss (LEVELS in app/util). */
-const WORLD1_BOSS_ID = 25;
+const WORLD1_BOSS_ID = 6;
 
 export const HINT_TIMEOUT = 15000; // ms
 export const HINT_KEYBOARD = "← → move · ↑ or Space jump · Enter fire";

@@ -78,8 +78,8 @@ const openLevel = async (id) => {
 const dupes = (list) => list.filter((src, i) => list.indexOf(src) !== i);
 
 test("the next level's sprites and music are requested once each, once this level loads", async () => {
-  const game = await openLevel(30);
-  const next = assetsOf(areas[31]);
+  const game = await openLevel(23);
+  const next = assetsOf(areas[24]);
   assert.ok(
     next.images.some((s) => s.includes("boss/batLord/")),
     "next has a new boss",
@@ -103,7 +103,7 @@ test("the next level's sprites and music are requested once each, once this leve
 });
 
 test("no loading bar mid-level while the preload is in flight", async () => {
-  const game = await openLevel(19);
+  const game = await openLevel(21);
   const release = holdImages();
   try {
     game.world.update(noop);
@@ -121,14 +121,14 @@ test("no loading bar mid-level while the preload is in flight", async () => {
 });
 
 test("a finished preload: the portal shows no loading bar", async () => {
-  const game = await openLevel(30); // preloaded level 31 in the first test
+  const game = await openLevel(23); // preloaded level 24 in the first test
   await tick();
   arriveAudio();
   const start = mark();
   game.world.reset();
-  game.world.setup(areas[31]);
+  game.world.setup(areas[24]);
   assert.equal(game.isLoaded(), true, "game loaded the moment setup returns");
-  const screen = new Screen(canvas(), areas[31].world, null);
+  const screen = new Screen(canvas(), areas[24].world, null);
   assert.equal(screen.isLoaded(), true, "tile set loaded");
   game.update();
   assert.equal(game.isLoaded() && screen.isLoaded(), true, "and on the first update");
@@ -140,11 +140,11 @@ test("a finished preload: the portal shows no loading bar", async () => {
 });
 
 test("an unfinished preload: the bar shows until the image arrives, each image requested once", async () => {
-  const game = await openLevel(26);
+  const game = await openLevel(11);
   const release = holdImages();
   const start = mark();
   try {
-    game.world.update(noop); // starts preloading level 27 (frostSlime boss)
+    game.world.update(noop); // starts preloading level 12 (frostSlime boss)
   } finally {
     release();
   }
@@ -154,7 +154,7 @@ test("an unfinished preload: the bar shows until the image arrives, each image r
   assert.ok(preAsked.length > 0);
 
   game.world.reset();
-  game.world.setup(areas[27]);
+  game.world.setup(areas[12]);
   assert.equal(game.isLoaded(), false, "images still in flight");
   assert.deepEqual(
     since(start).filter((s) => /frostSlime/.test(s)),
@@ -176,15 +176,15 @@ test("an unfinished preload: the bar shows until the image arrives, each image r
 });
 
 test("a preloaded image that fails still counts as in", async () => {
-  const game = await openLevel(28);
+  const game = await openLevel(17);
   const release = holdImages();
   try {
-    game.world.update(noop); // preloads level 29 (sandLizard boss)
+    game.world.update(noop); // preloads level 18 (sandLizard boss)
   } finally {
     release();
   }
   game.world.reset();
-  game.world.setup(areas[29]);
+  game.world.setup(areas[18]);
   assert.equal(game.isLoaded(), false);
   settleHeld("onerror");
   await tick();
@@ -194,11 +194,11 @@ test("a preloaded image that fails still counts as in", async () => {
 });
 
 test("with save-data on, nothing preloads", async () => {
-  const game = await openLevel(31);
+  const game = await openLevel(24);
   setSaveData(true);
   try {
     assert.equal(saveDataOn(), true);
-    assert.equal(preloadArea(areas[21]), null);
+    assert.equal(preloadArea(areas[25]), null);
     const start = mark();
     game.world.update(noop);
     game.world.update(noop);
@@ -263,18 +263,18 @@ test("a community world needs only its music: no tile or sprite file", async () 
 });
 
 test("two portals in a row within a world reuse one loaded tile set", async () => {
-  const game = await openLevel(7); // grassland, forward to 9 (grassland)
+  const game = await openLevel(3); // grassland, forward to 4 (grassland)
   game.world.update(noop);
   await tick();
-  const a = new Screen(canvas(), areas[7].world, null);
-  const b = new Screen(canvas(), areas[9].world, null);
+  const a = new Screen(canvas(), areas[3].world, null);
+  const b = new Screen(canvas(), areas[4].world, null);
   assert.equal(a.tileSet, b.tileSet);
   assert.equal(b.isLoaded(), true);
   assert.equal(tileSetFor(16, 8, 1), a.tileSet);
 });
 
 test("the last boss's exit preloads nothing", async () => {
-  const game = await openLevel(33);
+  const game = await openLevel(30);
   const start = mark();
   game.world.update(noop);
   game.world.update(noop);
@@ -283,12 +283,12 @@ test("the last boss's exit preloads nothing", async () => {
 
 test("assetsFor still lists what an area needs", () => {
   const world = new World();
-  assert.deepEqual(world.assetsFor(areas[25]), assetsOf(areas[25]));
+  assert.deepEqual(world.assetsFor(areas[6]), assetsOf(areas[6]));
 });
 
 test("a community world's boss track is listed for the preloader too", () => {
   registerAudio("boss-batLord", "blob:batlord-battle");
   registerAudio("tracktest2", "blob:tracktest2-theme");
-  const area = { ...areas[31], theme: "tracktest2" };
+  const area = { ...areas[24], theme: "tracktest2" };
   assert.deepEqual(assetsOf(area).audio, ["blob:tracktest2-theme", "blob:batlord-battle"]);
 });

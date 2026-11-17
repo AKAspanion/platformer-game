@@ -15,7 +15,8 @@ const SCRIPT = path.join(root, "scripts", "place-eggs.js");
 const AREAS = path.join(root, "app", "areas");
 
 /** The non-boss story areas: Grassland 1-3, Iceland 1-2, then the generated ones. */
-const STORY = [1, 2, 3, 7, 8, ...Array.from({ length: 16 }, (_, i) => i + 9), 26, 28, 30, 32];
+// the non-boss story areas: levels 1-5 of each world (area 6 of each world is its boss)
+const STORY = Array.from({ length: 30 }, (_, i) => i + 1).filter((id) => id % 6 !== 0);
 
 const EGG_FIELD = /,\n {2}"egg": \{[^{}]*\}/;
 
@@ -189,7 +190,7 @@ test("a daily egg sits on a platform and 5+ tiles from the spawn, over 60 seeds 
 });
 
 test("a level without a usable floating platform puts the egg on the ground, 5+ tiles from the spawn", () => {
-  const base = areas[9];
+  const base = areas[4];
   // fill the space under every floating tile so nothing floats
   const areaMap = base.areaMap.map((line) => [...line]);
   base.collisonMap.forEach((line, r) =>
@@ -205,7 +206,7 @@ test("a level without a usable floating platform puts the egg on the ground, 5+ 
 });
 
 test("eggReachable refuses a spot in a wall or far from any reachable tile", () => {
-  const area = areas[9];
+  const area = areas[4];
   assert.equal(eggReachable(area, { left: 0.25, top: 0.1 }), false, "nothing to stand on near");
   assert.equal(eggReachable(area, null), false);
   assert.equal(eggReachable(area, { left: NaN, top: 1 }), false);
