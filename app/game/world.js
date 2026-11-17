@@ -20,7 +20,14 @@ import { getSkin, audioSrc } from "../util/registry";
 import areas from "../areas";
 import { preloadArea } from "./preload";
 import sfx, { ENEMY_SFX, BOSS_MOVE_SFX } from "../controller/sfx";
-import { deathStyle, pitDeath, projectileDeath, hazardDeath, SHATTER_TICK } from "./death";
+import {
+  deathStyle,
+  deathSound,
+  pitDeath,
+  projectileDeath,
+  hazardDeath,
+  SHATTER_TICK,
+} from "./death";
 
 // particles when a projectile breaks, by kind
 const PROJECTILE_BREAK = {
@@ -1132,7 +1139,8 @@ export default class World {
 
   onPlayerDead(onGameOver) {
     if (!this.isPlayerDead) {
-      AudioController.play("fall", "mp3");
+      // each death has its own sound (app/game/death.js)
+      sfx(deathSound(this.player.deathKind));
 
       this.stopThemeMusic();
       onGameOver();
