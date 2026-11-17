@@ -189,10 +189,11 @@ test("a created (AI-designed) world plays as one long level, then cuts to its bo
   assert.deepEqual(kinds, ["pan", "pan", "pan", "pan", "cut", "cut"]);
 });
 
-test("daily runs pan between levels of one look and cut where the look changes", () => {
-  [20261111, 20261117, 20261231, 20270101, 20270615].forEach((seed) => {
+test("a daily run is one look all the way: it pans level to level, then finishes", () => {
+  [20261111, 20261112, 20261113, 20261114, 20261115, 20261231, 20270101].forEach((seed) => {
     const chain = generateSequence({ idBase: 3000, seed, levels: dailyLevels(seed) });
-    walkChain(chain, sameWorldNoBoss, `daily ${seed}`);
+    const kinds = walkChain(chain, sameWorldNoBoss, `daily ${seed}`);
+    assert.deepEqual(kinds, ["pan", "pan", "pan", "pan", "cut"], `daily ${seed}`);
   });
 });
 

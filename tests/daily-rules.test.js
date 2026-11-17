@@ -13,13 +13,14 @@ import {
   FULL_HEART_BONUS,
   COMBO_MAX,
   dailyLevels,
+  dailyTheme,
   dailyScoreCeiling,
   seedToDate,
   seedIsOpen,
   daysBetween,
   generatedName,
 } from "../app/daily/rules";
-import { generateSequence, themeFor } from "../app/pcg/generator";
+import { generateSequence } from "../app/pcg/generator";
 import { enemyTypes } from "../app/game/enemies";
 import { cleanName } from "../app/auth/names";
 
@@ -33,10 +34,22 @@ test("constants", () => {
   assert.equal(COIN_SCORE, 20);
 });
 
-test("dailyLevels matches the configs createDailySession used before", () => {
+test("a day's five levels share one look, and the five looks take turns day by day", () => {
+  const looks = [20261111, 20261112, 20261113, 20261114, 20261115, 20261116].map((seed) => {
+    const themes = new Set(dailyLevels(seed).map((l) => l.theme));
+    assert.equal(themes.size, 1, `${seed}: one look`);
+    return [...themes][0];
+  });
+  assert.equal(new Set(looks.slice(0, 5)).size, 5, `every look in five days: ${looks}`);
+  assert.equal(looks[5], looks[0], "then round again");
+  // across a month's end too: the turn goes by days, not by the date's digits
+  assert.notEqual(dailyLevels(20261130)[0].theme, dailyLevels(20261201)[0].theme);
+});
+
+test("dailyLevels ramps difficulty and power-ups level by level", () => {
   const seed = 20261111;
   const expected = Array.from({ length: 5 }, (_, i) => ({
-    theme: themeFor((seed + i * 3) % 9),
+    theme: dailyTheme(seed),
     difficulty: 1 + i,
     powerupCount: i === 0 ? 1 : 2,
   }));
