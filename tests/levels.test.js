@@ -59,6 +59,13 @@ test("level-select start positions land safely", () => {
     const { dead, standing } = idle(world, 60);
     assert.equal(dead, false, `${level.name}: died at start`);
     assert.equal(standing, true, `${level.name}: not standing after start`);
+    // a start inside the ground drops the dino through it, again and again
+    assert.equal(world.respawns, 0, `${level.name}: fell through the ground at start`);
+    assert.equal(
+      Math.round(world.player.getBottom()) % TILE,
+      0,
+      `${level.name}: not on a tile's top`,
+    );
   }
 });
 

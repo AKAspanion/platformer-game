@@ -35,7 +35,7 @@ export const CAMPAIGN_LEVELS = {
   8: { coins: 16, enemies: 6, powerups: 1, boss: false },
   9: { coins: 33, enemies: 3, powerups: 1, boss: false },
   10: { coins: 37, enemies: 5, powerups: 1, boss: false },
-  11: { coins: 26, enemies: 6, powerups: 1, boss: false },
+  11: { coins: 25, enemies: 6, powerups: 1, boss: false },
   12: { coins: 12, enemies: 0, powerups: 1, boss: true },
   13: { coins: 28, enemies: 5, powerups: 1, boss: false },
   14: { coins: 29, enemies: 4, powerups: 1, boss: false },

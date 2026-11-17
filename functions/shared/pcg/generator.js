@@ -480,10 +480,21 @@ function seamLedges(level, heights) {
     let end = LEDGE - 1;
     if (row < ground) place(row, 0, LEDGE - 1);
     else while (heights[col(end + 1)] === row) end += 1; // a cliff: its flat top
+    // the highest ground (any height) between d0 and d1 (ROWS if none)
+    const groundAt = (d0, d1) => {
+      let g = ROWS;
+      for (let d = d0; d <= d1; d++) if (heights[col(d)] !== null) g = Math.min(g, heights[col(d)]);
+      return g;
+    };
     let r = row;
     while (groundBelow(end - 1, end + 1, r) - r > MAX_STEP_UP && end + 3 < COLS - LEDGE - 1) {
+      // ground ahead at or near this step's height is reached by walking or a hop
+      if (groundAt(end + 2, end + 3) - MAX_STEP_UP <= r) break;
       const next = Math.min(r + 2, groundBelow(end + 2, end + 3, r) - 2);
       if (next <= r) break;
+      const [s, e] = [Math.min(col(end + 2), col(end + 3)), Math.max(col(end + 2), col(end + 3))];
+      // the other seam's steps already lead down here: don't stack one under another
+      if (out.some(([pr, ps, pe]) => Math.abs(pr - next) <= 2 && s <= pe + 1 && e >= ps - 1)) break;
       r = next;
       place(r, end + 2, end + 3);
       end += 3;
@@ -624,7 +635,10 @@ export function buildLevelOnce(input, seed, dropped) {
 
   platforms.forEach(([r, s, e]) => {
     for (let c = s; c <= e; c++) {
-      areaMap[r][c] = c === s ? T.platLeft : c === e ? T.platRight : T.platMid;
+      // a seam's ledge at the screen edge carries on into the next level: no end cap there
+      const open = c === 0 || c === COLS - 1;
+      const cap = !open || !reserved.has([r, s, e].join(","));
+      areaMap[r][c] = cap && c === s ? T.platLeft : cap && c === e ? T.platRight : T.platMid;
       collisonMap[r][c] = "t";
     }
   });
@@ -1170,6 +1184,71 @@ export function ascii({ data }) {
     .join("\n");
 }
 
+/**
+ * Hand touches on generated story levels: cells drawn by hand that the generator doesn't
+ * make, laid over the built level by buildAll (so `pnpm levels` keeps them). Each cell is
+ * [row, col, tile, collision]; `death` adds pit zones. Whatever stood on ground a touch
+ * takes away (decor, coins) goes with it.
+ */
+export const TOUCHES = {
+  // Iceland 3: Iceland 2's cave floor line runs on into the cliff (decor inside the dirt)
+  9: {
+    cells: [
+      [8, 0, 2, ""],
+      [8, 1, [5, 3], ""],
+      [9, 1, [5, 6], ""],
+      [10, 1, [5, 6], ""],
+      [11, 1, [5, 6], ""],
+    ],
+  },
+  // Iceland 4: the ground ends a column early (col 18); a pit opens under the exit ledge
+  10: {
+    cells: [
+      [9, 18, 3, "tr"],
+      [10, 18, 6, "r"],
+      [11, 18, 6, "r"],
+      ...[9, 10, 11].flatMap((r) => [
+        [r, 19, 0, ""],
+        [r, 20, 0, ""],
+      ]),
+    ],
+    death: [{ x: 19 * TILE, y: 170, height: 32, width: 2 * TILE }],
+  },
+  // Iceland 5: a three-tile entry ledge over the pit, its ground starting at col 1
+  11: {
+    cells: [
+      [7, 2, 15, "t"],
+      [7, 3, 0, ""],
+      [9, 0, 0, ""],
+      [9, 1, 1, "tl"],
+      [10, 0, 0, ""],
+      [10, 1, 4, "l"],
+      [11, 0, 0, ""],
+      [11, 1, 4, "l"],
+    ],
+    death: [{ x: 0, y: 170, height: 32, width: TILE }],
+  },
+};
+
+/** Lays a level's hand touches (TOUCHES) over its built data. */
+function touch(data) {
+  const touches = TOUCHES[data.id];
+  if (!touches) return;
+  touches.cells.forEach(([r, c, tile, collision]) => {
+    const wasTop = (data.collisonMap[r][c] || "").includes("t");
+    data.areaMap[r][c] = tile;
+    data.collisonMap[r][c] = collision;
+    if (tile || !wasTop) return;
+    // the ground or ledge here went: so does what stood on it
+    if (r > 0) data.objectsMap[r - 1][c] = 0;
+    const on = (item) => Math.floor(item.left + 0.3) === c && item.top >= r - 1.5 && item.top < r;
+    data.coins = data.coins.filter((coin) => !on(coin));
+    data.enemies = data.enemies.filter((enemy) => !on(enemy));
+    if (data.powerups) data.powerups = data.powerups.filter((p) => !on(p));
+  });
+  data.death.push(...(touches.death || []));
+}
+
 /** Builds every level in LEVELS (first valid seed) and links their portals. */
 export function buildAll() {
   const results = {};
@@ -1185,6 +1264,8 @@ export function buildAll() {
     if (error) throw new Error(`area ${level.id}: could not generate a valid level (${error})`);
     results[level.id] = { ...result, seed };
   });
+
+  Object.values(results).forEach(({ data }) => touch(data));
 
   // Portals between two generated levels land the player just above the
   // neighbour's edge ground.
