@@ -73,12 +73,39 @@ const bossMinions = (kind) => {
   return flyer ? [config.minion, flyer] : [config.minion];
 };
 
-/** The enemy kinds, boss and seed sprites an area asks for. */
+/**
+ * An area's enemy entries with each walker's `shoots` settled: a story area's walkers
+ * shoot by where they stand and how hard the level is; generated areas (community
+ * worlds) say so per entry.
+ */
+const enemyEntries = (area) => {
+  const difficulty = storyDifficulty(area.id);
+  return (area.enemies || []).map((entry) =>
+    entry.shoots === undefined && enemyTypes[entry.type]?.kind === "walker"
+      ? { ...entry, shoots: walkerShoots(entry.left, difficulty, entry.sway) }
+      : entry,
+  );
+};
+
+/**
+ * The enemy kinds, boss and seed sprites an area asks for. Seed sprites draw every
+ * shot, a shooting walker's too: asked for only at its first shot, they would put
+ * the loading screen back up mid-level.
+ */
 const needsOf = (area) => {
-  const types = [...new Set((area.enemies || []).map(({ type }) => type))];
+  const entries = enemyEntries(area);
+  const types = [...new Set(entries.map(({ type }) => type))];
   const boss = area.boss ? area.boss.kind : null;
   const turret = types.some((type) => enemyTypes[type] && enemyTypes[type].kind === "turret");
-  return { types, boss, minions: boss ? bossMinions(boss) : [], seed: turret || !!boss };
+  const shooter = entries.some(
+    (entry) => entry.shoots && enemyTypes[entry.type]?.kind === "walker",
+  );
+  return {
+    types,
+    boss,
+    minions: boss ? bossMinions(boss) : [],
+    seed: turret || shooter || !!boss,
+  };
 };
 
 /**
@@ -210,15 +237,7 @@ export default class World {
 
     this.deathAreas = data.death.map(({ x, y, height, width }) => new Object(x, y, width, height));
 
-    // a story area's walkers shoot by where they stand and how hard the level is;
-    // generated areas (community worlds) say so per entry
-    const difficulty = storyDifficulty(data.id);
-    const entries = data.enemies?.map((entry) =>
-      entry.shoots === undefined && enemyTypes[entry.type]?.kind === "walker"
-        ? { ...entry, shoots: walkerShoots(entry.left, difficulty, entry.sway) }
-        : entry,
-    );
-    this.enemies = new Enemies(entries, this.tileSize, this.killedEnemies);
+    this.enemies = new Enemies(enemyEntries(data), this.tileSize, this.killedEnemies);
 
     this.coins = new Coins(data.coins, this.tileSize, this.collectedCoins);
 
