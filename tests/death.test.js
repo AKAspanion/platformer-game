@@ -144,7 +144,6 @@ test("a missile burns the dino, and it smokes", () => {
 });
 
 test("a spike trap spikes the dino", () => {
-  // on a raised block: a trap this low on the screen would count as a pit
   const top = GROUND - 2;
   const trap = { x: 5 * TILE + 3, y: top * TILE - 7, width: 10, height: 7 };
   const world = lastHeart(arena({ death: [trap], walls: [{ col: 5, top }] }));
@@ -152,6 +151,17 @@ test("a spike trap spikes the dino", () => {
   tick(world, 1);
   assert.equal(world.player.deathKind, "spiked");
   assert.ok(world.player.velocityY < 0, "popped up");
+});
+
+test("a spike trap on low ground hurts: it is not a pit", () => {
+  // on the ground row, near the screen's bottom: still a trap, the pit zones reach the edge
+  const trap = { x: 5 * TILE + 3, y: GROUND * TILE - 7, width: 10, height: 7 };
+  const world = makeWorld(arena({ death: [trap] }));
+  const hearts = world.player.hearts;
+  placePlayer(world, 5 * TILE + 2);
+  tick(world, 1);
+  assert.equal(world.respawns, 0, "not sent back as if it fell");
+  assert.equal(world.player.hearts, hearts - 1, "spiked: a heart lost");
 });
 
 test("a water pit drowns the dino: it sinks, bubbling", () => {

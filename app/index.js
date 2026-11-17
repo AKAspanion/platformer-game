@@ -5,7 +5,7 @@ import Screen from "./screen";
 import GameEngine from "./engine";
 import Smoother from "./engine/smooth";
 import StillFrame from "./engine/still-frame";
-import { joinsSeamlessly, createSlide } from "./engine/scroll";
+import { joinsSeamlessly, createSlide, runInto } from "./engine/scroll";
 import { loadingScreenUp } from "./util/loading-screen";
 import Controller from "./controller";
 import MouseInput from "./controller/mouse-input";
@@ -278,7 +278,7 @@ window.addEventListener("load", function () {
   const isCampaignLevel = (id) => !session && LEVELS.some((l) => l.id === id);
 
   // ghosts: the fastest finish of each campaign level, kept on this device
-  const recorder = createRecorder();
+  let recorder = createRecorder(); // the level being played's (each go has its own, below)
   const ghostStore = createGhostStore();
   const onboarding = createOnboarding();
   let keptGhost = null; // the ghost replayed in the level being played
@@ -295,6 +295,13 @@ window.addEventListener("load", function () {
   // walking into the next level of the same world pans across to it (app/engine/scroll.js)
   let slide = null;
   let slideSnap = null; // the level just left, as it looked, drawn sliding out
+  // the camera follows the dino through a run of areas; after a jump it eases back
+  // on: `offset` px from where it would be, `before` the same a tick ago
+  const camera = { offset: 0, before: 0 };
+  const CAMERA_EASE = 0.8; // what is left of the offset each tick
+  const CAMERA_JUMP = 24; // px: more than the dino moves in a tick
+  const RUN_END_MARGIN = 48; // px from the run's end: the next area joins on, loaded or not
+  let frameAlpha = 1; // how far the frame being drawn is into the next tick
   // dev mode (localhost or ?debug): every level open for testing, without
   // touching the saved progress; Settings has a switch to turn it off
   const devUnlock = () => canToggleLocally() && settings.get("devUnlockAll") !== false;
@@ -472,6 +479,19 @@ window.addEventListener("load", function () {
   let heartsSeen = MAX_HEARTS;
 
   /**
+   * The go at each level of the run, by id: its clock (ticks spent in it), ghost
+   * recorder, campaign run and hearts lost. Stepping back into a level over a seam
+   * carries on the same go, so whatever is collected on the way back counts when it is
+   * left forward again, and the clock is all the time spent in it (no cheap time star).
+   * `attempt` is the level being played's: null when it was walked back into without
+   * ever being played from its start (its go starts once the dino gets to its start).
+   */
+  const attempts = new Map();
+  let attempt = null;
+  const finishedLevels = new Set(); // left forward this run: the one-off bookkeeping is done
+  const START_ZONE = 3 * 16; // px from a level's left edge that count as its start
+
+  /**
    * The campaign level being played, for the combined leaderboard: its ticket
    * (asked in the background as it starts; null: unranked) and the run's score
    * when it started, since a story run's score carries from level to level.
@@ -507,8 +527,11 @@ window.addEventListener("load", function () {
     }
   };
 
-  /** Leaving a campaign level forward finishes it: award its stars. */
-  const finishLevel = (id) => {
+  /**
+   * Leaving a campaign level forward finishes it: award its stars. Left forward
+   * `again` (after stepping back into it), only stars it didn't have are news.
+   */
+  const finishLevel = (id, again = false) => {
     const area = areas[id];
     const { world } = game;
     const seconds = world.areaTicks / 30;
@@ -518,6 +541,10 @@ window.addEventListener("load", function () {
       seconds,
     });
     const { added } = campaign.finish(id, mask, seconds);
+    if (again && !added) {
+      progressChanged();
+      return;
+    }
     submitCampaign(id, seconds);
     const ghost = recorder.finish(id, seconds);
     if (ghost && ghostStore.offer(ghost)) {
@@ -533,13 +560,14 @@ window.addEventListener("load", function () {
         `<span class="toast-time">${clock(seconds)} / ${clock(targetTime(area))}</span>`,
     );
     if (added) vibrate("powerup");
+    progressChanged();
+    if (again) return;
     track("level_complete", {
       mode: "story",
       level_id: id,
       seconds: Math.round(seconds),
       stars_added: countBits(added),
     });
-    progressChanged();
     if (onboarding.takeWorld1Offer(id)) openWorld1Card();
   };
 
@@ -920,39 +948,87 @@ window.addEventListener("load", function () {
 
   const setupWorld = () => {
     slide = null;
+    camera.offset = camera.before = 0;
     if (session) session.ensure(areaId);
-    game.world.setup(areas[areaId]);
+    // a level that starts mid-run has the levels of its world before it laid out behind
+    game.world.setupRun(reduceMotion() ? [areas[areaId]] : runInto(areas, areaId));
+    follower.reset();
+    attempts.clear();
+    finishedLevels.clear();
+    startLevel();
+  };
+
+  /** A fresh go at level `areaId` from its start: its clock, ghost and ranked run begin. */
+  const beginAttempt = () => {
+    const before = attempts.get(areaId);
+    attempt = { ticks: 0, recorder: createRecorder(), campaignRun: null, hurt: false };
+    attempts.set(areaId, attempt);
+    game.world.areaTicks = 0;
+    recorder = attempt.recorder;
+    hurtInLevel = false;
+    bossBounced = false;
+    campaignRun = null;
+    if (isCampaignLevel(areaId) && campaign.isUnlocked(areaId)) {
+      // a go not yet sent keeps its ticket: hopping over a seam asks for no new ones
+      if (before && before.campaignRun) {
+        campaignRun = { ...before.campaignRun, base: game.world.score };
+      } else startCampaignRun(areaId);
+    }
+  };
+
+  /** Keeps the level being played's go as it is left (to carry on if it is stepped back into). */
+  const keepAttempt = () => {
+    if (!attempt) return;
+    attempt.ticks = game.world.areaTicks;
+    attempt.hurt = hurtInLevel;
+    attempt.campaignRun = campaignRun;
+  };
+
+  /** Stepped back into level `areaId`: carry on its go, if it had one. */
+  const resumeAttempt = () => {
+    attempt = attempts.get(areaId) || null;
+    campaignRun = null;
+    hurtInLevel = false;
+    if (!attempt) return;
+    game.world.areaTicks = attempt.ticks;
+    recorder = attempt.recorder;
+    hurtInLevel = attempt.hurt;
+    campaignRun = attempt.campaignRun;
+  };
+
+  /**
+   * Level `areaId` is entered: set up, or walked into over a seam of the run. Walked
+   * into from its start (`fresh`) it is a new go; stepped back into, its go carries on.
+   */
+  const startLevel = ({ fresh = true } = {}) => {
+    const firstVisit = !attempts.has(areaId);
     // walking into a campaign level unlocks it in the level select
     // (dev mode opens every level for testing; only real progress is saved:
     // a level you walked into from one you had really reached)
-    campaignRun = null;
     if (isCampaignLevel(areaId)) {
       const walkedIn = cameFrom != null && campaign.isUnlocked(cameFrom);
       if (campaign.isUnlocked(areaId) || walkedIn) {
         campaign.reach(areaId);
         cloud.changed();
-        startCampaignRun(areaId);
       }
     }
     cameFrom = null;
     daily.hearts = game.world.player.hearts;
-    hurtInLevel = false;
     heartsSeen = game.world.player.hearts;
     applyWornLook();
-    bossBounced = false;
-    follower.reset();
     wornCompanion = testCompanion || wallet.worn().companion || "none";
     companionFrames(wornCompanion); // asks again for a sprite that failed to load
-    if (session && session.kind === "endless") {
+    if (fresh) beginAttempt();
+    else resumeAttempt();
+    if (firstVisit && session && session.kind === "endless") {
       const reached = session.level(areaId);
       stats.endlessDeepest(reached);
       recordFeat({ type: "endless-level", level: reached });
       progressChanged();
     }
-    recorder.reset();
     keptGhost = isCampaignLevel(areaId) ? ghostStore.get(areaId) : null;
     ghostOn = settings.get("ghost") !== false;
-    track("level_start", { mode: modeName(), level_id: areaId });
+    if (firstVisit) track("level_start", { mode: modeName(), level_id: areaId });
   };
 
   // SCREEN
@@ -970,7 +1046,7 @@ window.addEventListener("load", function () {
     const container = document.querySelector(".container");
     container.style.marginLeft = `${inset.left}px`;
     container.style.marginRight = `${inset.right}px`;
-    screen.resize(width, height, game.world.width, game.world.height);
+    screen.resize(width, height, game.world.viewWidth, game.world.height);
     stillFrame.invalidate(); // resizing cleared the canvas
   };
 
@@ -979,7 +1055,7 @@ window.addEventListener("load", function () {
     screen = new Screen(document.querySelector("canvas"), area.world, getSkin(area.skin));
 
     screen.buffer.canvas.height = game.world.height;
-    screen.buffer.canvas.width = game.world.width;
+    screen.buffer.canvas.width = game.world.viewWidth;
     resize();
   };
 
@@ -1070,24 +1146,24 @@ window.addEventListener("load", function () {
       }
     }
 
+    // walking over a seam into the next (or last) area of the run: no cut, only the
+    // bookkeeping of leaving one level and starting the other
+    const { crossing } = game.world;
+    if (crossing && !portal) {
+      leaveLevel(crossing.direction);
+      keepAttempt();
+      cameFrom = areaId;
+      areaId = crossing.to;
+      game.world.enterSegment(areaId);
+      startLevel({ fresh: crossing.direction > 0 });
+    }
+    // stepped back into a level never played from its start: its go starts at its start
+    if (!attempt && loaded && !game.world.isPlayerDead) {
+      if (player.getLeft() - game.world.segment.x < START_ZONE) beginAttempt();
+    }
+
     if (portal) {
-      reportCombo();
-      if (portal.direction > 0) {
-        recordFeat({ type: "level", flawless: !hurtInLevel });
-        progressChanged();
-      }
-      if (session && session.kind === "daily" && portal.direction > 0) daily.levelDone();
-      if (session && portal.direction > 0) {
-        track("level_complete", {
-          mode: session.kind,
-          level_id: areaId,
-          seconds: areaSeconds(),
-          stars_added: 0,
-        });
-      }
-      if (isCampaignLevel(areaId) && portal.direction > 0 && campaign.isUnlocked(areaId)) {
-        finishLevel(areaId);
-      }
+      leaveLevel(portal.direction);
       if (portal.destinationArea === FINISH) {
         game.world.portal = null;
         finishRun();
@@ -1097,7 +1173,8 @@ window.addEventListener("load", function () {
         // the next level of the same world joins on: pan across rather than cut
         const seamless =
           !reduceMotion() && joinsSeamlessly(areas[areaId], areas[portal.destinationArea], portal);
-        const exitAt = { x: player.x, y: player.y };
+        // where the dino walked out, on screen
+        const exitAt = { x: player.x - game.world.cameraX(), y: player.y };
         if (seamless) captureWorld();
         cameFrom = areaId;
         const rushHearts =
@@ -1113,11 +1190,15 @@ window.addEventListener("load", function () {
         }
         setupScreen();
         if (seamless) {
+          // the pan ends on the area walked into, framed as one screen; with the
+          // run laid out behind it the camera then glides on to the dino
+          const { x: areaX } = game.world.segment;
+          camera.offset = camera.before = areaX - game.world.cameraX();
           slide = createSlide({
             direction: portal.direction,
-            width: game.world.width,
+            width: game.world.viewWidth,
             from: exitAt,
-            to: { x: player.x, y: player.y },
+            to: { x: player.x - areaX, y: player.y },
           });
         }
         engine.resume();
@@ -1127,18 +1208,21 @@ window.addEventListener("load", function () {
     // Pause freezes the world too, not just input: otherwise a player paused
     // mid-jump keeps falling (and can die) behind the pause menu.
     if (!paused) {
-      if (loaded && !game.over && isCampaignLevel(areaId)) {
+      if (attempt && loaded && !game.over && isCampaignLevel(areaId)) {
         const tick = game.world.areaTicks;
         if (tick % SAMPLE_EVERY === 0) {
           recorder.sample(tick, {
-            x: player.x,
+            x: player.x - game.world.segment.x,
             y: player.y,
             anim: animName(player),
             frame: player.animator.frameIndex,
           });
         }
       }
+      const seen = game.world.cameraX();
       game.update();
+      if (loaded) streamAhead();
+      easeCamera(seen);
       if (loaded) {
         follower.push(
           { x: player.x, y: player.y, direction: player.direction },
@@ -1171,6 +1255,9 @@ window.addEventListener("load", function () {
 
     // shell feedback for what happened this tick
     const { events } = game.world;
+    // a boss beaten finishes its arena there and then: its stars are kept even if the
+    // dino never walks out (walking out later counts coins got after the fight)
+    if (events.includes("boss") && !finishedLevels.has(areaId)) finishHere();
     if (events.length || game.world.feats.length || coinsGained) feedRewards(events, coinsGained);
     while (events.length) vibrate(events.shift());
   };
@@ -1190,7 +1277,7 @@ window.addEventListener("load", function () {
     const xOffset = (left ? -36 : -12) + deadOffset;
     ctx.save();
     ctx.globalAlpha = GHOST_ALPHA;
-    ctx.translate(at.x + player.width * 0.5, at.y + player.height);
+    ctx.translate(at.x + game.world.segment.x + player.width * 0.5, at.y + player.height);
     ctx.drawImage(frame, -6 + xOffset, -35, 60, 40);
     ctx.restore();
   };
@@ -1643,8 +1730,7 @@ window.addEventListener("load", function () {
   };
 
   const drawHud = (ctx) => {
-    const { player, columns, totalCoins, coins } = game.world;
-    const width = columns * 16;
+    const { player, viewWidth: width, totalCoins, coins } = game.world;
 
     // hearts
     for (let i = 0; i < MAX_HEARTS; i++) {
@@ -1719,6 +1805,7 @@ window.addEventListener("load", function () {
   const render = (alpha = 1) => {
     if (!stillFrame.shouldDraw(paused)) return;
     smoother.apply(movingObjects(), alpha);
+    frameAlpha = alpha;
     try {
       drawFrame(alpha);
     } finally {
@@ -1727,6 +1814,89 @@ window.addEventListener("load", function () {
   };
 
   const reduceMotion = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+  /**
+   * The screen's left edge in the run (world px): on the dino, snapped to whole
+   * canvas pixels so the tiles stay crisp. It holds still while the dino dies.
+   */
+  let cameraLast = 0;
+  const cameraAt = () => {
+    const { world } = game;
+    const max = Math.max(0, world.width - world.viewWidth);
+    if (!world.isPlayerDead) {
+      const ease = camera.before + (camera.offset - camera.before) * frameAlpha;
+      cameraLast = Math.min(max, Math.max(0, world.cameraX() + ease));
+    } else cameraLast = Math.min(cameraLast, max);
+    const k = screen.pixelScale || 1;
+    return Math.round(cameraLast * k) / k;
+  };
+
+  /**
+   * After a tick: when the camera's spot jumped (the run grew under a dino already
+   * past the middle, a respawn after a pit), it glides there instead. `seen` is
+   * where it was before the tick.
+   */
+  const easeCamera = (seen) => {
+    camera.before = camera.offset;
+    camera.offset = Math.abs(camera.offset) < 0.25 ? 0 : camera.offset * CAMERA_EASE;
+    const jump = seen - game.world.cameraX();
+    if (Math.abs(jump) > CAMERA_JUMP) {
+      camera.offset += jump;
+      camera.before += jump;
+    }
+  };
+
+  /**
+   * Leaving the level being played; walking on (direction 1) finishes it. A level
+   * never played from its start (stepped back into, unplayed) isn't finished. Left
+   * forward again after stepping back into it, its stars count again (coins got on the
+   * way back), but the one-off bookkeeping (daily count, feats, analytics) was done.
+   */
+  const leaveLevel = (direction) => {
+    reportCombo();
+    if (direction > 0) finishHere();
+  };
+
+  /** The level being played is finished (left forward, or its boss beaten). */
+  const finishHere = () => {
+    if (!attempt) return;
+    const again = finishedLevels.has(areaId);
+    finishedLevels.add(areaId);
+    if (!again) {
+      recordFeat({ type: "level", flawless: !hurtInLevel });
+      progressChanged();
+      if (session && session.kind === "daily") daily.levelDone();
+      if (session) {
+        track("level_complete", {
+          mode: session.kind,
+          level_id: areaId,
+          seconds: areaSeconds(),
+          stars_added: 0,
+        });
+      }
+    }
+    if (isCampaignLevel(areaId) && campaign.isUnlocked(areaId)) finishLevel(areaId, again);
+  };
+
+  /**
+   * A scroller: once the dino is past the middle of the last area laid down, the
+   * next area of the same world joins on to its right, so the camera scrolls on
+   * into it with no portal. A boss arena, a change of world or look, and players
+   * who ask for reduced motion keep the pan or cut at the screen's edge.
+   */
+  const streamAhead = () => {
+    const { world } = game;
+    const next = world.nextArea();
+    if (!next || game.over || reduceMotion()) return;
+    // its sprites still on the way: wait, unless the dino is almost at the run's end,
+    // where the old screen edge would stop it like a wall (then the loader shows a moment)
+    const atEnd = world.player.getRight() > world.width - RUN_END_MARGIN;
+    if (!world.nextReady() && !atEnd) return;
+    const last = world.segments[world.segments.length - 1].area;
+    if (!joinsSeamlessly(last, areas[next.id], next.portal)) return;
+    if (session) session.ensure(next.id); // endless: keep one level generated ahead
+    world.extend(areas[next.id]);
+  };
 
   /** Keeps the level being left, without the dino, to slide out as the next comes in. */
   const captureWorld = () => {
@@ -1741,7 +1911,7 @@ window.addEventListener("load", function () {
   /** Mid-pan: the level left slides out one side as the next slides in, the dino crossing the seam. */
   const drawSlide = (alpha) => {
     const ctx = screen.buffer;
-    const { width, height, player } = game.world;
+    const { viewWidth: width, height, player } = game.world;
     const { old, next } = slide.frame(alpha);
     ctx.drawImage(slideSnap, old, 0, width, height);
     ctx.save();
@@ -1775,8 +1945,14 @@ window.addEventListener("load", function () {
     screen.drawBackground();
     // the world shakes, the HUD doesn't; with the setting off nothing moves
     const shake = settings.get("shake") ? game.world.effects.shakeOffset() : { x: 0, y: 0 };
+    const camera = cameraAt();
+    const { viewWidth } = game.world;
+    // what is on screen, in tiles and px, with a tile to spare each side
+    const firstColumn = Math.floor(camera / 16) - 1;
+    const lastColumn = Math.ceil((camera + viewWidth) / 16) + 1;
+    const onScreen = (x, width) => x + width >= camera - 16 && x <= camera + viewWidth + 16;
     ctx.save();
-    ctx.translate(shake.x, shake.y);
+    ctx.translate(shake.x - camera, shake.y);
 
     const {
       map,
@@ -1791,22 +1967,24 @@ window.addEventListener("load", function () {
       projectiles,
     } = game.world;
 
-    if (backdrop) screen.drawMap(backdrop);
+    if (backdrop) screen.drawMap(backdrop, firstColumn, lastColumn);
 
     if (water) {
       for (let index = 0; index < water.items.length; index++) {
         const w = water.items[index];
+        if (!onScreen(w.x, w.width)) continue;
         screen.drawObject(w.animator.frameValue, w.x, w.y, w.width, w.height, w.offsetX, w.offsetY);
       }
     }
 
-    screen.drawMap(map);
-    screen.drawMapObjects(objects);
+    screen.drawMap(map, firstColumn, lastColumn);
+    screen.drawMapObjects(objects, firstColumn, lastColumn);
     // the floor's texture (grass, snow, sand...): pressed down where the dino and a boss walk
-    game.world.ground.draw(ctx, 0);
+    game.world.ground.draw(ctx, 0, camera - 4, camera + viewWidth + 4);
 
     for (let index = 0; index < coins.items.length; index++) {
       const coin = coins.items[index];
+      if (!onScreen(coin.x, coin.width)) continue;
       screen.drawObject(
         coin.animator.frameValue,
         coin.x,
@@ -1831,7 +2009,7 @@ window.addEventListener("load", function () {
       ctx.drawImage(icons[item.type], item.x, item.y, item.width, item.height);
     }
 
-    if (game.world.egg) drawEgg(ctx, game.world.egg);
+    game.world.eggs.forEach((egg) => drawEgg(ctx, egg));
 
     for (let index = 0; index < fireballs.items.length; index++) {
       const f = fireballs.items[index];
@@ -1845,6 +2023,7 @@ window.addEventListener("load", function () {
 
     for (let index = 0; index < enemies.items.length; index++) {
       const enemy = enemies.items[index];
+      if (!onScreen(enemy.x, enemy.width)) continue;
       const rect = enemy.drawRect();
       // armour flash after a hit
       if (enemy.flash > 0 && enemy.flash % 2 === 0) ctx.globalAlpha = 0.45;
@@ -1860,7 +2039,7 @@ window.addEventListener("load", function () {
       drawPlayer(ctx, player, game.world.isPlayerDead);
     }
     // the floor's front blades, over the feet of what stands in them
-    game.world.ground.draw(ctx, 1);
+    game.world.ground.draw(ctx, 1, camera - 4, camera + viewWidth + 4);
     if (game.world.bossArea) drawGates(ctx);
 
     game.world.effects.draw(ctx);

@@ -126,6 +126,8 @@ export const assetsOf = (area) => {
 };
 
 const FEATS_KEPT = 50;
+/** How far past a seam (px) the dino's middle goes before it is in the next area. */
+export const SEAM_MARGIN = 6;
 
 export default class World {
   constructor(friction = 0.87, gravity = 2) {
@@ -161,7 +163,11 @@ export default class World {
     this.feats = [];
     // set by the shell: an egg already found isn't placed again
     this.eggFound = () => false;
-    this.egg = null;
+    this.eggs = [];
+    // the areas laid side by side in this world, left to right (see extend)
+    this.segments = [];
+    // set when the dino walks over a seam into another area: { from, to, direction }
+    this.crossing = null;
 
     this.audioController = new AudioController();
     // music downloads count towards the loading bar too
@@ -178,7 +184,151 @@ export default class World {
     if (this.preloadStarted) return;
     this.preloadStarted = true;
     const forward = this.portals.find((p) => p.direction > 0 && p.destinationArea != null);
-    if (forward) preloadArea(areas[forward.destinationArea]);
+    this.nextLoad = forward ? preloadArea(areas[forward.destinationArea]) : null;
+  }
+
+  /** True once the next area's sprites and music are in (or nothing could preload them). */
+  nextReady() {
+    if (!this.preloadStarted) return false;
+    return !this.nextLoad || this.nextLoad.done();
+  }
+
+  /** The first egg still to find (each area of a run can hide one). */
+  get egg() {
+    return this.eggs[0] || null;
+  }
+
+  /** The segment of the run that world x (px) is in. */
+  segmentAt(x) {
+    const { segments } = this;
+    for (let i = segments.length - 1; i > 0; i--) if (x >= segments[i].x) return segments[i];
+    return segments[0];
+  }
+
+  /** The segment of the area being played. */
+  get segment() {
+    return this.segments.find((s) => s.id === this.id) || this.segments[0];
+  }
+
+  /** The screen's left edge in world px: centred on the dino (or on `x`), kept inside the run. */
+  cameraX(x = this.player.getCenterX()) {
+    const max = Math.max(0, this.width - this.viewWidth);
+    return Math.min(max, Math.max(0, x - this.viewWidth / 2));
+  }
+
+  /**
+   * Past the middle of the last area laid down, the area its forward portal leads to
+   * can join on: { id, portal }. Null before then, in a boss arena, or once dead.
+   */
+  nextArea() {
+    if (this.isPlayerDead || this.bossArea) return null;
+    const last = this.segments[this.segments.length - 1];
+    if (this.player.getCenterX() < last.x + last.width / 2) return null;
+    const portal = this.portals.find((p) => p.direction === 1 && p.destinationArea != null);
+    return portal ? { id: portal.destinationArea, portal } : null;
+  }
+
+  /**
+   * Lays area `data` on to the right of the run, one long level: its tiles, floor,
+   * coins, enemies, power-ups, water, egg and forward portal, shifted along by the
+   * run's width. The seam's portals go: the dino just walks on.
+   */
+  extend(data) {
+    const { tileSize, rows } = this;
+    const left = this.columns; // where it starts, in tiles
+    const dx = left * tileSize;
+    const columns = data.columns ?? data.areaMap[0].length;
+    // each row cut (or padded) to its area's width: a few hand-made rows run a cell long
+    const fit = (row, width, empty) => {
+      const out = row ? row.slice(0, width) : [];
+      while (out.length < width) out.push(empty);
+      return out;
+    };
+    const join = (a, b, empty) =>
+      a || b
+        ? Array.from({ length: rows }, (_, r) =>
+            fit(a && a[r], left, empty).concat(fit(b && b[r], columns, empty)),
+          )
+        : null;
+    this.map = join(this.map, data.areaMap, 0);
+    this.objects = join(this.objects, data.objectsMap, 0);
+    this.collisonMap = join(this.collisonMap, data.collisonMap, "");
+    this.backdrop = join(this.backdrop, data.backdrop, 0);
+    this.columns += columns;
+    this.width = this.columns * tileSize;
+
+    // the floor texture grows on; strands already there keep their footprints
+    const ground = new Ground(this.collisonMap, this.floor, tileSize, this.segments[0].id || 1);
+    ground.carry(this.ground);
+    this.ground = ground;
+
+    const shift = (list = []) => list.map((item) => ({ ...item, left: item.left + left }));
+    data.death.forEach(({ x, y, width, height }) =>
+      this.deathAreas.push(new Object(x + dx, y, width, height)),
+    );
+    // walkers settle `shoots` where they stand in their own area, then move along
+    const killed = new Set(this.killedEnemies.split(","));
+    shift(enemyEntries(data)).forEach((entry) => {
+      if (!killed.has(entry.id)) this.enemies.add(entry);
+    });
+    if (needsOf(data).seed) this.projectiles.load();
+    this.coins.items.push(...new Coins(shift(data.coins), tileSize, this.collectedCoins).items);
+    this.powerups.items.push(
+      ...new PowerUps(shift(data.powerups), tileSize, this.collectedPowerups).items,
+    );
+    const skin = getSkin(data.skin);
+    this.water.items.push(...new Water(shift(data.water), tileSize, skin && skin.liquid).items);
+    if (data.egg && !this.eggFound(data.egg.id)) {
+      this.eggs.push(new Egg({ ...data.egg, left: data.egg.left + left }, tileSize));
+    }
+
+    // the way back stays at the run's start; the way on moves to the new end
+    this.portals = [
+      ...this.portals.filter((p) => p.direction < 0),
+      ...data.portals.filter((p) => p.direction > 0).map((p) => new Portal({ ...p, x: p.x + dx })),
+    ];
+    this.segments.push({ id: data.id, x: dx, width: columns * tileSize, area: data });
+    this.preloadStarted = false; // fetch the one after it next
+  }
+
+  /**
+   * Sets up a run of areas (left to right) and plays its last one: the dino stands
+   * where it was put (or where the portal leads) in that area, with the areas
+   * before it laid out behind, so it can walk back through them.
+   */
+  setupRun(run) {
+    this.setup(run[0]);
+    run.slice(1).forEach((area) => this.extend(area));
+    const { x } = this.segments[this.segments.length - 1];
+    this.id = run[run.length - 1].id;
+    this.player.x += x;
+    this.player.xOld += x;
+    this.spawn.x += x;
+  }
+
+  /** The dino walked over a seam into another area of the run: tell the shell. */
+  checkSeam() {
+    if (this.segments.length < 2) return;
+    const x = this.player.getCenterX();
+    const current = this.segment;
+    // a few px past the seam, so standing on it doesn't flick between the two
+    if (x >= current.x - SEAM_MARGIN && x < current.x + current.width + SEAM_MARGIN) return;
+    const next = this.segmentAt(x);
+    if (next === current) return;
+    this.crossing = { from: current.id, to: next.id, direction: next.x > current.x ? 1 : -1 };
+  }
+
+  /** Play goes on in area `id` of the run: its own clock and combo start. */
+  enterSegment(id) {
+    this.crossing = null;
+    this.id = id;
+    this.areaTicks = 0;
+    this.combo.resetLevel();
+    const { area } = this.segment;
+    if (area.theme && area.theme !== this.areaTheme) {
+      this.areaTheme = area.theme;
+      this.switchTrack(area.theme);
+    }
   }
 
   /** Download a track (once) and note when it is in. */
@@ -244,7 +394,7 @@ export default class World {
     this.powerups = new PowerUps(data.powerups, this.tileSize, this.collectedPowerups);
 
     // the level's hidden egg, unless it was found before
-    this.egg = data.egg && !this.eggFound(data.egg.id) ? new Egg(data.egg, this.tileSize) : null;
+    this.eggs = data.egg && !this.eggFound(data.egg.id) ? [new Egg(data.egg, this.tileSize)] : [];
 
     // level 6 of each world: a boss, unless already beaten in this run
     this.boss = null;
@@ -289,9 +439,15 @@ export default class World {
       this.portal = null;
     }
 
+    // the screen is one area wide; later areas of the run join on to the right
+    this.viewWidth = this.width;
+    this.segments = [{ id: data.id, x: 0, width: this.width, area: data }];
+    this.crossing = null;
+
     // where to come back after falling in a pit, until a safer spot is seen
     this.spawn = { x: this.player.x, y: this.player.y };
     this.lastSafe = null;
+    this.player.inFront = null;
     this.safeTicks = 0;
     this.respawns = 0; // pit falls that put the dino back on safe ground (the companion follows)
   }
@@ -487,10 +643,87 @@ export default class World {
   /** A collision cell as `object` meets it: a dino dropping down passes its ledge's top. */
   cellFor(object, row, column) {
     const value = this.collisonMap[row][column];
-    if (object !== this.player || object.dropRow !== row || typeof value !== "string") {
-      return value;
+    if (object !== this.player || typeof value !== "string") return value;
+    let cell = value;
+    if (object.dropRow === row) cell = cell.replace("t", "");
+    // dirt is background: a jump that clears its top goes in front of its wall
+    if (/[lr]/.test(cell) && this.passesInFront(object, row, column, cell)) {
+      cell = cell.replace(/[lr]/g, "");
     }
-    return value.replace("t", "");
+    return cell;
+  }
+
+  /** Is cell (row, column) drawn: a tile, not open air? */
+  drawnAt(row, column) {
+    const tile = this.map[row] && this.map[row][column];
+    return Array.isArray(tile) ? tile.length > 0 : !!tile;
+  }
+
+  /** The row of the top of the dirt that cell (row, column) is in, or null if none. */
+  dirtTop(row, column) {
+    for (let r = row; r >= 0; r--) {
+      const value = String(this.collisonMap[r][column] || "");
+      if (value.includes("t")) return r;
+      if (!value && !this.drawnAt(r, column)) return null; // open air: no top over it
+    }
+    return null;
+  }
+
+  /** Where the dino's feet get to (px) at the top of its rise, if nothing stops it. */
+  apexBottom(object) {
+    let vy = object.velocityY;
+    let bottom = object.getBottom();
+    for (let i = 0; i < 60; i++) {
+      vy += this.gravity;
+      if (vy >= 0) break;
+      bottom += vy;
+      vy *= this.friction;
+    }
+    return bottom;
+  }
+
+  /**
+   * Dirt walls are background, as in the hand-made levels: the dino jumping up past
+   * a wall's face goes in front of the dirt when its jump carries its feet above the
+   * dirt's top, and lands on it. Short of that (or walking, or falling) the wall holds,
+   * so it never sinks into dirt with nothing under it. Notes the face it went past.
+   */
+  passesInFront(object, row, column, cell) {
+    if (!(object.velocityY < 0) || this.isPlayerDead) return false;
+    const { tileSize } = this;
+    const left = column * tileSize;
+    const right = left + tileSize;
+    let face = null;
+    if (cell.includes("l") && object.getOldRight() <= left && object.getRight() > left) {
+      face = { x: left, side: -1 };
+    } else if (cell.includes("r") && object.getOldLeft() >= right && object.getLeft() < right) {
+      face = { x: right, side: 1 };
+    }
+    if (!face) return false;
+    const top = this.dirtTop(row, column);
+    if (top == null || this.apexBottom(object) > top * tileSize - 1) return false;
+    object.inFront = { ...face, top };
+    return true;
+  }
+
+  /**
+   * In front of dirt after going past its wall: landed on its top, or back out, it is
+   * done; falling below the top (a jump cut short) it is put back outside the wall.
+   */
+  settleInFront() {
+    const { player } = this;
+    const front = player.inFront;
+    if (!front) return;
+    const outside = front.side < 0 ? player.getRight() <= front.x : player.getLeft() >= front.x;
+    if (outside || player.landed || player.grounded || this.isPlayerDead) {
+      player.inFront = null;
+      return;
+    }
+    if (player.velocityY < 0 || player.getBottom() <= front.top * this.tileSize) return;
+    if (front.side < 0) player.setRight(front.x - 0.01);
+    else player.setLeft(front.x);
+    player.velocityX = 0;
+    player.inFront = null;
   }
 
   /** A standable top somewhere below `row` in `column`, with at least a row of room. */
@@ -1136,7 +1369,7 @@ export default class World {
       this.fireballs,
       this.powerups,
       this.projectiles,
-      ...(this.egg ? [this.egg] : []),
+      ...this.eggs,
     ];
   }
 
@@ -1209,6 +1442,7 @@ export default class World {
     // a dino flung off screen or sinking in a pit passes through the ground
     if (!player.ghostly) this.collideObject(player);
     this.endDrop();
+    this.settleInFront();
     if (player.landed) {
       if (fallSpeed > 4 && !this.isPlayerDead) {
         this.effects.dust(player.getCenterX(), player.getBottom(), 5);
@@ -1250,13 +1484,14 @@ export default class World {
       }
     }
 
-    // the egg: found by touch, it gives no score and no coins
-    if (this.egg) {
-      this.egg.update();
-      if (!this.isPlayerDead && this.checkCollision(player, this.egg, 3, 3)) {
-        this.effects.coinSparkle(this.egg.getCenterX(), this.egg.getCenterY());
-        this.addFeat({ type: "egg", id: this.egg.id });
-        this.egg = null;
+    // eggs: found by touch, they give no score and no coins
+    for (let index = this.eggs.length - 1; index >= 0; index--) {
+      const egg = this.eggs[index];
+      egg.update();
+      if (!this.isPlayerDead && this.checkCollision(player, egg, 3, 3)) {
+        this.effects.coinSparkle(egg.getCenterX(), egg.getCenterY());
+        this.addFeat({ type: "egg", id: egg.id });
+        this.eggs.splice(index, 1);
       }
     }
 
@@ -1289,8 +1524,8 @@ export default class World {
         this.effects.fireImpact(tip.x, tip.y, fireball.direction);
         this.fireballs.remove(fireball);
       } else if (
-        fireball.x >= this.width + 50 ||
-        fireball.x + fireball.width < -50 ||
+        fireball.x >= this.cameraX() + this.viewWidth + 50 ||
+        fireball.x + fireball.width < this.cameraX() - 50 ||
         fireball.y < -40 ||
         fireball.y > this.height + 20
       ) {
@@ -1298,16 +1533,17 @@ export default class World {
       }
     }
 
-    // pits send you back to safe ground; spikes hurt like an enemy. The screen's
-    // bottom edge is never a floor: reaching it (a column with no ground under
-    // it) is falling in a pit too, so the dino never stands on the edge.
+    // pits send you back to safe ground; spikes hurt like an enemy. A pit's zone
+    // reaches the screen's bottom edge, a spike trap's sits on the ground (however
+    // low that ground is). The bottom edge is never a floor: reaching it (a column
+    // with no ground under it) is falling in a pit too, so the dino never stands on it.
     if (!this.isPlayerDead && player.getBottom() >= this.height) {
       this.fallInPit(onGameOver);
     } else if (!this.isPlayerDead) {
       for (let index = 0; index < this.deathAreas.length; index++) {
         const area = this.deathAreas[index];
         if (!this.checkCollision(player, area)) continue;
-        if (area.y >= this.height - 40) this.fallInPit(onGameOver);
+        if (area.y + area.height >= this.height) this.fallInPit(onGameOver);
         else this.hurtPlayer(area.getCenterX(), onGameOver, "spiked");
         break;
       }
@@ -1457,6 +1693,8 @@ export default class World {
         }
       }
     }
+
+    if (!this.crossing && !this.isPlayerDead) this.checkSeam();
 
     player.updateAnimation({ dead: this.isPlayerDead });
 

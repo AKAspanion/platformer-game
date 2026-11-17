@@ -214,6 +214,21 @@ export default class Ground {
     }
   }
 
+  /** Keeps the footprints and leans of `old`'s strands that this floor has too (a run grew on). */
+  carry(old) {
+    if (!old || !old.strands || !old.strands.length) return;
+    const key = (s) => `${s.layer},${s.y},${s.x}`;
+    const was = new Map(old.strands.map((s) => [key(s), s]));
+    for (let i = 0; i < this.strands.length; i++) {
+      const s = this.strands[i];
+      const o = was.get(key(s));
+      if (o) {
+        s.press = o.press;
+        s.lean = o.lean;
+      }
+    }
+  }
+
   /** Strands on the tops of `row` between x `from` and `to` (world px). */
   strandsAt(row, from, to) {
     const out = [];
@@ -282,9 +297,10 @@ export default class Ground {
   /**
    * Draw one layer: 0 (back, with the footprints) after the tiles and before
    * anything standing on the floor, 1 (front) over their feet. Strands are
-   * batched into one path per colour.
+   * batched into one path per colour; only those between x `from` and `to`
+   * (what is on screen) are drawn.
    */
-  draw(ctx, layer = 0) {
+  draw(ctx, layer = 0, from = -Infinity, to = Infinity) {
     if (!this.kind || !this.strands.length) return;
     const { flat } = this.kind;
     const packed = this.floor.packed;
@@ -298,7 +314,7 @@ export default class Ground {
 
     for (let i = 0; i < this.strands.length; i++) {
       const s = this.strands[i];
-      if (s.layer !== layer) continue;
+      if (s.layer !== layer || s.x < from || s.x > to) continue;
       // a foot's mark on the surface itself
       if (layer === 0 && packed && s.press > 0.3) add(packed, s.x, s.y, 1, 1);
       const height = s.press > 0 ? s.h * (1 - s.press * (1 - flat)) : s.h * (1 - s.press);
