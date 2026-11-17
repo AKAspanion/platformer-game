@@ -183,8 +183,8 @@ test("shooting is a flag only: the levels are the ones generated before it exist
   // a digest of 200 daily and 200 endless seeds' levels without the `shoots` flag. It was
   // retaken when platform placement changed (every generated level keeps reachable
   // platforms), when each level began starting at the height the one before ends
-  // (no step at the seam) and when a day's levels took one look; the flag itself
-  // still changes nothing else.
+  // (no step at the seam), when a day's levels took one look and when seams took
+  // random heights (high ones on a ledge); the flag itself still changes nothing else.
   const hash = createHash("sha256");
   everyArea((area) => {
     const plain = {
@@ -195,7 +195,7 @@ test("shooting is a flag only: the levels are the ones generated before it exist
   });
   assert.equal(
     hash.digest("hex"),
-    "97254fc49173257c6f5e28b622544e38264f140e1cd7fe2a657b08d642249e5b",
+    "022112b6c3d273127bd5747786e292645015102620b8833e25a73978ce986f28",
   );
 });
 

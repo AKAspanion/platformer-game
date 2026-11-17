@@ -83,7 +83,7 @@
       "direction": -1,
       "destinationArea": 26,
       "destinationX": 330,
-      "destinationY": 152
+      "destinationY": 136
     },
     {
       "x": 336,
@@ -166,15 +166,7 @@
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [
       0,
-      [
-        {
-          "id": 5,
-          "xOffset": 0,
-          "yOffset": 0,
-          "width": 16,
-          "height": 16
-        }
-      ],
+      0,
       0,
       [
         {

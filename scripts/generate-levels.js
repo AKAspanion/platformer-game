@@ -14,7 +14,6 @@ const path = require("path");
 const { placeEggs } = require("./place-eggs");
 
 const TILE = 16;
-const COLS = 21;
 
 /**
  * Update one portal of an existing (hand-made) area in place, editing only the
@@ -45,7 +44,8 @@ async function main() {
   const results = buildAll();
 
   // Hand-made neighbours: point their portal into this level at the right height.
-  Object.values(results).forEach(({ data, heights }) => {
+  Object.values(results).forEach((result) => {
+    const { data } = result;
     data.portals.forEach((portal) => {
       if (results[portal.destinationArea]) return;
       if (portal.destinationArea == null || portal.destinationArea < 0) return; // edge / finish
@@ -53,7 +53,7 @@ async function main() {
       linkNeighbour(outDir, portal.destinationArea, fromLeft ? 1 : -1, {
         destinationArea: data.id,
         destinationX: fromLeft ? 16 : 330,
-        destinationY: heights[fromLeft ? 0 : COLS - 1] * TILE - 8,
+        destinationY: (fromLeft ? result.entryRow : result.exitRow) * TILE - 8,
       });
     });
   });
@@ -63,7 +63,7 @@ async function main() {
     const file = path.join(outDir, `area-${data.id}.json`);
     fs.writeFileSync(file, JSON.stringify(data, null, 2) + "\n");
     console.log(
-      `area-${data.id}.json  seed=${seed}  coins=${data.coins.length}  enemies=${data.enemies.length}  pits=${data.death.length}  left=${result.heights[0]} right=${result.heights[COLS - 1]}`,
+      `area-${data.id}.json  seed=${seed}  coins=${data.coins.length}  enemies=${data.enemies.length}  pits=${data.death.length}  starts=${result.entryRow} ends=${result.exitRow}`,
     );
     if (print) console.log(ascii(result) + "\n");
   });

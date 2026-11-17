@@ -5,13 +5,38 @@ import fs from "node:fs";
 import path from "node:path";
 import areas from "../app/areas";
 import { joinsSeamlessly, createSlide, SLIDE_TICKS } from "../app/engine/scroll";
-import { TILE, generateEndlessLevel, generateSequence } from "../app/pcg/generator";
+import { LOW_SEAM, TILE, generateEndlessLevel, generateSequence } from "../app/pcg/generator";
 import { buildWorld } from "../app/gen";
 import { dailyLevels } from "../app/daily/rules";
 import { createBossRushSession, BOSS_RUSH_BASE } from "../app/modes/bossrush";
 
 const forward = (area) => area.portals.find((p) => p.direction > 0);
 const backward = (area) => area.portals.find((p) => p.direction < 0);
+/** Rows of the floors (collision tops) in column `col` that `portal` takes the dino through. */
+const floors = (area, col, portal) =>
+  area.collisonMap
+    .map((line, row) => ((line[col] || "").includes("t") ? row : -1))
+    .filter(
+      (row) => row >= 0 && row * TILE > portal.y && row * TILE <= portal.y + portal.height + TILE,
+    );
+
+/**
+ * A seam meets: the level left ends on the floor or ledge the next starts on, the dino
+ * arrives standing on it, and walking back lands on it too. Returns the seam's row.
+ */
+function assertSeamMeets(from, to, where) {
+  const portal = forward(from);
+  const back = backward(to);
+  const row = (portal.destinationY + 8) / TILE;
+  assert.ok(
+    floors(from, from.areaMap[0].length - 1, portal).includes(row),
+    `${where}: ends on row ${row}`,
+  );
+  assert.ok(floors(to, 0, back).includes(row), `${where}: starts on row ${row}`);
+  assert.equal((back.destinationY + 8) / TILE, row, `${where}: back lands on row ${row} too`);
+  return row;
+}
+
 const pans = (fromId, portalOf = forward) => {
   const from = areas[fromId];
   const portal = portalOf(from);
@@ -58,33 +83,41 @@ test("the whole campaign, walked through: it cuts only into and out of each worl
   ]);
 });
 
-test("story seams the camera pans across meet: the next level starts where the last ends", () => {
-  /** Rows of the floors (collision tops) in column `col` that `portal` takes the dino through. */
-  const floors = (area, col, portal) =>
-    area.collisonMap
-      .map((line, row) => ((line[col] || "").includes("t") ? row : -1))
-      .filter(
-        (row) => row >= 0 && row * TILE > portal.y && row * TILE <= portal.y + portal.height + TILE,
-      );
-  const heights = new Set();
+test("story seams meet at random heights: the next level starts where the last one ends", () => {
+  const rows = new Set();
   Object.values(areas)
     .filter((a) => a.id < 100) // the story's areas; modes add theirs from 2000 up
     .forEach((from) => {
-      const portal = forward(from);
-      const to = areas[portal.destinationArea];
-      if (!to || !joinsSeamlessly(from, to, portal)) return;
-      const back = backward(to);
-      const row = (portal.destinationY + 8) / TILE;
-      const where = `${from.id} -> ${to.id}`;
-      assert.ok(
-        floors(from, from.areaMap[0].length - 1, portal).includes(row),
-        `${where}: ends on row ${row}`,
-      );
-      assert.ok(floors(to, 0, back).includes(row), `${where}: starts on row ${row}`);
-      assert.equal((back.destinationY + 8) / TILE, row, `${where}: back lands on row ${row} too`);
-      heights.add(row);
+      const to = areas[forward(from).destinationArea];
+      if (!to || !joinsSeamlessly(from, to, forward(from))) return;
+      rows.add(assertSeamMeets(from, to, `${from.id} -> ${to.id}`));
     });
-  assert.ok(heights.size >= 3, `seams at varied heights: ${[...heights]}`);
+  // high ledges (rows 3-7) as well as ground (8-10)
+  assert.ok(
+    [...rows].some((r) => r < LOW_SEAM),
+    `a high ledge among ${[...rows]}`,
+  );
+  assert.ok(
+    [...rows].some((r) => r >= LOW_SEAM),
+    `ground among ${[...rows]}`,
+  );
+  assert.ok(rows.size >= 5, `varied: ${[...rows].sort()}`);
+});
+
+test("the level before each boss ends at the arena's floor", () => {
+  Object.values(areas)
+    .filter((a) => a.id < 100 && a.boss)
+    .forEach((arena) => {
+      const before = Object.values(areas).find(
+        (a) => a.id < 100 && !a.boss && forward(a).destinationArea === arena.id,
+      );
+      const row = (forward(before).destinationY + 8) / TILE;
+      assert.equal(row, arena.boss.top + 1, `${before.id} -> boss ${arena.id}`);
+      assert.ok(
+        floors(before, 20, forward(before)).includes(row),
+        `${before.id} ends on the floor`,
+      );
+    });
 });
 
 test("a change of world, look or screen size cuts", () => {
@@ -175,19 +208,12 @@ const reef = JSON.parse(
   fs.readFileSync(path.join(process.cwd(), "tests/fixtures/sunny-coral-reef.json"), "utf8"),
 );
 
-/** The top row of the ground (solid down to the bottom of the screen) in column `col`. */
-const groundTop = (area, col) => {
-  let row = area.areaMap.length;
-  while (row > 0 && area.areaMap[row - 1][col]) row -= 1;
-  return row;
-};
-
 /**
- * Walks a chain of generated areas the way a player does and checks every step:
- * it pans exactly when `shouldPan` says so, a pan lands on ground that runs on from
- * the level left (no step at the seam), and the dino arrives standing on it.
+ * Walks a chain of generated areas the way a player does and checks every step: it pans
+ * exactly when `shouldPan` says so, and every seam meets (assertSeamMeets). Returns the
+ * kinds of step ("pan" / "cut"); `rows` collects the seams' rows.
  */
-function walkChain(chain, shouldPan, where) {
+function walkChain(chain, shouldPan, where, rows = new Set()) {
   const byId = Object.fromEntries(chain.map((a) => [a.id, a]));
   const kinds = [];
   chain.forEach((from) => {
@@ -199,11 +225,9 @@ function walkChain(chain, shouldPan, where) {
     assert.equal(pan, shouldPan(from, to), `${where}: ${from.id} -> ${to.id}`);
     const back = backward(to);
     assert.equal(joinsSeamlessly(to, from, back), pan, `${where}: ${to.id} back to ${from.id}`);
-    if (!pan) return;
-    const exitRow = groundTop(from, from.areaMap[0].length - 1);
-    assert.equal(groundTop(to, 0), exitRow, `${where}: the ground steps at ${from.id} -> ${to.id}`);
-    assert.equal(portal.destinationY, exitRow * TILE - 8, `${where}: arrives standing in ${to.id}`);
-    assert.equal(back.destinationY, exitRow * TILE - 8, `${where}: back, standing in ${from.id}`);
+    // every seam meets, a cut (a change of look) included; a boss arena is entered at its floor
+    if (to.boss) assert.equal(portal.destinationY, (to.boss.top + 1) * TILE - 8, `${where}: boss`);
+    else rows.add(assertSeamMeets(from, to, `${where}: ${from.id} -> ${to.id}`));
   });
   return kinds;
 }
@@ -216,14 +240,24 @@ test("a created (AI-designed) world plays as one long level, then cuts to its bo
   chain.forEach((data) => (data.skin = assets.key)); // as createCustomSession does
   const kinds = walkChain(chain, sameWorldNoBoss, "reef");
   assert.deepEqual(kinds, ["pan", "pan", "pan", "pan", "cut", "cut"]);
+  assert.equal(
+    forward(chain[4]).destinationY,
+    9 * TILE - 8,
+    "level 5 ends at the boss arena's floor",
+  );
 });
 
 test("a daily run is one look all the way: it pans level to level, then finishes", () => {
+  const rows = new Set();
   [20261111, 20261112, 20261113, 20261114, 20261115, 20261231, 20270101].forEach((seed) => {
     const chain = generateSequence({ idBase: 3000, seed, levels: dailyLevels(seed) });
-    const kinds = walkChain(chain, sameWorldNoBoss, `daily ${seed}`);
+    const kinds = walkChain(chain, sameWorldNoBoss, `daily ${seed}`, rows);
     assert.deepEqual(kinds, ["pan", "pan", "pan", "pan", "cut"], `daily ${seed}`);
   });
+  assert.ok(
+    [...rows].some((r) => r < LOW_SEAM) && [...rows].some((r) => r >= LOW_SEAM),
+    `${[...rows]}`,
+  );
 });
 
 test("endless pans through each stretch of one look and cuts where the look changes", () => {
