@@ -14,8 +14,8 @@
 const fs = require("fs");
 const path = require("path");
 
-/** The non-boss story areas: Grassland 1-3, Iceland 1-2, then generated 9-24 and 26/28/30/32. */
-const STORY_AREAS = [1, 2, 3, 7, 8, ...range(9, 24), 26, 28, 30, 32];
+/** The non-boss story areas: levels 1-5 of each world (area 6 of each world is its boss). */
+const STORY_AREAS = range(1, 30).filter((id) => id % 6 !== 0);
 
 /**
  * Hand-picked spots for the hand-made levels. Grassland 1-3 and Iceland 1 sat on the ground or

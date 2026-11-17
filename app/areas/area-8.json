@@ -143,9 +143,9 @@
       "height": 64,
       "width": 8,
       "direction": -1,
-      "destinationArea": 3,
+      "destinationArea": 7,
       "destinationX": 330,
-      "destinationY": 42
+      "destinationY": 56
     },
     {
       "x": 336,
@@ -153,9 +153,9 @@
       "height": 64,
       "width": 8,
       "direction": 1,
-      "destinationArea": 11,
+      "destinationArea": 9,
       "destinationX": 16,
-      "destinationY": 136
+      "destinationY": 56
     }
   ],
   "enemies": [

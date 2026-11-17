@@ -65,9 +65,9 @@ test("boss rush chains copies of the arenas and ends in FINISH", () => {
 });
 
 test("boss rush leaves the campaign arenas untouched", () => {
-  const before = JSON.stringify(areas[25].portals);
+  const before = JSON.stringify(areas[6].portals);
   createBossRushSession();
-  assert.equal(JSON.stringify(areas[25].portals), before);
+  assert.equal(JSON.stringify(areas[6].portals), before);
 });
 
 test("heartsAfterBoss gives one heart back, up to the maximum", () => {

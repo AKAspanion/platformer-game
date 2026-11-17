@@ -23,10 +23,21 @@ export const COMBO_MAX = 4;
 const CEILING_ID_BASE = 3000;
 const DAY_MS = 86400000;
 
+/**
+ * The day's one look: all five levels share it, so the run pans from level to level
+ * as one long level (app/engine/scroll.js). The five worlds take turns, a new one a day.
+ */
+export function dailyTheme(seed) {
+  const date = seedToDate(seed);
+  const day = date ? Math.floor(date.getTime() / DAY_MS) : seed;
+  return themeFor((((day % 5) + 5) % 5) * 3);
+}
+
 /** The level configs a daily run is generated from. */
 export function dailyLevels(seed) {
+  const theme = dailyTheme(seed);
   return Array.from({ length: DAILY_LEVELS }, (_, i) => ({
-    theme: themeFor((seed + i * 3) % 9),
+    theme,
     difficulty: 1 + i,
     powerupCount: i === 0 ? 1 : 2,
   }));

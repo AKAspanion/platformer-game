@@ -41,7 +41,7 @@ test("stars on unknown levels do not count, and an empty campaign has none", () 
 
 test("the levels list has the five boss levels", () => {
   assert.equal(bossIds.length, 5);
-  assert.ok(bossIds.includes(25) && bossIds.includes(27));
+  assert.ok(bossIds.includes(6) && bossIds.includes(12));
 });
 
 test("boss rush opens once all five bosses have a best time", () => {

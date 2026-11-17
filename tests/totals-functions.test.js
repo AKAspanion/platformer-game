@@ -129,7 +129,7 @@ test("submitCampaignScore needs an account", async () => {
 test("submitCampaignScore refuses what can't be ranked and stores nothing", async () => {
   const totals = fakeTotals();
   for (const bad of [
-    { level: 5, score: 10, seconds: 30 }, // a passage, not a campaign level
+    { level: 31, score: 10, seconds: 30 }, // past the last campaign level
     { level: 999, score: 10, seconds: 30 },
     { level: "1", score: 10, seconds: 30 },
     { level: 1, score: -1, seconds: 30 },
@@ -218,11 +218,11 @@ test("startRun takes campaign levels only, with their own limit", async () => {
   const asked = [];
   const limiter = async (...args) => (asked.push(args), false);
   const start = (data) => handleStartRun({ auth: user(), data }, { tickets, limiter, now });
-  for (const seed of [5, 999, "1", undefined]) {
+  for (const seed of [31, 999, "1", undefined]) {
     await assert.rejects(start({ mode: "campaign", seed }), rejected("invalid-argument"));
   }
-  const out = await start({ mode: "campaign", seed: 25 });
-  assert.equal(out.seed, 25);
+  const out = await start({ mode: "campaign", seed: 6 });
+  assert.equal(out.seed, 6);
   assert.equal(tickets.docs.get(out.ticket).mode, "campaign");
   assert.deepEqual(asked, [["u1", "campaignRun", CAMPAIGN_RUN_LIMIT]]);
 });

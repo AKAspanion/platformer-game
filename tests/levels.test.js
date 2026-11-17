@@ -59,6 +59,13 @@ test("level-select start positions land safely", () => {
     const { dead, standing } = idle(world, 60);
     assert.equal(dead, false, `${level.name}: died at start`);
     assert.equal(standing, true, `${level.name}: not standing after start`);
+    // a start inside the ground drops the dino through it, again and again
+    assert.equal(world.respawns, 0, `${level.name}: fell through the ground at start`);
+    assert.equal(
+      Math.round(world.player.getBottom()) % TILE,
+      0,
+      `${level.name}: not on a tile's top`,
+    );
   }
 });
 
@@ -152,18 +159,24 @@ test("generated levels keep ground low and fill the space above with platforms",
   const generated = generator.LEVELS.map((l) => l.id);
   assert.deepEqual(
     generated,
-    Array.from({ length: 25 }, (_, i) => i + 9),
+    // the story's generated levels: all but Grassland 1-3 and Iceland 1-2
+    Array.from({ length: 30 }, (_, i) => i + 1).filter((id) => ![1, 2, 3, 7, 8].includes(id)),
   );
   for (const id of generated) {
     const area = areas[id];
+    // after a hand-made cliff, a level starts on a cliff of the same height (seams mirror)
+    const { entryGround } = generator.LEVELS.find((l) => l.id === id);
+    const cliff = (r, c) => entryGround < 8 && r === entryGround && c <= 5;
 
     // no taller than Grassland 1-2: ground tops (solid tile under a "t") at row 8+
     let solid = 0;
     area.collisonMap.forEach((row, r) =>
       row.forEach((cell, c) => {
         const ground = cell.includes("t") && area.areaMap[r + 1] && area.areaMap[r + 1][c];
-        assert.ok(!ground || r >= 8, `${name(id)}: ground top at row ${r} col ${c}`);
-        if (area.areaMap[r][c] && !(cell === "t" && !ground)) solid++;
+        assert.ok(!ground || r >= 8 || cliff(r, c), `${name(id)}: ground top at row ${r} col ${c}`);
+        // the raised part of a starting cliff is the seam, not the level's own ground
+        const raised = entryGround < 8 && r < 8 && c <= 5;
+        if (area.areaMap[r][c] && !(cell === "t" && !ground) && !raised) solid++;
       }),
     );
     const fill = solid / (area.rows * area.columns);

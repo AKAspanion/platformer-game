@@ -225,169 +225,99 @@ export const POWERUPS = ["heart", "shield", "triple", "wings"];
 // Area theme = its music track. Graveyard plays "dungeon", factory plays "lab".
 export const THEMES = { grasslands: 1, iceland: 2, desert: 3, dungeon: 4, lab: 5 };
 
-/**
- * The levels to generate. Like Grassland 1-2, ground stays low
- * (rows 8-10, mostly 9-10) and the space above is filled with tiers of floating platforms
- * with coins and patrolling enemies. entryHeight / exitHeight are the ground-top rows at the
- * left / right edges, chosen to line up with the neighbouring areas.
- */
-export const LEVELS = [
-  {
-    id: 9,
-    world: 1,
-    theme: "grasslands",
-    seed: 9001,
-    placement: "v1",
-    difficulty: 2,
-    entryHeight: 9,
-    exitHeight: 9,
-    prev: { area: 7, x: 330, y: 96 },
-    next: { area: 10, x: 16 },
-  },
-  {
-    id: 10,
-    world: 1,
-    theme: "grasslands",
-    seed: 10001,
-    placement: "v1",
-    difficulty: 3,
-    entryHeight: 9,
-    exitHeight: 10,
-    prev: { area: 9, x: 330 },
-    next: { area: 3, x: 6, y: 24 },
-  },
-  {
-    id: 11,
-    world: 2,
-    theme: "iceland",
-    seed: 11001,
-    placement: "v1",
-    difficulty: 3,
-    entryHeight: 9,
-    exitHeight: 9,
-    prev: { area: 8, x: 330, y: 42 },
-    next: { area: 12, x: 16 },
-  },
-  {
-    id: 12,
-    world: 2,
-    theme: "iceland",
-    seed: 12001,
-    placement: "v1",
-    difficulty: 4,
-    entryHeight: 10,
-    exitHeight: 9,
-    prev: { area: 11, x: 330 },
-    next: { area: 13, x: 16 },
-  },
-  {
-    id: 13,
-    world: 3,
-    theme: "desert",
-    seed: 13169,
-    placement: "v1",
-    difficulty: 3,
-    entryHeight: 9,
-    exitHeight: 9,
-    prev: { area: 12, x: 330 },
-    next: { area: 14, x: 16 },
-  },
-  {
-    id: 14,
-    world: 3,
-    theme: "desert",
-    seed: 14006,
-    placement: "v1",
-    difficulty: 3,
-    entryHeight: 9,
-    exitHeight: 10,
-    prev: { area: 13, x: 330 },
-    next: { area: 15, x: 16 },
-  },
-  {
-    id: 15,
-    world: 3,
-    theme: "desert",
-    seed: 15052,
-    placement: "v1",
-    difficulty: 4,
-    entryHeight: 10,
-    exitHeight: 9,
-    prev: { area: 14, x: 330 },
-    next: { area: 16, x: 16 },
-  },
-  {
-    id: 16,
-    world: 3,
-    theme: "desert",
-    seed: 16189,
-    placement: "v1",
-    difficulty: 4,
-    entryHeight: 9,
-    exitHeight: 9,
-    prev: { area: 15, x: 330 },
-    next: { area: 17, x: 16 },
-  },
-  ...[
-    [17, 4, "dungeon", 3],
-    [18, 4, "dungeon", 3],
-    [19, 4, "dungeon", 4],
-    [20, 4, "dungeon", 4],
-    [21, 5, "lab", 4],
-    [22, 5, "lab", 4],
-    [23, 5, "lab", 5],
-    [24, 5, "lab", 5],
-  ].map(([id, world, theme, difficulty], i) => ({
-    id,
-    world,
-    theme,
-    seed: id * 1000 + 1,
-    placement: "v1",
-    difficulty,
-    entryHeight: 9,
-    exitHeight: i % 2 ? 9 : 10,
-    prev: { area: id - 1, x: 330 },
-    next: id === 24 ? { area: 1, x: 16, y: 24 } : { area: id + 1, x: 16 },
-  })),
-];
-
-// Every world has 6 levels; level 6 is a boss arena. The levels below extend
-// the chain above: [id, world, theme, difficulty, boss, after, before].
 export const FINISH = -1; // the last boss's exit ends the campaign
-[
-  [25, 1, "grasslands", 3, "kingPig", 10, 3],
-  [26, 2, "iceland", 4, null, 12, 27],
-  [27, 2, "iceland", 4, "frostSlime", 26, 13],
-  [28, 3, "desert", 4, null, 16, 29],
-  [29, 3, "desert", 4, "sandLizard", 28, 17],
-  [30, 4, "dungeon", 5, null, 20, 31],
-  [31, 4, "dungeon", 5, "batLord", 30, 21],
-  [32, 5, "lab", 5, null, 24, 33],
-  [33, 5, "lab", 5, "mechBeetle", 32, FINISH],
-].forEach(([id, world, theme, difficulty, boss, after, before]) => {
-  const prev = LEVELS.find((l) => l.id === after);
-  if (prev) prev.next = { area: id, x: 16 };
-  const next = LEVELS.find((l) => l.id === before);
-  if (next) next.prev = { area: id, x: 330 };
-  LEVELS.push({
-    id,
-    world,
-    theme,
-    seed: id * 1000 + 1,
-    placement: "v1",
-    difficulty,
-    ...(boss ? { boss } : {}),
-    entryHeight: 9,
-    exitHeight: 9,
-    prev: { area: after, x: 330 },
-    next:
-      before === FINISH
-        ? { area: FINISH, x: 16, y: 0 }
-        : before === 3
-          ? { area: 3, x: 6, y: 24 } // hand-made Iceland 1: arrive on its upper ledge
-          : { area: before, x: 16 },
+
+/**
+ * The campaign, in play order: area id = (world - 1) * 6 + level, so Grassland 1-6 are
+ * areas 1-6, Iceland 7-12, Desert 13-18, Graveyard 19-24 and Factory 25-30. Level 6 of
+ * each world is a boss arena. Grassland 1-3 and Iceland 1-2 are hand-made; the rest are
+ * generated from this table. Like Grassland 1-2, ground stays low (rows 8-10) and the
+ * space above is filled with tiers of floating platforms with coins and patrolling enemies.
+ *
+ * Each row: [id, theme, difficulty, seed, exit, boss]. `exit` is the seam the level ends
+ * on (rolled once with seamRow and kept); left out, the level ends at the next one's boss
+ * floor. The next level starts on that seam (the seam pass below).
+ */
+const STORY = [
+  [4, "grasslands", 2, 9001, 8],
+  [5, "grasslands", 3, 10001],
+  [6, "grasslands", 3, 25001, null, "kingPig"],
+  [9, "iceland", 3, 11001, 3],
+  [10, "iceland", 4, 12001, 7],
+  [11, "iceland", 4, 26001],
+  [12, "iceland", 4, 27001, null, "frostSlime"],
+  [13, "desert", 3, 13169, 9],
+  [14, "desert", 3, 14006, 10],
+  [15, "desert", 4, 15052, 4],
+  [16, "desert", 4, 16189, 9],
+  [17, "desert", 4, 28001],
+  [18, "desert", 4, 29001, null, "sandLizard"],
+  [19, "dungeon", 3, 17001, 8],
+  [20, "dungeon", 3, 18001, 4],
+  [21, "dungeon", 4, 19001, 8],
+  [22, "dungeon", 4, 20001, 9],
+  [23, "dungeon", 5, 30001],
+  [24, "dungeon", 5, 31001, null, "batLord"],
+  [25, "lab", 4, 21001, 4],
+  [26, "lab", 4, 22001, 5],
+  [27, "lab", 5, 23001, 4],
+  [28, "lab", 5, 24001, 6],
+  [29, "lab", 5, 32001],
+  [30, "lab", 5, 33001, null, "mechBeetle"],
+];
+export const STORY_LEVELS = 30;
+
+/** The levels to generate (see STORY), linked to their neighbours in play order. */
+export const LEVELS = STORY.map(([id, theme, difficulty, seed, exit, boss]) => ({
+  id,
+  world: THEMES[theme],
+  theme,
+  seed,
+  placement: "v1",
+  difficulty,
+  ...(boss ? { boss } : {}),
+  ...(exit ? { exitRow: exit } : {}),
+  prev: { area: id - 1, x: 330 },
+  next:
+    id === STORY_LEVELS
+      ? { area: FINISH, x: 16, y: 0 }
+      : id === 6
+        ? { area: 7, x: 6, y: 24 } // hand-made Iceland 1: arrive on its upper ledge
+        : { area: id + 1, x: 16 },
+}));
+
+/**
+ * Seams: a level starts where the one before it ends, mirrored: the same shapes at the
+ * edge on both sides. A seam is the row the dino stands on (rows 3 to 10, see seamRow)
+ * and the ground row at the edge (seamGround): rows LOW_SEAM and below are that ground;
+ * higher, a floating ledge over ground at row 9 (see seamLedges). After a hand-made level
+ * the ground can itself be high: a cliff. The level before a boss ends at the arena's floor.
+ */
+export const LOW_SEAM = 8;
+/** A random seam row, 3 to 10, from a roll in [0, 1). */
+export const seamRow = (roll) => 3 + Math.floor(roll * 8);
+/** The ground row at the edge under a seam row: the row itself, or row 9 under a ledge. */
+export const seamGround = (row) => (row >= LOW_SEAM ? row : 9);
+// hand-made levels a generated one follows, and how each ends: Grassland 3's slab runs
+// down to the bottom there (row 7), Iceland 2's plateau is solid from row 4
+const HANDMADE_EXITS = { 3: { row: 7, ground: 7 }, 8: { row: 4, ground: 4 } };
+{
+  const byId = Object.fromEntries(LEVELS.map((level) => [level.id, level]));
+  LEVELS.forEach((level) => {
+    const next = byId[level.next.area];
+    if (level.boss || (next && next.boss)) level.exitRow = BOSS_FLOOR;
+    if (level.boss) level.entryRow = BOSS_FLOOR;
+    level.exitGround = seamGround(level.exitRow);
   });
-});
+  LEVELS.forEach((level) => {
+    if (level.boss) return;
+    const prev = byId[level.prev.area];
+    const handMade = HANDMADE_EXITS[level.prev.area];
+    level.entryRow = prev ? prev.exitRow : handMade.row;
+    level.entryGround = prev ? prev.exitGround : handMade.ground;
+    if (handMade) level.prev.y = handMade.row * TILE - 8;
+  });
+}
 
 // ---------------------------------------------------------------------------
 
@@ -478,12 +408,12 @@ function emptyGrid(fill) {
   return Array.from({ length: ROWS }, () => new Array(COLS).fill(fill));
 }
 
-function placePlatforms(rng, level, heights, segments, pits) {
+function placePlatforms(rng, level, heights, segments, pits, seeded = []) {
   // boss arenas: three ledges to dodge onto, two rows apart (one jump each)
   if (level.boss) return BOSS_LEDGES.map((p) => [...p]);
 
-  // Floating one-way platforms: [row, startCol, endCol]
-  const platforms = [];
+  // Floating one-way platforms: [row, startCol, endCol]; the seam ledges come first
+  const platforms = [...seeded];
   const free = (r, s, e) =>
     r >= 1 &&
     platforms.every(([pr, ps, pe]) => Math.abs(pr - r) > 1 || e < ps - 1 || s > pe + 1) &&
@@ -523,6 +453,58 @@ function placePlatforms(rng, level, heights, segments, pits) {
   return platforms;
 }
 
+const LEDGE = 4; // a seam ledge's width in tiles
+
+/**
+ * A high seam (above LOW_SEAM) is a floating ledge at the edge, LEDGE tiles wide, or a
+ * cliff (the edge ground itself, high). From it, steps go down two rows at a time until
+ * the ground is a jump away: the dino can always climb to the exit and get down from the
+ * entry (and back). [row, startCol, endCol] like platforms.
+ */
+function seamLedges(level, heights) {
+  const out = [];
+  const side = (row, ground, left) => {
+    if (row >= LOW_SEAM) return;
+    const col = (d) => (left ? d : COLS - 1 - d); // d: tiles from the edge
+    const place = (r, d0, d1) =>
+      out.push([r, Math.min(col(d0), col(d1)), Math.max(col(d0), col(d1))]);
+    // the highest ground below row r between d0 and d1 (ROWS if none)
+    const groundBelow = (d0, d1, r) => {
+      let g = ROWS;
+      for (let d = Math.max(0, d0); d <= d1; d++) {
+        const h = heights[col(d)];
+        if (h !== null && h > r) g = Math.min(g, h);
+      }
+      return g;
+    };
+    let end = LEDGE - 1;
+    if (row < ground) place(row, 0, LEDGE - 1);
+    else while (heights[col(end + 1)] === row) end += 1; // a cliff: its flat top
+    // the highest ground (any height) between d0 and d1 (ROWS if none)
+    const groundAt = (d0, d1) => {
+      let g = ROWS;
+      for (let d = d0; d <= d1; d++) if (heights[col(d)] !== null) g = Math.min(g, heights[col(d)]);
+      return g;
+    };
+    let r = row;
+    while (groundBelow(end - 1, end + 1, r) - r > MAX_STEP_UP && end + 3 < COLS - LEDGE - 1) {
+      // ground ahead at or near this step's height is reached by walking or a hop
+      if (groundAt(end + 2, end + 3) - MAX_STEP_UP <= r) break;
+      const next = Math.min(r + 2, groundBelow(end + 2, end + 3, r) - 2);
+      if (next <= r) break;
+      const [s, e] = [Math.min(col(end + 2), col(end + 3)), Math.max(col(end + 2), col(end + 3))];
+      // the other seam's steps already lead down here: don't stack one under another
+      if (out.some(([pr, ps, pe]) => Math.abs(pr - next) <= 2 && s <= pe + 1 && e >= ps - 1)) break;
+      r = next;
+      place(r, end + 2, end + 3);
+      end += 3;
+    }
+  };
+  side(level.entryRow, level.entryGround, true);
+  side(level.exitRow, level.exitGround, false);
+  return out;
+}
+
 /**
  * Upper tier: floating platforms climbing toward the top of the screen. Each
  * one must be reachable (by the jump model below) from a surface placed before
@@ -537,7 +519,7 @@ function placeSkyPlatforms(rng, level, heights, platforms) {
   let standable = null;
   const refresh = () => {
     surf = surfaces(heights, platforms);
-    const entry = surf.findIndex((s) => s.col === 0 && s.row === heights[0]);
+    const entry = surf.findIndex((s) => s.col === 0 && s.row === level.entryRow);
     standable = v1 || entry < 0 ? null : reachable(surf, entry);
   };
   refresh();
@@ -597,10 +579,24 @@ export function buildLevel(input, seed) {
 
 export function buildLevelOnce(input, seed, dropped) {
   const level = { ...input, world: input.world || THEMES[input.theme] || 1 };
+  // the seams: a ground row (LOW_SEAM and below) or a floating ledge's row
+  if (level.boss) {
+    level.entryRow = BOSS_FLOOR;
+    level.exitRow = BOSS_FLOOR;
+  } else {
+    level.entryRow = level.entryRow ?? level.entryHeight ?? 9;
+    level.exitRow = level.exitRow ?? level.exitHeight ?? 9;
+    level.entryGround = level.entryGround ?? seamGround(level.entryRow);
+    level.exitGround = level.exitGround ?? seamGround(level.exitRow);
+    level.entryHeight = level.entryGround;
+    level.exitHeight = level.exitGround;
+  }
   const T = TILESETS[level.world] || TILES_A;
   const rng = mulberry32(seed);
   const { heights, segments, pits } = buildProfile(rng, level);
-  const platforms = placePlatforms(rng, level, heights, segments, pits);
+  const ledges = level.boss ? [] : seamLedges(level, heights);
+  const reserved = new Set(ledges.map((p) => p.join(",")));
+  const platforms = placePlatforms(rng, level, heights, segments, pits, ledges);
   if (!level.boss) placeSkyPlatforms(mulberry32(seed * 31 + 7), level, heights, platforms);
   if (dropped.size) {
     const kept = platforms.filter((pl) => !dropped.has(pl.join(",")));
@@ -639,7 +635,10 @@ export function buildLevelOnce(input, seed, dropped) {
 
   platforms.forEach(([r, s, e]) => {
     for (let c = s; c <= e; c++) {
-      areaMap[r][c] = c === s ? T.platLeft : c === e ? T.platRight : T.platMid;
+      // a seam's ledge at the screen edge carries on into the next level: no end cap there
+      const open = c === 0 || c === COLS - 1;
+      const cap = !open || !reserved.has([r, s, e].join(","));
+      areaMap[r][c] = cap && c === s ? T.platLeft : cap && c === e ? T.platRight : T.platMid;
       collisonMap[r][c] = "t";
     }
   });
@@ -747,7 +746,7 @@ export function buildLevelOnce(input, seed, dropped) {
   const maxTotal = Math.max(1, Math.round((4 + Math.floor(level.difficulty / 2)) * scale));
   platforms.forEach((platform) => {
     const [r, s, e] = platform;
-    if (!walkers.length) return;
+    if (!walkers.length || reserved.has(platform.join(","))) return; // not on a seam's ledge or steps
     if (level.difficulty < 2 || e - s < 2 || r < 2 || enemies.length >= maxTotal) return;
     // no room for a 20px enemy under a platform two rows up
     if (platforms.some(([pr, ps, pe]) => pr === r - 2 && pe >= s && ps <= e)) return;
@@ -939,8 +938,8 @@ export function buildLevelOnce(input, seed, dropped) {
   }
 
   // Portals at the screen edges, tall enough to cover the edge ground.
-  const leftTop = heights[0];
-  const rightTop = heights[COLS - 1];
+  const leftTop = level.entryRow;
+  const rightTop = level.exitRow;
   const portals = [
     {
       x: -8,
@@ -1002,6 +1001,10 @@ export function buildLevelOnce(input, seed, dropped) {
     heights,
     platforms,
     traps,
+    entryRow: level.entryRow,
+    exitRow: level.exitRow,
+    entryGround: level.entryHeight,
+    exitGround: level.exitHeight,
     ...(level.placement ? { placement: level.placement } : {}),
     ...(level.boss ? { boss: level.boss } : {}),
   };
@@ -1069,9 +1072,9 @@ function reachable(surf, from) {
 }
 
 /** Platforms (as surface indexes) the dino can't stand on from the entry, using the normal jump model. */
-export function unreachablePlatforms({ heights, platforms, traps = [] }) {
+export function unreachablePlatforms({ heights, platforms, traps = [], entryRow = heights[0] }) {
   const surf = surfaces(heights, platforms, traps);
-  const entry = surf.findIndex((s) => s.col === 0 && s.row === heights[0]);
+  const entry = surf.findIndex((s) => s.col === 0 && s.row === entryRow);
   if (entry < 0) return [];
   const seen = reachable(surf, entry);
   const first = surf.length - platforms.reduce((n, [, s, e]) => n + e - s + 1, 0);
@@ -1122,15 +1125,21 @@ function platformCount(platforms) {
   return { rows: rows.size, tiles: platforms.reduce((n, [, s, e]) => n + e - s + 1, 0) };
 }
 
-export function validate({ heights, platforms, traps, data, placement, boss }) {
+export function validate(result) {
+  const { heights, platforms, traps, data, placement, boss } = result;
+  const { entryRow = heights[0], exitRow = heights[COLS - 1] } = result;
+  const { entryGround = heights[0], exitGround = heights[COLS - 1] } = result;
+  // the ground at each edge is exactly the seam's: the next level mirrors it
+  if (heights[COLS - 1] !== exitGround) return "exit ground misses its seam";
+  if (heights[0] !== entryGround) return "entry ground misses its seam";
   const surf = surfaces(heights, platforms, traps);
-  const entry = surf.findIndex((s) => s.col === 0 && s.row === heights[0]);
-  const exit = surf.findIndex((s) => s.col === COLS - 1 && s.row === heights[COLS - 1]);
+  const entry = surf.findIndex((s) => s.col === 0 && s.row === entryRow);
+  const exit = surf.findIndex((s) => s.col === COLS - 1 && s.row === exitRow);
   if (entry < 0 || exit < 0) return "edge has no ground";
   if (!reachable(surf, entry).has(exit)) return "exit unreachable from entry";
   if (!reachable(surf, exit).has(entry)) return "entry unreachable from exit";
 
-  const stranded = unreachablePlatforms({ heights, platforms, traps });
+  const stranded = unreachablePlatforms({ heights, platforms, traps, entryRow });
   if (stranded.length) {
     const s = surf[stranded[0]];
     return `platform ${s.col},${s.row} unreachable`;
@@ -1175,6 +1184,71 @@ export function ascii({ data }) {
     .join("\n");
 }
 
+/**
+ * Hand touches on generated story levels: cells drawn by hand that the generator doesn't
+ * make, laid over the built level by buildAll (so `pnpm levels` keeps them). Each cell is
+ * [row, col, tile, collision]; `death` adds pit zones. Whatever stood on ground a touch
+ * takes away (decor, coins) goes with it.
+ */
+export const TOUCHES = {
+  // Iceland 3: Iceland 2's cave floor line runs on into the cliff (decor inside the dirt)
+  9: {
+    cells: [
+      [8, 0, 2, ""],
+      [8, 1, [5, 3], ""],
+      [9, 1, [5, 6], ""],
+      [10, 1, [5, 6], ""],
+      [11, 1, [5, 6], ""],
+    ],
+  },
+  // Iceland 4: the ground ends a column early (col 18); a pit opens under the exit ledge
+  10: {
+    cells: [
+      [9, 18, 3, "tr"],
+      [10, 18, 6, "r"],
+      [11, 18, 6, "r"],
+      ...[9, 10, 11].flatMap((r) => [
+        [r, 19, 0, ""],
+        [r, 20, 0, ""],
+      ]),
+    ],
+    death: [{ x: 19 * TILE, y: 170, height: 32, width: 2 * TILE }],
+  },
+  // Iceland 5: a three-tile entry ledge over the pit, its ground starting at col 1
+  11: {
+    cells: [
+      [7, 2, 15, "t"],
+      [7, 3, 0, ""],
+      [9, 0, 0, ""],
+      [9, 1, 1, "tl"],
+      [10, 0, 0, ""],
+      [10, 1, 4, "l"],
+      [11, 0, 0, ""],
+      [11, 1, 4, "l"],
+    ],
+    death: [{ x: 0, y: 170, height: 32, width: TILE }],
+  },
+};
+
+/** Lays a level's hand touches (TOUCHES) over its built data. */
+function touch(data) {
+  const touches = TOUCHES[data.id];
+  if (!touches) return;
+  touches.cells.forEach(([r, c, tile, collision]) => {
+    const wasTop = (data.collisonMap[r][c] || "").includes("t");
+    data.areaMap[r][c] = tile;
+    data.collisonMap[r][c] = collision;
+    if (tile || !wasTop) return;
+    // the ground or ledge here went: so does what stood on it
+    if (r > 0) data.objectsMap[r - 1][c] = 0;
+    const on = (item) => Math.floor(item.left + 0.3) === c && item.top >= r - 1.5 && item.top < r;
+    data.coins = data.coins.filter((coin) => !on(coin));
+    data.enemies = data.enemies.filter((enemy) => !on(enemy));
+    if (data.powerups) data.powerups = data.powerups.filter((p) => !on(p));
+  });
+  data.death.push(...(touches.death || []));
+}
+
 /** Builds every level in LEVELS (first valid seed) and links their portals. */
 export function buildAll() {
   const results = {};
@@ -1191,6 +1265,8 @@ export function buildAll() {
     results[level.id] = { ...result, seed };
   });
 
+  Object.values(results).forEach(({ data }) => touch(data));
+
   // Portals between two generated levels land the player just above the
   // neighbour's edge ground.
   Object.values(results).forEach(({ data }) => {
@@ -1198,8 +1274,8 @@ export function buildAll() {
       if (portal.destinationY !== undefined) return;
       const target = results[portal.destinationArea];
       if (!target) throw new Error(`area ${data.id}: portal needs destinationY`);
-      const edge = portal.direction < 0 ? COLS - 1 : 0;
-      portal.destinationY = target.heights[edge] * TILE - 8;
+      const row = portal.direction < 0 ? target.exitRow : target.entryRow;
+      portal.destinationY = row * TILE - 8;
     });
   });
 
@@ -1233,29 +1309,41 @@ export function generateSequence({ idBase, seed, levels }) {
   const areas = [];
   levels.forEach((spec, i) => {
     const id = idBase + i;
-    const entryHeight = 9;
-    const exitHeight = 9 + (rng() < 0.4 ? 1 : 0);
+    // the ground runs on from the level before: same height across the seam (app/engine/scroll.js)
+    const entryRow = i === 0 ? 9 : exits[i - 1];
+    const roll = rng();
     const last = i === levels.length - 1;
+    // a random seam (the next level starts there); a boss arena is entered at its floor
+    const exitRow = last ? 9 : levels[i + 1].boss ? BOSS_FLOOR : seamRow(roll);
     const result = generateArea({
       ...spec,
       id,
       seed: Math.floor(rng() * 1e9),
       difficulty: Math.max(1, Math.min(5, spec.difficulty || 2)),
-      entryHeight,
-      exitHeight,
+      entryRow,
+      exitRow,
       prev:
         i === 0
           ? { area: null, x: 330, y: 0 }
           : { area: id - 1, x: 330, y: exits[i - 1] * TILE - 8 },
-      next: last ? { area: -1, x: 16, y: 0 } : { area: id + 1, x: 16, y: entryHeight * TILE - 8 },
+      next: last ? { area: -1, x: 16, y: 0 } : { area: id + 1, x: 16, y: exitRow * TILE - 8 },
     });
-    exits.push(result.heights[COLS - 1]);
+    exits.push(result.exitRow);
     areas.push(result.data);
   });
   return areas;
 }
 
-/** One endless-mode level: always entered at row 9 from the left. */
+/** Points the forward portal at the next level's ground top row `row`: the dino lands standing. */
+function arriveStanding(data, row) {
+  const portal = data.portals.find((p) => p.direction > 0);
+  portal.destinationY = row * TILE - 8;
+}
+
+/**
+ * One endless-mode level: entered from the left at the height the level before ends
+ * (`prevExit`), ending at a random seam the next one starts at.
+ */
 export function generateEndlessLevel({ id, seed, index, prevExit }) {
   const difficulty = Math.min(5, 1 + Math.floor(index / 2));
   const result = generateArea({
@@ -1263,13 +1351,14 @@ export function generateEndlessLevel({ id, seed, index, prevExit }) {
     seed,
     theme: themeFor(index),
     difficulty,
-    entryHeight: 9,
-    exitHeight: 9 + (index % 2),
+    entryRow: index === 0 ? 9 : prevExit,
+    exitRow: seamRow(mulberry32(seed * 3 + 11)()),
     enemyScale: 0.8 + Math.min(0.6, index * 0.05),
     powerupCount: index % 3 === 2 ? 2 : 1,
     prev:
       index === 0 ? { area: null, x: 330, y: 0 } : { area: id - 1, x: 330, y: prevExit * TILE - 8 },
     next: { area: id + 1, x: 16, y: 9 * TILE - 8 },
   });
-  return { data: result.data, exit: result.heights[COLS - 1] };
+  arriveStanding(result.data, result.exitRow); // the next level starts at this height
+  return { data: result.data, exit: result.exitRow };
 }
