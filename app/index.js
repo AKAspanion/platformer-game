@@ -30,6 +30,7 @@ import { settings, vibrate } from "./util/settings";
 import { COMBO_WINDOW } from "./game/combo";
 import { track, armAnalytics, setAnalyticsEnabled, appOpenParams } from "./analytics";
 import { isPremium, canToggleLocally, watchAccountPremium } from "./util/premium";
+import { levelFromQuery } from "./util/level-link";
 import { firestoreEntitlements } from "./firebase/entitlements";
 import {
   FINISH,
@@ -4169,8 +4170,14 @@ window.addEventListener("load", function () {
   const linked = linkedWorldId(location);
   // ?account=delete opens the delete-account flow, after signing in when needed
   const deleteLink = new URLSearchParams(location.search).get("account") === "delete";
-  // a link (a world, or the delete flow) wins over the first-open start
+  // test hosts only: ?level=9 or ?level=iceland-3 starts that campaign level at once
+  const levelLink = canToggleLocally() ? new URLSearchParams(location.search).get("level") : null;
+  const linkedLevel = levelLink ? levelFromQuery(location.search, LEVELS) : null;
+  if (levelLink && !linkedLevel)
+    console.warn(`?level=${levelLink}: no such level (an id 1-30 or a name like iceland-3)`);
+  // a link (a world, a level, or the delete flow) wins over the first-open start
   if (linked) openLinkedWorld(linked);
+  else if (linkedLevel && !deleteLink) startStory(linkedLevel);
   else if (!deleteLink) firstOpen();
   if (deleteLink) requireLogin(openDelete, "delete-account");
 });
