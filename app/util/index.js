@@ -88,12 +88,12 @@ export const LEVELS = [
   { name: "Grassland 1", id: 1, world: "Grasslands", left: 40, top: 100 },
   { name: "Grassland 2", id: 2, world: "Grasslands", left: 40, top: 100 },
   { name: "Grassland 3", id: 7, world: "Grasslands", left: 40, top: 120 },
-  { name: "Grassland 4", id: 9, world: "Grasslands", left: 40, top: 124 },
+  { name: "Grassland 4", id: 9, world: "Grasslands", left: 40, top: 92 }, // on its starting cliff
   { name: "Grassland 5", id: 10, world: "Grasslands", left: 40, top: 124 },
   { name: "Grassland 6", id: 25, world: "Grasslands", left: 40, top: 124, boss: true },
   { name: "Iceland 1", id: 3, world: "Iceland", left: 48, top: 100 },
   { name: "Iceland 2", id: 8, world: "Iceland", left: 32, top: 20 },
-  { name: "Iceland 3", id: 11, world: "Iceland", left: 40, top: 124 },
+  { name: "Iceland 3", id: 11, world: "Iceland", left: 40, top: 44 }, // on its starting cliff
   { name: "Iceland 4", id: 12, world: "Iceland", left: 40, top: 140 },
   { name: "Iceland 5", id: 26, world: "Iceland", left: 40, top: 124 },
   { name: "Iceland 6", id: 27, world: "Iceland", left: 40, top: 124, boss: true },

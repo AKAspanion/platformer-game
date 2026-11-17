@@ -156,14 +156,19 @@ test("generated levels keep ground low and fill the space above with platforms",
   );
   for (const id of generated) {
     const area = areas[id];
+    // after a hand-made cliff, a level starts on a cliff of the same height (seams mirror)
+    const { entryGround } = generator.LEVELS.find((l) => l.id === id);
+    const cliff = (r, c) => entryGround < 8 && r === entryGround && c <= 5;
 
     // no taller than Grassland 1-2: ground tops (solid tile under a "t") at row 8+
     let solid = 0;
     area.collisonMap.forEach((row, r) =>
       row.forEach((cell, c) => {
         const ground = cell.includes("t") && area.areaMap[r + 1] && area.areaMap[r + 1][c];
-        assert.ok(!ground || r >= 8, `${name(id)}: ground top at row ${r} col ${c}`);
-        if (area.areaMap[r][c] && !(cell === "t" && !ground)) solid++;
+        assert.ok(!ground || r >= 8 || cliff(r, c), `${name(id)}: ground top at row ${r} col ${c}`);
+        // the raised part of a starting cliff is the seam, not the level's own ground
+        const raised = entryGround < 8 && r < 8 && c <= 5;
+        if (area.areaMap[r][c] && !(cell === "t" && !ground) && !raised) solid++;
       }),
     );
     const fill = solid / (area.rows * area.columns);

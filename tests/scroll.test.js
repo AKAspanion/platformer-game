@@ -37,6 +37,42 @@ function assertSeamMeets(from, to, where) {
   return row;
 }
 
+// what a tile shows: "G" a block or ground, "P" a thin platform, "W" water, "." air
+const PLATFORM_TILES = new Set([13, 14, 15]);
+const showsAt = (area, row, col) => {
+  const cell = area.areaMap[row][col];
+  const ids = (Array.isArray(cell) ? cell : [cell]).filter(Boolean);
+  if (ids.length) return area.world !== 5 && ids.every((i) => PLATFORM_TILES.has(i)) ? "P" : "G";
+  const wet = (area.water || []).some(
+    (w) => Math.floor(w.left) === col && Math.floor(w.top) === row,
+  );
+  return wet ? "W" : ".";
+};
+
+/**
+ * The next level's start mirrors the last one's end: its first column shows what the
+ * last column showed, row by row, and the run of ground or platform the dino stands on
+ * at the seam goes on for 3+ tiles.
+ */
+function assertMirrors(from, to, where) {
+  const last = from.areaMap[0].length - 1;
+  const seam = (forward(from).destinationY + 8) / TILE;
+  for (let row = 0; row < from.areaMap.length; row++) {
+    assert.equal(showsAt(to, row, 0), showsAt(from, row, last), `${where}: row ${row} at the seam`);
+  }
+  const kind = showsAt(from, seam, last);
+  for (let row = seam; row < from.areaMap.length && showsAt(from, row, last) === kind; row++) {
+    for (const col of [1, 2]) {
+      assert.equal(
+        showsAt(to, row, col),
+        kind,
+        `${where}: the dino's ${kind} runs on (${col}, ${row})`,
+      );
+    }
+    if (kind === "P") break; // a platform is one row
+  }
+}
+
 const pans = (fromId, portalOf = forward) => {
   const from = areas[fromId];
   const portal = portalOf(from);
@@ -91,6 +127,7 @@ test("story seams meet at random heights: the next level starts where the last o
       const to = areas[forward(from).destinationArea];
       if (!to || !joinsSeamlessly(from, to, forward(from))) return;
       rows.add(assertSeamMeets(from, to, `${from.id} -> ${to.id}`));
+      assertMirrors(from, to, `${from.id} -> ${to.id}`);
     });
   // high ledges (rows 3-7) as well as ground (8-10)
   assert.ok(
@@ -227,7 +264,10 @@ function walkChain(chain, shouldPan, where, rows = new Set()) {
     assert.equal(joinsSeamlessly(to, from, back), pan, `${where}: ${to.id} back to ${from.id}`);
     // every seam meets, a cut (a change of look) included; a boss arena is entered at its floor
     if (to.boss) assert.equal(portal.destinationY, (to.boss.top + 1) * TILE - 8, `${where}: boss`);
-    else rows.add(assertSeamMeets(from, to, `${where}: ${from.id} -> ${to.id}`));
+    else {
+      rows.add(assertSeamMeets(from, to, `${where}: ${from.id} -> ${to.id}`));
+      if (pan) assertMirrors(from, to, `${where}: ${from.id} -> ${to.id}`);
+    }
   });
   return kinds;
 }

@@ -370,16 +370,21 @@ export const FINISH = -1; // the last boss's exit ends the campaign
 });
 
 /**
- * Seams: a level starts where the one before it ends, at a height picked at random for
- * each seam, rows 3 to 10 (see seamRow). Rows LOW_SEAM and below are ground at the edge;
- * higher, the edge is a floating ledge with ground below it (see seamLedges). The level
- * before a boss ends at the arena's floor.
+ * Seams: a level starts where the one before it ends, mirrored: the same shapes at the
+ * edge on both sides. A seam is the row the dino stands on (picked at random for each
+ * seam, rows 3 to 10, see seamRow) and the ground row at the edge (seamGround): rows
+ * LOW_SEAM and below are that ground; higher, a floating ledge over ground at row 9
+ * (see seamLedges). After a hand-made level the ground can itself be high: a cliff. The
+ * level before a boss ends at the arena's floor.
  */
 export const LOW_SEAM = 8;
 /** A random seam row, 3 to 10, from a roll in [0, 1). */
 export const seamRow = (roll) => 3 + Math.floor(roll * 8);
-// hand-made levels a generated one follows, and the row each ends on
-const HANDMADE_EXITS = { 7: 7, 8: 4 }; // Grassland 3's slab, Iceland 2's plateau
+/** The ground row at the edge under a seam row: the row itself, or row 9 under a ledge. */
+export const seamGround = (row) => (row >= LOW_SEAM ? row : 9);
+// hand-made levels a generated one follows, and how each ends: Grassland 3's slab runs
+// down to the bottom there (row 7), Iceland 2's plateau is solid from row 4
+const HANDMADE_EXITS = { 7: { row: 7, ground: 7 }, 8: { row: 4, ground: 4 } };
 {
   const byId = Object.fromEntries(LEVELS.map((level) => [level.id, level]));
   LEVELS.forEach((level) => {
@@ -390,13 +395,15 @@ const HANDMADE_EXITS = { 7: 7, 8: 4 }; // Grassland 3's slab, Iceland 2's platea
     }
     const next = byId[level.next.area];
     level.exitRow = next && next.boss ? BOSS_FLOOR : seamRow(mulberry32(level.id * 7919 + 17)());
+    level.exitGround = seamGround(level.exitRow);
   });
   LEVELS.forEach((level) => {
     if (level.boss) return;
     const prev = byId[level.prev.area];
     const handMade = HANDMADE_EXITS[level.prev.area];
-    level.entryRow = prev ? prev.exitRow : (handMade ?? BOSS_FLOOR);
-    if (handMade) level.prev.y = handMade * TILE - 8;
+    level.entryRow = prev ? prev.exitRow : handMade ? handMade.row : BOSS_FLOOR;
+    level.entryGround = prev ? prev.exitGround : handMade ? handMade.ground : BOSS_FLOOR;
+    if (handMade) level.prev.y = handMade.row * TILE - 8;
   });
 }
 
@@ -537,35 +544,41 @@ function placePlatforms(rng, level, heights, segments, pits, seeded = []) {
 const LEDGE = 4; // a seam ledge's width in tiles
 
 /**
- * A high seam (above LOW_SEAM) is a floating ledge at the edge, with steps down from it,
- * two rows at a time, until the ground is a jump away: the dino can always climb to the
- * exit and get down from the entry (and back). [row, startCol, endCol] like platforms.
+ * A high seam (above LOW_SEAM) is a floating ledge at the edge, LEDGE tiles wide, or a
+ * cliff (the edge ground itself, high). From it, steps go down two rows at a time until
+ * the ground is a jump away: the dino can always climb to the exit and get down from the
+ * entry (and back). [row, startCol, endCol] like platforms.
  */
 function seamLedges(level, heights) {
   const out = [];
-  const side = (row, left) => {
+  const side = (row, ground, left) => {
     if (row >= LOW_SEAM) return;
     const col = (d) => (left ? d : COLS - 1 - d); // d: tiles from the edge
     const place = (r, d0, d1) =>
       out.push([r, Math.min(col(d0), col(d1)), Math.max(col(d0), col(d1))]);
-    const groundUnder = (d0, d1) => {
+    // the highest ground below row r between d0 and d1 (ROWS if none)
+    const groundBelow = (d0, d1, r) => {
       let g = ROWS;
-      for (let d = d0; d <= d1; d++) if (heights[col(d)] !== null) g = Math.min(g, heights[col(d)]);
+      for (let d = Math.max(0, d0); d <= d1; d++) {
+        const h = heights[col(d)];
+        if (h !== null && h > r) g = Math.min(g, h);
+      }
       return g;
     };
-    place(row, 0, LEDGE - 1);
-    let r = row;
     let end = LEDGE - 1;
-    while (groundUnder(end - 1, end + 1) - r > MAX_STEP_UP && end + 3 < COLS - LEDGE - 1) {
-      const next = Math.min(r + 2, groundUnder(end + 2, end + 3) - 2);
+    if (row < ground) place(row, 0, LEDGE - 1);
+    else while (heights[col(end + 1)] === row) end += 1; // a cliff: its flat top
+    let r = row;
+    while (groundBelow(end - 1, end + 1, r) - r > MAX_STEP_UP && end + 3 < COLS - LEDGE - 1) {
+      const next = Math.min(r + 2, groundBelow(end + 2, end + 3, r) - 2);
       if (next <= r) break;
       r = next;
       place(r, end + 2, end + 3);
       end += 3;
     }
   };
-  side(level.entryRow, true);
-  side(level.exitRow, false);
+  side(level.entryRow, level.entryGround, true);
+  side(level.exitRow, level.exitGround, false);
   return out;
 }
 
@@ -650,8 +663,10 @@ export function buildLevelOnce(input, seed, dropped) {
   } else {
     level.entryRow = level.entryRow ?? level.entryHeight ?? 9;
     level.exitRow = level.exitRow ?? level.exitHeight ?? 9;
-    level.entryHeight = level.entryRow >= LOW_SEAM ? level.entryRow : 9;
-    level.exitHeight = level.exitRow >= LOW_SEAM ? level.exitRow : 9;
+    level.entryGround = level.entryGround ?? seamGround(level.entryRow);
+    level.exitGround = level.exitGround ?? seamGround(level.exitRow);
+    level.entryHeight = level.entryGround;
+    level.exitHeight = level.exitGround;
   }
   const T = TILESETS[level.world] || TILES_A;
   const rng = mulberry32(seed);
@@ -1062,6 +1077,8 @@ export function buildLevelOnce(input, seed, dropped) {
     traps,
     entryRow: level.entryRow,
     exitRow: level.exitRow,
+    entryGround: level.entryHeight,
+    exitGround: level.exitHeight,
     ...(level.placement ? { placement: level.placement } : {}),
     ...(level.boss ? { boss: level.boss } : {}),
   };
@@ -1185,9 +1202,10 @@ function platformCount(platforms) {
 export function validate(result) {
   const { heights, platforms, traps, data, placement, boss } = result;
   const { entryRow = heights[0], exitRow = heights[COLS - 1] } = result;
-  // a ground seam is exactly the row the next level starts on
-  if (exitRow >= LOW_SEAM && heights[COLS - 1] !== exitRow) return "exit ground misses its seam";
-  if (entryRow >= LOW_SEAM && heights[0] !== entryRow) return "entry ground misses its seam";
+  const { entryGround = heights[0], exitGround = heights[COLS - 1] } = result;
+  // the ground at each edge is exactly the seam's: the next level mirrors it
+  if (heights[COLS - 1] !== exitGround) return "exit ground misses its seam";
+  if (heights[0] !== entryGround) return "entry ground misses its seam";
   const surf = surfaces(heights, platforms, traps);
   const entry = surf.findIndex((s) => s.col === 0 && s.row === entryRow);
   const exit = surf.findIndex((s) => s.col === COLS - 1 && s.row === exitRow);
