@@ -244,8 +244,11 @@ test("spitters shoot seeds that hurt; fireballs burn seeds", () => {
 });
 
 test("bats swoop down at a player below them", () => {
+  // four tiles up the player is ~50 px below the bat, inside its 64 px dive
+  // range at any point of its bob; five tiles up sat right on the edge, so
+  // whether it dived came down to its random speed and bob phase
   const world = makeWorld(
-    arena({ enemies: [{ id: "bat", type: "bat", left: 6, top: GROUND - 5, sway: 30, dir: -1 }] }),
+    arena({ enemies: [{ id: "bat", type: "bat", left: 6, top: GROUND - 4, sway: 30, dir: -1 }] }),
     { col: 4 },
   );
   const bat = byId(world, "bat");
