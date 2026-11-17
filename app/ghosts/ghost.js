@@ -23,6 +23,8 @@ export const ANIMS = [
   "fallRight",
   "hurtLeft",
   "hurtRight",
+  "slideLeft",
+  "slideRight",
 ];
 
 const VERSION = "g1";

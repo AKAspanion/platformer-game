@@ -290,7 +290,7 @@
   "powerups": [
     {
       "id": "A04P01",
-      "type": "triple",
+      "type": "shield",
       "left": 13,
       "top": 3
     }

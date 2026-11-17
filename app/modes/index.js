@@ -65,6 +65,10 @@ export function createEndlessSession(seed = Math.floor(Math.random() * 1e9)) {
       seed: seed + index * 7919,
       index,
       prevExit: exits[index - 1] || 9,
+      // this run's levels before it (ids below the range belong to something else)
+      prevLevels: [index - 2, index - 1]
+        .filter((i) => i >= 0)
+        .map((i) => areas[RANGES.endless + i]),
     });
     exits[index] = exit;
     areas[id] = data;

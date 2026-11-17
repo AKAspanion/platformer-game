@@ -186,7 +186,8 @@ test("shooting is a flag only: the levels are the ones generated before it exist
   // (no step at the seam), when a day's levels took one look and when seams took
   // random heights (high ones on a ledge) and when the ground under a ledge was matched
   // across the seam, and when seam steps stopped landing inside ground or stacking and a
-  // seam's ledge ran on at the screen edge; the flag itself still changes nothing else.
+  // seam's ledge ran on at the screen edge, and when power-ups were spread out along a
+  // run (never the same kind twice running); the flag itself still changes nothing else.
   const hash = createHash("sha256");
   everyArea((area) => {
     const plain = {
@@ -197,7 +198,7 @@ test("shooting is a flag only: the levels are the ones generated before it exist
   });
   assert.equal(
     hash.digest("hex"),
-    "a90a4c3308e7a1b03002c0d78abd464c34e1fbd49419add6aba7439e456f7315",
+    "eb841140e1711069651a67e4fd6161db33d8875f22c8f2349b98c2d9e1758ec8",
   );
 });
 

@@ -30,21 +30,24 @@ const LEVEL_SEED_STEP = 7919;
 /**
  * The most a run can score through levels 1..level of this endless seed: it
  * regenerates the levels the way createEndlessSession builds them (each
- * level's entry height follows the previous exit), then counts COMBO_MAX times (20 per coin
+ * level's entry height and power-ups follow the previous level's), then counts COMBO_MAX times (20 per coin
  * plus the highest enemy score per enemy) and the full-health heart bonus per
  * power-up.
  */
 export function endlessScoreCeiling(seed, level) {
   let total = 0;
   let prevExit = 9;
+  const prevLevels = [];
   for (let index = 0; index < level; index++) {
     const { data, exit } = generateEndlessLevel({
       id: CEILING_ID_BASE + index,
       seed: seed + index * LEVEL_SEED_STEP,
       index,
       prevExit,
+      prevLevels: prevLevels.slice(-2),
     });
     prevExit = exit;
+    prevLevels.push(data);
     total +=
       COMBO_MAX * (data.coins.length * COIN_SCORE + data.enemies.length * ENEMY_MAX_SCORE) +
       (data.powerups || []).length * FULL_HEART_BONUS;

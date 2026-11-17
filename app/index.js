@@ -1343,6 +1343,7 @@ window.addEventListener("load", function () {
     const fallingOver = dead && deathStyle(player.deathKind).frames === "dead";
     const deadOffset = fallingOver ? (player.direction < 0 ? 12 : -12) : 0;
     const xOffset = (player.direction < 0 ? -36 : -12) + deadOffset;
+    const slidePose = dead ? null : player.slidePose;
     const feetX = player.getCenterX();
     const feetY = player.getBottom();
 
@@ -1358,6 +1359,11 @@ window.addEventListener("load", function () {
       if (pose.tint && pose.tintAmount > 0 && frame.complete !== false) {
         frame = deathTint(frame, pose.tint, pose.tintAmount);
       }
+    }
+    if (slidePose) {
+      // clinging to the wall: tipped back off it from the feet, shuddering as the claws catch
+      ctx.translate(slidePose.shake, 0);
+      ctx.rotate(slidePose.lean);
     }
     ctx.scale(player.scaleX, player.scaleY);
     ctx.drawImage(frame, -6 + xOffset, -35, 60, 40);
