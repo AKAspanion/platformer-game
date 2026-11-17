@@ -209,6 +209,61 @@ def sfx_list():
     s["glob-throw"] = tone(0.2, 240, 520, "sine", 0.7, vibrato=0.2, vib_rate=20, curve=1.2)
     s["spit-throw"] = mix(tone(0.1, 900, 400, "sine", 0.6), noise(0.04, 0.3, 1, lowpass=0.7))
     s["pebble-throw"] = mix(tone(0.07, 1300, 700, "square", 0.3, 0.25), noise(0.05, 0.35, 2, lowpass=0.5))
+
+    # the dino's deaths (app/game/death.js): one sound for each way it dies
+    # knockout: a bonk, then the classic falling-away slide
+    s["death-knockout"] = mix(
+        noise(0.06, 0.6, 2, seed=11),
+        tone(0.08, 900, 600, "square", 0.4, 0.5),
+        tone(0.55, 820, 110, "square", 0.35, 0.25, vibrato=0.04, vib_rate=14, curve=0.9),
+        offsets=[0, 0, 0.07],
+    )
+    # shot: a wet splat and a sad two-note drop
+    s["death-shot"] = mix(
+        noise(0.12, 0.55, 3, lowpass=0.35, curve=2, seed=12),
+        tone(0.14, 520, 110, "sine", 0.7),
+        seq(tone(0.16, 494, kind="triangle", vol=0.45), tone(0.3, 370, 330, "triangle", 0.45)),
+        offsets=[0, 0, 0.12],
+    )
+    # spiked: a sharp metal stab and a yelp
+    s["death-spiked"] = mix(
+        tone(0.1, 2400, 1500, "saw", 0.35, curve=2.5),
+        noise(0.05, 0.5, 1, seed=13),
+        tone(0.3, 1300, 260, "square", 0.35, 0.3, vibrato=0.06, vib_rate=28),
+        offsets=[0, 0, 0.06],
+    )
+    # burnt: a fiery whoosh, a low thud and crackles
+    s["death-burnt"] = mix(
+        noise(0.65, 0.6, 1, attack=0.02, curve=1.4, sweep=(0.7, 0.08), seed=14),
+        tone(0.4, 180, 50, "sine", 0.7, curve=2),
+        *[noise(0.025, 0.45, 1, seed=20 + i) for i in range(5)],
+        offsets=[0, 0, 0.12, 0.2, 0.31, 0.39, 0.5],
+    )
+    # frozen: a cold rising shimmer and ringing ice (the shatter plays after)
+    s["death-frozen"] = mix(
+        tone(0.4, 900, 2400, "sine", 0.35, vibrato=0.02, vib_rate=30, curve=0.8, attack=0.03),
+        noise(0.35, 0.18, 1, attack=0.05, lowpass=0.9, curve=1.2, seed=15),
+        *[tone(0.45, f, kind="sine", vol=0.2, curve=3) for f in (2637, 3136, 3951)],
+        offsets=[0, 0, 0.18, 0.26, 0.34],
+    )
+    # drown: a splash, then bubbles gurgling down
+    s["death-drown"] = mix(
+        noise(0.15, 0.5, 2, lowpass=0.45, curve=2, seed=16),
+        seq(*[tone(0.06, f, f * 1.6, "sine", 0.55, curve=1.2) for f in (720, 610, 540, 460, 400, 340, 290)], gap=0.025),
+        offsets=[0, 0.08],
+    )
+    # melt: a long acid sizzle over a wobbling sink
+    s["death-melt"] = mix(
+        noise(0.75, 0.35, 1, attack=0.03, lowpass=0.95, curve=1.1, seed=17),
+        tone(0.7, 420, 70, "saw", 0.3, vibrato=0.12, vib_rate=9, curve=1.1),
+        offsets=[0, 0.03],
+    )
+    # void: a long whistle falling away, with an echo
+    s["death-void"] = mix(
+        tone(0.9, 1500, 90, "sine", 0.6, vibrato=0.03, vib_rate=7, curve=0.8),
+        tone(0.9, 1500, 90, "sine", 0.22, vibrato=0.03, vib_rate=7, curve=0.8),
+        offsets=[0, 0.16],
+    )
     return s
 
 

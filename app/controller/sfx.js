@@ -1,5 +1,6 @@
 import { getData } from "../util";
 import { audioSrc } from "../util/registry";
+import { DEATH_SFX } from "../game/death";
 
 /**
  * Short sound effects from app/assets/audio/sfx (made by
@@ -17,6 +18,8 @@ const VOLUME = {
   "boss-slam": 0.5,
   "icicle-fall": 0.25,
   "boss-charge": 0.35,
+  // the dino's deaths stand out over everything else
+  ...Object.fromEntries(DEATH_SFX.map((name) => [name, 0.55])),
 };
 const GAP_MS = 70;
 
@@ -127,4 +130,5 @@ export const ALL_SFX = [
   "powerup",
   "heart",
   "shield-block",
+  ...DEATH_SFX,
 ];

@@ -41,8 +41,17 @@ export const DEATHS = {
 
 export const DEATH_KINDS = Object.keys(DEATHS);
 
+/** Every death's sound. */
+export const DEATH_SFX = DEATH_KINDS.map((kind) => `death-${kind}`);
+
 /** A kind that isn't known plays as a knockout. */
 export const deathStyle = (kind) => DEATHS[kind] || DEATHS.knockout;
+
+/**
+ * The sound a death of `kind` plays (app/assets/audio/sfx/death-<kind>.wav,
+ * made by scripts/generate-audio.py). A frozen dino also shatters later.
+ */
+export const deathSound = (kind) => `death-${DEATHS[kind] ? kind : "knockout"}`;
 
 // projectiles that don't just knock the dino over
 const PROJECTILE_DEATHS = { icicle: "frozen", shard: "frozen", missile: "burnt" };
