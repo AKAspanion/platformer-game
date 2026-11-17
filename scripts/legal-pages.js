@@ -29,8 +29,10 @@ const escapeHtml = (text) =>
   text.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
 // The documents are ours, but raw HTML in them is shown as text, never run.
-// (marked 13 passes the html renderer the raw string.)
-const markdown = new Marked({ renderer: { html: (html) => escapeHtml(html) } });
+// (marked 13 passed the html renderer the raw string; marked 14 and later pass its token.)
+const markdown = new Marked({
+  renderer: { html: (html) => escapeHtml(typeof html === "string" ? html : html.text) },
+});
 
 const renderLegalPage = (source, { title }, template = fs.readFileSync(TEMPLATE, "utf8")) => {
   // The document's first line is its heading; the page shows `title` instead.
