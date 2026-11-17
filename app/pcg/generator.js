@@ -240,7 +240,7 @@ export const LEVELS = [
     difficulty: 2,
     entryHeight: 9,
     exitHeight: 9,
-    prev: { area: 7, x: 330, y: 96 },
+    prev: { area: 7, x: 330, y: 136 }, // Grassland 3's grass steps down to row 9 at its end
     next: { area: 10, x: 16 },
   },
   {
@@ -264,7 +264,7 @@ export const LEVELS = [
     difficulty: 3,
     entryHeight: 9,
     exitHeight: 9,
-    prev: { area: 8, x: 330, y: 42 },
+    prev: { area: 8, x: 330, y: 120 }, // Iceland 2 ends on its ice tunnel's floor, row 8
     next: { area: 12, x: 16 },
   },
   {
@@ -1190,6 +1190,8 @@ export function buildAll() {
     results[level.id] = { ...result, seed };
   });
 
+  matchSeams(results);
+
   // Portals between two generated levels land the player just above the
   // neighbour's edge ground.
   Object.values(results).forEach(({ data }) => {
@@ -1203,6 +1205,166 @@ export function buildAll() {
   });
 
   return results;
+}
+
+/**
+ * Story levels the camera pans between (same world, no boss) start at the height the
+ * level before ends, so the ground runs on across the seam (app/engine/scroll.js). The
+ * heights still vary seam to seam. Only the flat stretch of ground at the edge is
+ * reshaped (see reshapeEdge): the next level's start if it can be, else the end of the
+ * one before. A seam neither can take is left as it is.
+ */
+export function matchSeams(results) {
+  LEVELS.forEach((level) => {
+    const b = results[level.id];
+    const a = level.prev && results[level.prev.area];
+    if (!a && b && !b.data.boss && Number.isInteger((level.prev?.y + 8) / TILE)) {
+      // a hand-made level before (same world): its ground at the seam is where its portal lands
+      reshapeEdge(b, 0, (level.prev.y + 8) / TILE);
+      return;
+    }
+    if (!a || !b || a.data.boss || b.data.boss || a.data.world !== b.data.world) return;
+    const exit = a.heights[COLS - 1];
+    const entry = b.heights[0];
+    if (exit === entry) return;
+    if (reshapeEdge(b, 0, exit) || reshapeEdge(a, COLS - 1, entry)) return;
+    // neither side alone: both meet at a height between
+    const lo = Math.min(exit, entry);
+    const hi = Math.max(exit, entry);
+    for (let row = lo + 1; row < hi; row++) {
+      const kept = snapshot(a);
+      if (reshapeEdge(a, COLS - 1, row)) {
+        if (reshapeEdge(b, 0, row)) return;
+        restore(a, kept);
+      }
+    }
+  });
+}
+
+const snapshot = ({ data, heights }) => JSON.stringify({ data, heights });
+
+const restore = (result, kept) => {
+  const back = JSON.parse(kept);
+  Object.assign(result.data, back.data);
+  result.heights.splice(0, result.heights.length, ...back.heights);
+};
+
+/**
+ * Moves the flat ground at one edge (`edge`: 0 left, COLS - 1 right) of a built level to
+ * ground-top row `row`: the tiles there are laid again, and what stands on that ground
+ * (decor, coins, enemies, power-ups) moves with it. Undone (false) when it would bring a
+ * platform too close or leave the level failing validate().
+ */
+export function reshapeEdge(result, edge, row) {
+  const { data, heights, platforms } = result;
+  const old = heights[edge];
+  const delta = row - old;
+  if (old === null || delta === 0) return delta === 0;
+  const step = edge === 0 ? 1 : -1;
+  const cols = [];
+  for (let c = edge; c >= 0 && c < COLS && heights[c] === old; c += step) cols.push(c);
+  const inEdge = (left) => cols.includes(Math.floor(left + 0.001));
+  // a platform over the edge keeps room under it for the dino and a 20px enemy
+  const lowest = row - 3;
+  if (platforms.some(([r, s, e]) => r > lowest && cols.some((c) => c >= s && c <= e))) {
+    return false;
+  }
+
+  const before = snapshot(result);
+  const resting = (top) => top >= old - 3 && top < old;
+  cols.forEach((c) => (heights[c] = row));
+
+  // the ground's tiles and collisions, in the edge columns and the one beside them
+  const T = TILESETS[data.world] || TILES_A;
+  const next = cols[cols.length - 1] + step;
+  const relay = next >= 0 && next < COLS && heights[next] !== null ? [...cols, next] : cols;
+  relay.forEach((c) => {
+    for (let r = Math.min(old, row); r < ROWS; r++) {
+      if (r < heights[c] && r < Math.max(old, row) && cols.includes(c)) {
+        data.areaMap[r][c] = 0;
+        data.collisonMap[r][c] = "";
+        continue;
+      }
+      if (!solidAt(heights, r, c)) continue;
+      const up = !solidAt(heights, r - 1, c);
+      const left = !solidAt(heights, r, c - 1);
+      const right = !solidAt(heights, r, c + 1);
+      let tile = T.fill;
+      if (up) tile = left && !right ? T.topLeft : right && !left ? T.topRight : T.top;
+      else if (left) tile = T.left;
+      else if (right) tile = T.right;
+      else if (!solidAt(heights, r - 1, c - 1)) tile = T.innerLeft;
+      else if (!solidAt(heights, r - 1, c + 1)) tile = T.innerRight;
+      data.areaMap[r][c] = tile;
+      let col = "";
+      if (up) col += "t";
+      if (left && c > 0) col += "l";
+      if (right && c < COLS - 1) col += "r";
+      data.collisonMap[r][c] = col;
+    }
+  });
+
+  // what stands on that ground moves with it
+  const moved = emptyGrid(0);
+  cols.forEach((c) => {
+    for (let r = 0; r < ROWS; r++) {
+      if (data.objectsMap[r][c] && resting(r)) {
+        moved[r + delta][c] = data.objectsMap[r][c];
+        data.objectsMap[r][c] = 0;
+      }
+    }
+  });
+  moved.forEach((line, r) => line.forEach((v, c) => v && (data.objectsMap[r][c] = v)));
+  [data.coins, data.enemies, data.powerups || []].forEach((list) =>
+    list.forEach((item) => {
+      if (inEdge(item.left) && resting(item.top)) item.top = round(item.top + delta);
+    }),
+  );
+
+  // a pit beside the edge: its coin arc and its water or acid follow its rims, as built
+  const pit = [];
+  for (let c = next; c >= 0 && c < COLS && heights[c] === null; c += step) pit.push(c);
+  const far = pit.length ? pit[pit.length - 1] + step : -1;
+  if (far >= 0 && far < COLS && heights[far] !== null) {
+    const start = Math.min(...pit);
+    const end = Math.max(...pit);
+    const other = heights[far];
+    const rim = Math.min(old, other);
+    const arc = Math.min(row, other) - rim;
+    data.coins.forEach((coin) => {
+      const over = coin.left > start - 0.5 && coin.left < end + 1.5 && !inEdge(coin.left);
+      // the arc runs 1.4 to 2.7 rows above the lower rim (see the coins in buildLevelOnce)
+      if (over && coin.top < rim && coin.top >= rim - 2.8) coin.top = round(coin.top + arc);
+    });
+    const lowerOld = Math.max(old, other);
+    const lowerNew = Math.max(row, other);
+    const wet = (w) => w.left >= start - 1 && w.left <= end + 1;
+    if (data.water && data.water.some(wet)) {
+      data.water = data.water.filter((w) => !wet(w));
+      for (let c = start - 1; c <= end + 1; c++) {
+        for (let t = Math.max(lowerNew, 9); t <= ROWS - 1; t += 0.5)
+          data.water.push({ left: c, top: t });
+      }
+    } else if (pit.some((c) => data.areaMap[ROWS - 1][c] === ACID.body)) {
+      const was = Math.max(lowerOld + 1, 10);
+      const top = Math.max(lowerNew + 1, 10);
+      pit.forEach((c) => {
+        for (let r = Math.min(was, top); r < ROWS; r++) {
+          data.areaMap[r][c] = r < top ? 0 : r === top ? ACID.top : ACID.body;
+        }
+      });
+    }
+  }
+
+  // the edge portal still covers the ground it stands over
+  const portal = data.portals.find((p) => p.direction === (edge === 0 ? -1 : 1));
+  portal.height = row * TILE + 40;
+
+  if (validate(result)) {
+    restore(result, before);
+    return false;
+  }
+  return true;
 }
 
 /** First valid seed from `level.seed`: { data, heights, seed }. */

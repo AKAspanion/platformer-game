@@ -58,6 +58,35 @@ test("the whole campaign, walked through: it cuts only into and out of each worl
   ]);
 });
 
+test("story seams the camera pans across meet: the next level starts where the last ends", () => {
+  /** Rows of the floors (collision tops) in column `col` that `portal` takes the dino through. */
+  const floors = (area, col, portal) =>
+    area.collisonMap
+      .map((line, row) => ((line[col] || "").includes("t") ? row : -1))
+      .filter(
+        (row) => row >= 0 && row * TILE > portal.y && row * TILE <= portal.y + portal.height + TILE,
+      );
+  const heights = new Set();
+  Object.values(areas)
+    .filter((a) => a.id < 100) // the story's areas; modes add theirs from 2000 up
+    .forEach((from) => {
+      const portal = forward(from);
+      const to = areas[portal.destinationArea];
+      if (!to || !joinsSeamlessly(from, to, portal)) return;
+      const back = backward(to);
+      const row = (portal.destinationY + 8) / TILE;
+      const where = `${from.id} -> ${to.id}`;
+      assert.ok(
+        floors(from, from.areaMap[0].length - 1, portal).includes(row),
+        `${where}: ends on row ${row}`,
+      );
+      assert.ok(floors(to, 0, back).includes(row), `${where}: starts on row ${row}`);
+      assert.equal((back.destinationY + 8) / TILE, row, `${where}: back lands on row ${row} too`);
+      heights.add(row);
+    });
+  assert.ok(heights.size >= 3, `seams at varied heights: ${[...heights]}`);
+});
+
 test("a change of world, look or screen size cuts", () => {
   const a = { world: 1, rows: 12, columns: 21, areaMap: [] };
   const portal = { direction: 1 };
