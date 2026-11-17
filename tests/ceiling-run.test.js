@@ -87,14 +87,17 @@ test("a perfect x4 endless run through the World scores exactly endlessScoreCeil
     const level = 3;
     const areas = [];
     let prevExit = 9;
+    const prevLevels = [];
     for (let index = 0; index < level; index++) {
       const { data, exit } = generateEndlessLevel({
         id: 4000 + index,
         seed: seed + index * 7919,
         index,
         prevExit,
+        prevLevels: prevLevels.slice(-2),
       });
       prevExit = exit;
+      prevLevels.push(data);
       areas.push(data);
     }
     const score = perfectRun(areas);

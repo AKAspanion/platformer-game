@@ -2,7 +2,7 @@ import "./env";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { arena, makeWorld, placePlayer, tick, TILE, GROUND } from "./helpers";
-import { JUMP_SPEED } from "../app/game/player";
+import { JUMP_SPEED, WALL_SLIDE_SPEED } from "../app/game/player";
 
 const WALL_COL = 10;
 
@@ -39,7 +39,41 @@ test("pushing into a wall while falling slides down it slowly", () => {
   pushRight(world, 8);
   assert.equal(world.player.wallSliding, true);
   const fell = fallOneTick(world, true);
-  assert.ok(fell > 0 && fell <= 3.1, `fell ${fell} px in a tick`);
+  assert.ok(fell > 0 && fell <= WALL_SLIDE_SPEED + 0.01, `fell ${fell} px in a tick`);
+  // and keeps that pace all the way down
+  for (let i = 0; i < 10; i++) {
+    const step = fallOneTick(world, true);
+    assert.ok(step > 1.5 && step <= WALL_SLIDE_SPEED + 0.01, `fell ${step} px in a tick`);
+  }
+});
+
+test("sliding down a wall: its own pose, facing the wall, tipped back off it", () => {
+  const world = besideWall();
+  const { player } = world;
+  pushRight(world, 8);
+  assert.equal(player.slidingDown, true);
+  assert.equal(player.direction, 1, "facing the wall on the right");
+  assert.equal(player.animator.frameSet, player.frameSets.slideRight);
+  const pose = player.slidePose;
+  assert.ok(pose.lean < 0, "the top tips back, away from the wall");
+  assert.ok(pose.shake <= 0, "and shudders off it, never into it");
+
+  // letting go: a plain fall again
+  for (let i = 0; i < 2; i++) world.update(() => {});
+  assert.equal(player.slidingDown, false);
+  assert.equal(player.slidePose, null);
+  assert.notEqual(player.animator.frameSet, player.frameSets.slideRight);
+});
+
+test("rising past a wall while pushing into it isn't the slide pose", () => {
+  const world = besideWall();
+  const { player } = world;
+  player.velocityY = -10;
+  player.moveRight();
+  world.update(() => {});
+  assert.equal(player.wallSliding, true);
+  assert.equal(player.slidingDown, false);
+  assert.equal(player.slidePose, null);
 });
 
 test("falling beside a wall without pushing into it is a normal fall", () => {

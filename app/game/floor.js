@@ -97,6 +97,11 @@ export const FLOORS = {
 // a bit longer to start and stop. Only on the ground; jumps are unchanged.
 export const SLIPPERY = { friction: 0.91, accel: 0.33 };
 
+// Any other ground grips: let go of left and right (or turn round) and the dino
+// stops within a few px instead of sliding on (ice is the only floor that slips).
+// Running speed and jumps are as they are anywhere.
+export const GRIP = { friction: 0.55 };
+
 /** Px left bare at a run's open end (the tiles' rounded corners). */
 export const EDGE_INSET = 3;
 const TAPER = 6; // px over which strands shorten towards a run's end

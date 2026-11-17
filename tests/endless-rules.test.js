@@ -36,6 +36,7 @@ test("endlessScoreCeiling is stable and covers what endless mode builds", () => 
 
   // build the levels the way createEndlessSession does, under other ids
   let prevExit = 9;
+  const prevLevels = [];
   let possible = 0;
   for (let index = 0; index < 5; index++) {
     const { data, exit } = generateEndlessLevel({
@@ -43,8 +44,10 @@ test("endlessScoreCeiling is stable and covers what endless mode builds", () => 
       seed: seed + index * 7919,
       index,
       prevExit,
+      prevLevels: prevLevels.slice(-2),
     });
     prevExit = exit;
+    prevLevels.push(data);
     possible += data.coins.length * COIN_SCORE + data.enemies.length * ENEMY_MAX_SCORE;
     possible += (data.powerups || []).length * 100;
   }
@@ -56,6 +59,7 @@ test("endlessScoreCeiling is stable and covers what endless mode builds", () => 
 test("endlessScoreCeiling is 4 x (coins and enemies) plus 100 per power-up over levels 1..level", () => {
   const seed = 12345;
   let prevExit = 9;
+  const prevLevels = [];
   let coins = 0;
   let enemies = 0;
   let powerups = 0;
@@ -65,8 +69,10 @@ test("endlessScoreCeiling is 4 x (coins and enemies) plus 100 per power-up over 
       seed: seed + index * 7919,
       index,
       prevExit,
+      prevLevels: prevLevels.slice(-2),
     });
     prevExit = exit;
+    prevLevels.push(data);
     coins += data.coins.length;
     enemies += data.enemies.length;
     powerups += (data.powerups || []).length;

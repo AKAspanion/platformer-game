@@ -866,9 +866,11 @@ export default class World {
         ? player.pushing
         : 0;
     player.touchWall(side);
-    if (side && player.velocityY > 0 && this.areaTicks % 4 === 0) {
+    if (player.slidingDown && player.slideTicks % 3 === 1) {
+      // dust scraped off the wall: from the claws, and now and then the feet
       const x = side > 0 ? player.getRight() : player.getLeft();
-      this.effects.dust(x, player.getCenterY(), 1);
+      this.effects.dust(x, player.getCenterY() - 2, 1);
+      if (player.slideTicks % 6 === 1) this.effects.dust(x, player.getBottom() - 1, 1);
     }
   }
 

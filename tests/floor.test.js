@@ -34,12 +34,36 @@ test("Iceland is the slippery world; the others are not", () => {
   assert.equal(makeWorld(arena()).player.slippery, false);
 });
 
-test("on slippery ground the dino slides a little further, at about the same top speed", () => {
+test("only ice slips: other ground stops the dino short, ice slides it on, at the same top speed", () => {
   const normal = runAndStop(arena());
   const ice = runAndStop(iceArena());
-  assert.ok(ice.slide > normal.slide * 1.2, `slid ${ice.slide} px on ice vs ${normal.slide} px`);
-  assert.ok(ice.slide < normal.slide * 2, `only a little: ${ice.slide} vs ${normal.slide} px`);
+  assert.ok(normal.slide < TILE / 2, `stopped within ${normal.slide} px on firm ground`);
+  assert.ok(ice.slide > TILE * 1.5, `slid ${ice.slide} px on ice`);
   assert.ok(Math.abs(ice.top - normal.top) < 0.3, `top speed ${ice.top} vs ${normal.top}`);
+  // every story world but Iceland stands on firm ground
+  [1, 3, 4, 5].forEach((world) => {
+    const { slide } = runAndStop({ ...arena(), world });
+    assert.ok(slide < TILE / 2, `world ${world}: slid ${slide} px`);
+  });
+});
+
+test("on firm ground, turning round stops the run short too", () => {
+  const world = makeWorld(arena());
+  const { player } = world;
+  tick(world, 1);
+  for (let t = 0; t < 30; t++) {
+    player.moveRight();
+    world.update(() => {});
+  }
+  const from = player.x;
+  let ticks = 0;
+  while (player.velocityX > 0 && ticks < 30) {
+    player.moveLeft();
+    world.update(() => {});
+    ticks++;
+  }
+  assert.ok(ticks <= 4, `turned round in ${ticks} ticks`);
+  assert.ok(player.x - from < TILE / 2, `carried on ${player.x - from} px`);
 });
 
 test("slippery ground doesn't change a jump: in the air the dino moves as anywhere else", () => {

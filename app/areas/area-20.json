@@ -223,7 +223,7 @@
   "powerups": [
     {
       "id": "A20P01",
-      "type": "triple",
+      "type": "shield",
       "left": 5,
       "top": 2
     }

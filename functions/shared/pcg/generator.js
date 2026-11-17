@@ -222,6 +222,51 @@ export function storyDifficulty(areaId) {
 export const WALKERS = ["pig", "slime", "chameleon", "beetle"];
 export const ALL_ENEMIES = [...WALKERS, "bat", "spitter"];
 export const POWERUPS = ["heart", "shield", "triple", "wings"];
+/** Columns kept between two power-ups in a run, where the platforms allow it. */
+export const POWERUP_GAP = 10;
+
+/**
+ * Picks the next power-up's spot (taken out of `spots`, highest rows first) and
+ * kind, given the ones `before` it in the run (`left` in this level's columns:
+ * one in the level before has a negative `left`). It stands at least
+ * POWERUP_GAP columns from all of them, else as far as the platforms allow, and
+ * is never the same kind as the last one placed or one nearby (within two
+ * gaps), unless only those kinds are allowed. Draws two numbers, as a plain
+ * pick does, so the rest of a level is unchanged.
+ */
+export function spreadPowerup(rng, spots, allowed, before = []) {
+  const centre = ([, s, e]) => Math.floor((s + e) / 2);
+  const gap = (spot) => Math.min(...before.map((p) => Math.abs(centre(spot) - p.left)));
+  const far = spots.filter((spot) => gap(spot) >= POWERUP_GAP);
+  const roll = rng();
+  const spot = far.length
+    ? far[Math.floor(roll * Math.min(3, far.length))]
+    : spots.reduce((best, s) => (gap(s) > gap(best) ? s : best));
+  spots.splice(spots.indexOf(spot), 1);
+
+  const last = before.length ? before[before.length - 1].type : null;
+  const near = before.filter((p) => Math.abs(centre(spot) - p.left) < POWERUP_GAP * 2);
+  const avoid = new Set([last, ...near.map((p) => p.type)]);
+  const kinds = [
+    allowed.filter((t) => !avoid.has(t)),
+    allowed.filter((t) => t !== last),
+    allowed,
+  ].find((list) => list.length);
+  return { spot, type: pick(rng, kinds) };
+}
+
+/**
+ * The power-ups of the levels before one in its run (`levels`, oldest first), as
+ * seen from that level (for `powerupsBefore`): the last two levels, so one with
+ * none still has the one before it looked at.
+ */
+export const powerupsBehind = (levels = []) =>
+  levels.slice(-2).flatMap((data, i, list) =>
+    (data.powerups || []).map(({ type, left }) => ({
+      type,
+      left: left - COLS * (list.length - i),
+    })),
+  );
 // Area theme = its music track. Graveyard plays "dungeon", factory plays "lab".
 export const THEMES = { grasslands: 1, iceland: 2, desert: 3, dungeon: 4, lab: 5 };
 
@@ -850,10 +895,13 @@ export function buildLevelOnce(input, seed, dropped) {
       en.shoots = true;
   });
 
-  // Power-ups on top of floating platforms with no enemy on them.
+  // Power-ups on top of floating platforms with no enemy on them, spread out
+  // (see spreadPowerup): never the same kind twice running, and apart from the
+  // one before, in this level or the one it joins on to (`level.powerupsBefore`).
   const powerups = [];
   const allowed = level.boss ? ["heart"] : level.powerups || POWERUPS;
   const count = level.boss ? 1 : (level.powerupCount ?? 1);
+  const before = level.boss ? [] : level.powerupsBefore || [];
   const spots = platforms
     .filter(
       ([r, s, e]) =>
@@ -861,12 +909,12 @@ export function buildLevelOnce(input, seed, dropped) {
     )
     .sort((a, b) => a[0] - b[0]);
   for (let i = 0; i < count && allowed.length && spots.length; i++) {
-    const [r, s, e] = spots.splice(Math.floor(rng() * Math.min(3, spots.length)), 1)[0];
-    const c = Math.floor((s + e) / 2);
+    const { spot, type } = spreadPowerup(rng, spots, allowed, [...before, ...powerups]);
+    const [r, s, e] = spot;
     powerups.push({
       id: `A${String(level.id).padStart(2, "0")}P${String(i + 1).padStart(2, "0")}`,
-      type: pick(rng, allowed),
-      left: c,
+      type,
+      left: Math.floor((s + e) / 2),
       top: r - 1,
     });
   }
@@ -1257,10 +1305,30 @@ function touch(data) {
   data.death.push(...(touches.death || []));
 }
 
+// The power-ups of the hand-made levels the generated ones join on to (Grassland
+// 2-3, Iceland 1-2), as in their files (tests/levels.test.js checks they match).
+export const HAND_MADE_POWERUPS = {
+  2: [{ type: "wings", left: 5 }],
+  3: [{ type: "triple", left: 12 }],
+  7: [{ type: "heart", left: 9 }],
+  8: [{ type: "shield", left: 4 }],
+};
+
 /** Builds every level in LEVELS (first valid seed) and links their portals. */
 export function buildAll() {
   const results = {};
-  LEVELS.forEach((level) => {
+  LEVELS.forEach((input) => {
+    // spread out from the power-ups of the levels before it in the world's run
+    const run = [];
+    for (let id = input.id - 1; run.length < 2; id--) {
+      const prev = results[id]
+        ? results[id].data
+        : HAND_MADE_POWERUPS[id] && { world: input.world, powerups: HAND_MADE_POWERUPS[id] };
+      if (!prev || prev.world !== input.world || prev.boss) break;
+      run.unshift(prev);
+    }
+    const before = powerupsBehind(run);
+    const level = before.length ? { ...input, powerupsBefore: before } : input;
     let result;
     let error;
     let seed = level.seed;
@@ -1323,8 +1391,11 @@ export function generateSequence({ idBase, seed, levels }) {
     const last = i === levels.length - 1;
     // a random seam (the next level starts there); a boss arena is entered at its floor
     const exitRow = last ? 9 : levels[i + 1].boss ? BOSS_FLOOR : seamRow(roll);
+    // a boss arena is a room of its own: its heart needn't keep away from anything
+    const before = spec.boss ? [] : powerupsBehind(areas);
     const result = generateArea({
       ...spec,
+      ...(before.length ? { powerupsBefore: before } : {}),
       id,
       seed: Math.floor(rng() * 1e9),
       difficulty: Math.max(1, Math.min(5, spec.difficulty || 2)),
@@ -1350,11 +1421,14 @@ function arriveStanding(data, row) {
 
 /**
  * One endless-mode level: entered from the left at the height the level before ends
- * (`prevExit`), ending at a random seam the next one starts at.
+ * (`prevExit`), ending at a random seam the next one starts at. Its power-ups keep
+ * apart from those of the levels before it (`prevLevels`, oldest first).
  */
-export function generateEndlessLevel({ id, seed, index, prevExit }) {
+export function generateEndlessLevel({ id, seed, index, prevExit, prevLevels = [] }) {
   const difficulty = Math.min(5, 1 + Math.floor(index / 2));
+  const before = powerupsBehind(prevLevels);
   const result = generateArea({
+    ...(before.length ? { powerupsBefore: before } : {}),
     id,
     seed,
     theme: themeFor(index),

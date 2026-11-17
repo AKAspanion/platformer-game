@@ -2,7 +2,7 @@ import Object from "./object";
 import Animator from "./animator";
 import { SKIN_PALETTES, tintFrames, hatImage } from "./cosmetics";
 import { FREE } from "../shop/catalog";
-import { SLIPPERY } from "./floor";
+import { SLIPPERY, GRIP } from "./floor";
 import { deathPose, deathStyle } from "./death";
 
 export const MAX_HEARTS = 3;
@@ -22,7 +22,7 @@ const JUMP_MIN_TICKS = 1; // ...but not before the first tick, so a tap still cl
 // Wall slide and wall jump: push into a wall in the air to slide down it, jump to
 // leap up and away. Levels never need it (the generator plans with normal jumps);
 // it's for shortcuts, speed and saves.
-export const WALL_SLIDE_SPEED = 1; // fall speed cap while sliding (~3 px a tick)
+export const WALL_SLIDE_SPEED = 2; // px a tick at most while sliding down (a free fall is ~10)
 const WALL_JUMP_SPEED = 16;
 const WALL_JUMP_PUSH = 5; // px a tick away from the wall
 const WALL_GRACE_TICKS = 3; // a wall jump still works ~0.1 s after leaving the wall
@@ -108,6 +108,9 @@ export default class Player extends Object {
       sets[`rise${side}`] = jump.slice(1, 4);
       sets[`fall${side}`] = jump.slice(5, 7);
       sets[`hurt${side}`] = [jump[6]];
+      // on a wall, facing it: feet to the wall, claws scrabbling between two poses
+      // (drawn leaning back off it, see slidePose)
+      sets[`slide${side}`] = [jump[6], jump[7]];
     });
     return sets;
   }
@@ -181,6 +184,7 @@ export default class Player extends Object {
     this.wallGrace = 0;
     this.wallLock = 0;
     this.wallLockDir = 0;
+    this.slideTicks = 0; // ticks sliding down the wall now
 
     // power-ups
     this.shield = false;
@@ -211,6 +215,24 @@ export default class Player extends Object {
     return this.wallDir !== 0;
   }
 
+  /** Sliding down a wall (not still rising up it), and not knocked back. */
+  get slidingDown() {
+    return this.wallDir !== 0 && this.velocityY >= 0 && this.hurtTimer <= 0;
+  }
+
+  /**
+   * How the slide is drawn, or null when not sliding: tipped back off the wall
+   * from its feet (`lean`, radians, more as it gets going) and a little shudder
+   * off it as the claws catch (`shake`, px). Only drawn; the body doesn't move.
+   */
+  get slidePose() {
+    if (!this.slidingDown) return null;
+    const t = this.slideTicks;
+    const lean = -this.wallDir * 0.12 * Math.min(1, t / 5);
+    const shake = t % 4 < 2 ? 0 : -this.wallDir * 0.5;
+    return { lean, shake };
+  }
+
   /**
    * Called by the world every tick after collision: `side` is the wall the player
    * is in the air pushing into (-1 left, 1 right), or 0.
@@ -224,6 +246,7 @@ export default class Player extends Object {
     } else if (this.wallGrace > 0) {
       this.wallGrace -= 1;
     }
+    this.slideTicks = this.slidingDown ? this.slideTicks + 1 : 0;
     this.pushing = 0;
   }
 
@@ -319,6 +342,15 @@ export default class Player extends Object {
     return this.slippery && this.grounded && !this.jumping;
   }
 
+  /**
+   * On firm ground (anything but slippery), not holding the way it is moving:
+   * it stops short rather than sliding on.
+   */
+  get braking() {
+    if (!this.grounded || this.jumping || this.slippery) return false;
+    return Math.sign(this.pushing) !== Math.sign(this.velocityX);
+  }
+
   get runAccel() {
     return this.onSlippery ? SLIPPERY.accel : RUN_ACCEL;
   }
@@ -385,6 +417,8 @@ export default class Player extends Object {
     const speed = Math.abs(this.velocityX);
     if (this.hurtTimer > 0) {
       set("hurt", 4);
+    } else if (this.slidingDown) {
+      set("slide", 5);
     } else if (!this.grounded && this.velocityY < 0) {
       set("rise", 3);
     } else if (!this.grounded && this.velocityY > 2) {
@@ -421,13 +455,18 @@ export default class Player extends Object {
     this.scaleX += (1 - this.scaleX) * 0.3;
     this.scaleY += (1 - this.scaleY) * 0.3;
 
-    // grounded is still last tick's here: on slippery ground the dino slides on
-    const frictionX = this.onSlippery ? SLIPPERY.friction : friction;
+    // grounded is still last tick's here: on slippery ground the dino slides on,
+    // on any other it stops short when let go of (pushing is this tick's input)
+    const frictionX = this.onSlippery ? SLIPPERY.friction : this.braking ? GRIP.friction : friction;
     const accel = this.runAccel;
 
     this.xOld = this.x;
     this.yOld = this.y;
     this.velocityY += gravity;
+    // still pushing into the wall it slid down last tick: it keeps sliding, slowly
+    if (this.wallDir && this.pushing === this.wallDir && this.velocityY > WALL_SLIDE_SPEED) {
+      this.velocityY = WALL_SLIDE_SPEED;
+    }
     this.x += this.velocityX;
     this.y += this.velocityY;
 

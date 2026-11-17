@@ -384,3 +384,100 @@ test("daily, endless, starter worlds and Starfall Peaks have no unreachable plat
   }
   assert.deepEqual(strandedIn(all), []);
 });
+
+// ---- power-ups spread out ----
+
+const { spreadPowerup, POWERUP_GAP, HAND_MADE_POWERUPS, COLS } = generator;
+
+/** A run's power-ups in order, at their column along the run. */
+const powerupsAlong = (list) =>
+  list.flatMap((data, i) => (data.powerups || []).map((p) => ({ ...p, x: i * COLS + p.left })));
+
+test("the hand-made levels' power-ups the generator spreads from match their files", () => {
+  for (const [id, list] of Object.entries(HAND_MADE_POWERUPS)) {
+    assert.deepEqual(
+      areas[id].powerups.map(({ type, left }) => ({ type, left })),
+      list,
+      `${name(Number(id))}`,
+    );
+  }
+});
+
+test("a world's run never has two of the same power-up in a row, and keeps them apart", () => {
+  const worlds = [...new Set(LEVELS.map((l) => l.world))];
+  worlds.forEach((world) => {
+    // the levels join into one run; the boss arena is a room of its own
+    const run = powerupsAlong(
+      LEVELS.filter((l) => l.world === world && !l.boss).map((l) => areas[l.id]),
+    );
+    for (let i = 1; i < run.length; i++) {
+      const [a, b] = [run[i - 1], run[i]];
+      assert.notEqual(a.type, b.type, `${world}: ${a.id} and ${b.id} are both ${a.type}`);
+      assert.ok(b.x - a.x >= POWERUP_GAP, `${world}: ${a.id} and ${b.id} are ${b.x - a.x} apart`);
+    }
+  });
+});
+
+test("generated runs never place the same power-up twice running", () => {
+  const runs = [];
+  for (let seed = 20261101; seed < 20261131; seed++) {
+    runs.push(generateSequence({ idBase: 3000, seed, levels: dailyLevels(seed) }));
+  }
+  for (const seed of [1, 42, 777, 20261111]) {
+    const run = [];
+    let prevExit = 9;
+    for (let index = 0; index < 12; index++) {
+      const out = generateEndlessLevel({
+        id: 5000 + index,
+        seed: seed + index * 7919,
+        index,
+        prevExit,
+        prevLevels: run.slice(-2),
+      });
+      prevExit = out.exit;
+      run.push(out.data);
+    }
+    runs.push(run);
+  }
+  for (const world of starterWorlds()) {
+    const assets = buildWorld(world, { audio: false });
+    // a created world's boss arena is a room of its own
+    const levels = assets.levels.filter((l) => !l.boss);
+    runs.push(generateSequence({ idBase: 4000, seed: assets.seed, levels }));
+  }
+  runs.forEach((run) => {
+    const along = powerupsAlong(run);
+    for (let i = 1; i < along.length; i++) {
+      assert.notEqual(along[i - 1].type, along[i].type, `${along[i - 1].id}, ${along[i].id}`);
+    }
+  });
+});
+
+test("spreadPowerup takes a spot far from the last power-up, and another kind", () => {
+  const before = [{ type: "wings", left: 4 }];
+  for (let roll = 0; roll < 1; roll += 0.1) {
+    const spots = [
+      [3, 3, 5], // right by the wings
+      [4, 15, 17],
+      [5, 6, 8], // 3 columns off
+    ];
+    const rng = () => roll;
+    const { spot, type } = spreadPowerup(
+      rng,
+      spots,
+      ["heart", "shield", "triple", "wings"],
+      before,
+    );
+    assert.deepEqual(spot, [4, 15, 17]);
+    assert.notEqual(type, "wings");
+    assert.equal(spots.length, 2, "the spot is taken");
+  }
+  // nowhere far enough: the farthest; only one kind allowed: that kind
+  const spots = [
+    [3, 3, 5],
+    [5, 7, 9],
+  ];
+  const { spot, type } = spreadPowerup(() => 0, spots, ["wings"], before);
+  assert.deepEqual(spot, [5, 7, 9]);
+  assert.equal(type, "wings");
+});
