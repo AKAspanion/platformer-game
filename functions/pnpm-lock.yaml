@@ -172,8 +172,8 @@ importers:
   .:
     dependencies:
       '@anthropic-ai/sdk':
-        specifier: ^1.8.0
-        version: 1.8.0(zod@4.6.7)
+        specifier: ^1.12.0
+        version: 1.12.0(zod@4.6.7)
       '@google-cloud/functions-framework':
         specifier: ^5.0.5
         version: 5.0.5
@@ -189,8 +189,8 @@ importers:
 
 packages:
 
-  '@anthropic-ai/sdk@1.8.0':
-    resolution: {integrity: sha512-yDOArk2+Qpd/djEKmZjrv7JZ+pn5iBHARJ9PAdvfhGf4H5wNqTgY/2K0/yDKdQdm8G8hrNQchMlBAHpPK7yBfg==}
+  '@anthropic-ai/sdk@1.12.0':
+    resolution: {integrity: sha512-0j9zwiQdkvr90LoiiBDUh7kae1lsNW2EqeE0vGceYne4BrmMDdDVoQ4KGOieUee0zWZbVJKsf/06JY8U5i63Xg==}
     hasBin: true
     peerDependencies:
       zod: ^3.25.0 || ^4.0.0
@@ -1236,7 +1236,7 @@ packages:
 
 snapshots:
 
-  '@anthropic-ai/sdk@1.8.0(zod@4.6.7)':
+  '@anthropic-ai/sdk@1.12.0(zod@4.6.7)':
     dependencies:
       '@opentelemetry/api': 1.10.0
       json-schema-to-ts: 3.1.1
